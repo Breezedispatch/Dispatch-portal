@@ -177,14 +177,13 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
 </div>
 
 <!-- Study Materials content editor -->
-<div id="content-view" style="max-width:900px;margin:0 auto;padding:2rem;">
-  <div class="sm-toolbar">
-    <input class="sm-search" id="sm-search" placeholder="Search text to edit..." oninput="renderContentBlocks()">
-    <select class="sm-section-sel" id="sm-section-sel" onchange="renderContentBlocks()">
-      <option value="">All sections</option>
-    </select>
+<div id="content-view" style="padding:0;">
+  <div class="sm-toolbar" style="max-width:none;margin:0;padding:1rem 2rem;border-bottom:1.5px solid var(--gray);background:var(--white);position:sticky;top:0;z-index:20;">
+    <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--navy);">Live Study Materials</span>
+    <span id="sm-edit-hint" style="font-size:12px;color:var(--ink3);">Click any highlighted text to edit it directly.</span>
+    <span id="sm-load-status" style="font-size:12px;color:var(--ink3);margin-left:auto;">Loading…</span>
   </div>
-  <div id="sm-blocks"><div class="sm-empty" id="sm-loading">Loading study materials...</div></div>
+  <iframe id="sm-frame" style="width:100%;height:calc(100vh - 160px);border:none;display:block;background:#fff;"></iframe>
 </div>
 
 <div class="bar" id="savebar">
@@ -538,27 +537,20 @@ function toast(msg,kind){ const t=document.getElementById('toast'); t.textConten
 window.addEventListener('beforeunload', function(e){ if(dirty || smDirty){ e.preventDefault(); e.returnValue=''; } });
 
 // ════════════════════════════════════════════════════════════════
-//  STUDY MATERIALS CONTENT EDITOR
+//  STUDY MATERIALS — in-place (WYSIWYG) editor via iframe
 // ════════════════════════════════════════════════════════════════
 const SM_PAGE_URL = 'breeze_study_materials.html'; // same repo folder
-const SM_SECTION_NAMES = {
-  'fp-steps':'Flight Planning Guide','release-guide':'Dispatch Release Guide',
-  'release-review':'Release Review','remarks':'Remarks','fpl-guide':'Flight Plan Guide',
-  'wind-decode':'Wind Decode','exemption22897':'Exemption 22897',
-  'intl-supplemental':'Intl Supplemental','checklist':'Checklist',
-  'airport-list':'Airport Codes','section-flashcards':'Section Flashcards'
-};
-let smBlocks = [];        // [{id, section, original, current}]
-let smOverrides = {};     // id -> saved text (from sheet)
 let smLoaded = false;
 let smDirty = false;
+let smOverrides = {};        // id -> saved text (from sheet)
+let smOriginals = {};        // id -> original page text
+let smFrameDoc = null;
 
 function switchMode(mode) {
   document.getElementById('tab-questions').classList.toggle('active', mode==='questions');
   document.getElementById('tab-content').classList.toggle('active', mode==='content');
   document.getElementById('questions-view').style.display = (mode==='questions') ? '' : 'none';
   document.getElementById('content-view').classList.toggle('active', mode==='content');
-  // reset the shared save bar to the right mode
   const bar = document.getElementById('savebar');
   const btn = document.getElementById('save-btn');
   bar.classList.remove('show');
@@ -572,132 +564,112 @@ function switchMode(mode) {
   }
 }
 
-// Fetch overrides from sheet, then fetch + parse the SM page for editable blocks
+// 1) fetch saved overrides, 2) load the page into the iframe, 3) make tagged blocks editable
 function loadStudyMaterials() {
-  // 1) get saved overrides via JSONP
+  document.getElementById('sm-load-status').textContent = 'Loading…';
   jsonp(QUESTIONS_URL + '?mode=content', function(res){
     smOverrides = {};
     if (res && res.status==='ok' && res.content) {
       res.content.forEach(function(r){ if(r.id) smOverrides[r.id] = r.text; });
     }
-    fetchSmPage();
-  }, function(){ fetchSmPage(); });
+    injectFrame();
+  }, function(){ injectFrame(); });
 }
 
-function fetchSmPage() {
+function injectFrame() {
+  const frame = document.getElementById('sm-frame');
   fetch(SM_PAGE_URL + '?t=' + Date.now())
     .then(function(r){ return r.text(); })
     .then(function(html){
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const els = doc.querySelectorAll('[data-sm-edit]');
-      smBlocks = [];
-      els.forEach(function(el){
-        const id = el.getAttribute('data-sm-edit');
-        // find ancestor panel for section name
-        let p = el, panelId = 'general';
-        while (p && p.parentElement) {
-          p = p.parentElement;
-          if (p.id && p.id.indexOf('panel-')===0) { panelId = p.id.replace('panel-',''); break; }
-        }
-        const original = el.textContent.trim();
-        smBlocks.push({
-          id: id,
-          section: SM_SECTION_NAMES[panelId] || 'General',
-          original: original,
-          current: (smOverrides[id] !== undefined && smOverrides[id] !== '') ? smOverrides[id] : original
-        });
-      });
-      smLoaded = true;
-      populateSectionFilter();
-      renderContentBlocks();
+      // Neutralize the page's own override auto-loader so it doesn't race with our editing
+      html = html.replace('loadContentOverrides();', '/* editor: disabled */');
+      // write the page into the iframe so its own CSS/layout renders exactly
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      doc.open(); doc.write(html); doc.close();
+      // wait a tick for it to parse, then wire editing
+      setTimeout(function(){ wireFrameEditing(doc); }, 500);
     })
     .catch(function(){
-      document.getElementById('sm-blocks').innerHTML = '<div class="sm-empty">Could not load study materials page. Make sure breeze_study_materials.html is in the same folder.</div>';
+      document.getElementById('sm-load-status').textContent = 'Could not load page';
     });
 }
 
-function populateSectionFilter() {
-  const sel = document.getElementById('sm-section-sel');
-  const sections = [];
-  smBlocks.forEach(function(b){ if (sections.indexOf(b.section)===-1) sections.push(b.section); });
-  sel.innerHTML = '<option value="">All sections</option>' + sections.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join('');
-}
+function wireFrameEditing(doc) {
+  smFrameDoc = doc;
+  const els = doc.querySelectorAll('[data-sm-edit]');
+  // style for editable highlight + edited state (inject into the iframe)
+  const style = doc.createElement('style');
+  style.textContent =
+    '[data-sm-edit]{outline:1px dashed rgba(14,165,196,.4);outline-offset:2px;cursor:text;transition:background .15s;border-radius:3px;}' +
+    '[data-sm-edit]:hover{background:rgba(14,165,196,.08);}' +
+    '[data-sm-edit]:focus{outline:2px solid #0EA5C4;background:rgba(14,165,196,.12);}' +
+    '[data-sm-edit][data-sm-changed="1"]{background:rgba(14,165,196,.15);outline:1px solid #0EA5C4;}';
+  doc.head.appendChild(style);
 
-function renderContentBlocks() {
-  const wrap = document.getElementById('sm-blocks');
-  const q = (document.getElementById('sm-search').value||'').toLowerCase();
-  const secFilter = document.getElementById('sm-section-sel').value;
-  const groups = {};
-  smBlocks.forEach(function(b, i){
-    if (secFilter && b.section !== secFilter) return;
-    if (q && b.current.toLowerCase().indexOf(q)===-1 && b.original.toLowerCase().indexOf(q)===-1) return;
-    (groups[b.section] = groups[b.section] || []).push(i);
-  });
-  const sections = Object.keys(groups);
-  if (!sections.length) { wrap.innerHTML = '<div class="sm-empty">No matching text blocks.</div>'; return; }
-  let html = '';
-  sections.forEach(function(section){
-    html += '<div class="sm-group-hdr">' + esc(section) + ' (' + groups[section].length + ')</div>';
-    groups[section].forEach(function(i){
-      const b = smBlocks[i];
-      const changed = b.current !== b.original;
-      html += '<div class="sm-block' + (changed?' changed':'') + '" data-i="'+i+'">'
-            + '<textarea oninput="smEdit('+i+',this.value)" rows="'+Math.min(6, Math.ceil(b.current.length/70)+1)+'">'+esc(b.current)+'</textarea>'
-            + '<div class="sm-block-meta"><span class="sm-block-id">'+esc(b.id)+'</span>'
-            + (changed?'<button class="sm-block-revert" onclick="smRevert('+i+')">Revert to original</button>':'<span class="sm-block-id" style="opacity:.5;">unchanged</span>')
-            + '</div></div>';
+  els.forEach(function(el){
+    const id = el.getAttribute('data-sm-edit');
+    smOriginals[id] = el.textContent.trim();
+    // apply any saved override so the editor shows current live state
+    if (smOverrides[id] !== undefined && smOverrides[id] !== '') {
+      el.textContent = smOverrides[id];
+    }
+    el.setAttribute('contenteditable','true');
+    el.addEventListener('input', function(){
+      const now = el.textContent.trim();
+      const base = (smOverrides[id] !== undefined && smOverrides[id] !== '') ? smOverrides[id] : smOriginals[id];
+      el.setAttribute('data-sm-changed', now !== smOriginals[id] ? '1' : '0');
+      smDirty = true;
+      updateSmBar();
     });
+    // prevent clicks inside editable text from triggering the page's own panel/flip handlers
+    el.addEventListener('click', function(e){ e.stopPropagation(); });
   });
-  wrap.innerHTML = html;
+  smLoaded = true;
+  document.getElementById('sm-load-status').textContent = '● Ready to edit';
+  updateSmBar();
 }
 
-function smEdit(i, val) {
-  smBlocks[i].current = val;
-  smDirty = true;
-  updateSmBar();
-  // toggle changed style on this block without full re-render
-  const el = document.querySelector('.sm-block[data-i="'+i+'"]');
-  if (el) el.classList.toggle('changed', smBlocks[i].current !== smBlocks[i].original);
-}
-
-function smRevert(i) {
-  smBlocks[i].current = smBlocks[i].original;
-  smDirty = true;
-  updateSmBar();
-  renderContentBlocks();
+function collectChanges() {
+  if (!smFrameDoc) return [];
+  const out = [];
+  smFrameDoc.querySelectorAll('[data-sm-edit]').forEach(function(el){
+    const id = el.getAttribute('data-sm-edit');
+    const now = el.textContent.trim();
+    if (now !== smOriginals[id]) out.push({ id: id, text: now });
+  });
+  return out;
 }
 
 function updateSmBar() {
-  const changed = smBlocks.filter(function(b){ return b.current !== b.original; }).length;
+  const changes = collectChanges();
   const bar = document.getElementById('savebar');
-  if (document.getElementById('content-view').classList.contains('active') && (changed>0)) {
+  const btn = document.getElementById('save-btn');
+  if (document.getElementById('content-view').classList.contains('active') && changes.length > 0) {
     bar.classList.add('show');
-    document.getElementById('savebar-text').innerHTML = '<span class="dirty">●</span> ' + changed + ' study-materials block' + (changed===1?'':'s') + ' changed';
-    document.getElementById('save-btn').setAttribute('onclick','saveContent()');
-    document.getElementById('save-btn').textContent = 'Save study materials';
+    document.getElementById('savebar-text').innerHTML = '<span class="dirty">●</span> ' + changes.length + ' text block' + (changes.length===1?'':'s') + ' edited';
+    btn.setAttribute('onclick','saveContent()');
+    btn.textContent = 'Save study materials';
   } else if (!dirty) {
     bar.classList.remove('show');
   }
 }
 
 function saveContent() {
-  const changed = smBlocks.filter(function(b){ return b.current !== b.original; });
+  const changes = collectChanges();
+  if (!changes.length) return;
   const btn = document.getElementById('save-btn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  const payload = {
-    action: 'saveContent',
-    content: changed.map(function(b){ return { id:b.id, text:b.current }; })
-  };
-  postData(payload, function(){
+  btn.disabled = true; btn.textContent = 'Saving…';
+  postData({ action:'saveContent', content: changes }, function(){
     btn.disabled = false; btn.textContent = 'Save study materials';
     smDirty = false;
+    // update our saved snapshot so the changed-highlight clears
+    changes.forEach(function(c){ smOverrides[c.id] = c.text; });
+    if (smFrameDoc) smFrameDoc.querySelectorAll('[data-sm-edit]').forEach(function(el){ el.setAttribute('data-sm-changed','0'); });
     document.getElementById('savebar').classList.remove('show');
-    // refresh saved overrides snapshot so originals stay, current reflects saved
-    changed.forEach(function(b){ smOverrides[b.id] = b.current; });
     toast('Study materials saved', 'ok');
-    renderContentBlocks();
   });
 }
+
 
 loadData();
 </script>
