@@ -1315,11 +1315,12 @@ function renderExam() {
         <textarea class="written-input" id="written-${qu.n}" placeholder="Type your answer…" oninput="setWritten(${qu.n}, this.value)">${prior}</textarea>
       </div>`;
     } else {
+      const opts = Array.isArray(qu.options) ? qu.options : [];
       html += `<div class="q-card" id="qcard-${qu.n}">
         <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts</span></div>
         <div class="q-text">${qu.text}</div>
         <div class="options">
-          ${qu.options.map((o,oi) => `<label class="option" id="opt-${qu.n}-${oi}" onclick="selectOpt(${qu.n},${oi})">
+          ${opts.map((o,oi) => `<label class="option" id="opt-${qu.n}-${oi}" onclick="selectOpt(${qu.n},${oi})">
             <span class="opt-letter">${'ABCD'[oi]}</span>
             <span class="opt-text">${o}</span>
           </label>`).join('')}
@@ -1435,10 +1436,11 @@ async function submitExam() {
         if (isWrittenQ(qu)) {
           return { q: qu.n, written: true, selected: writtenAnswers[qu.n] || 'Not answered', correct: '(written — pending grading)', isCorrect: '' };
         }
+        const opts = Array.isArray(qu.options) ? qu.options : [];
         return {
           q: qu.n,
-          selected: examSelected[qu.n] !== undefined ? qu.options[examSelected[qu.n]] : 'Not answered',
-          correct: qu.options[qu.correct],
+          selected: examSelected[qu.n] !== undefined ? opts[examSelected[qu.n]] : 'Not answered',
+          correct: opts[qu.correct],
           isCorrect: results[qu.n].correct
         };
       })
@@ -1505,7 +1507,7 @@ function showResults(score, pass, results) {
         <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${r.correct ? '✓ +' + qu.pts + ' pts' : '✗ 0 pts'}</span></div>
         <div class="q-text">${qu.text}</div>
         <div class="options" style="margin-top:.75rem;">
-          ${qu.options.map((o,oi) => {
+          ${(Array.isArray(qu.options)?qu.options:[]).map((o,oi) => {
             let cls = '';
             if (oi === qu.correct) cls = 'correct-ans';
             else if (oi === r.selected && !r.correct) cls = 'wrong-ans';
