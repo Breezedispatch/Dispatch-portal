@@ -147,6 +147,42 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
 
 @media(max-width:700px){.page{grid-template-columns:1fr;}.sidebar{position:static;}}
 @media(max-width:700px){.page{grid-template-columns:1fr;}.sidebar{position:static;}}
+
+/* Crew Escalation interactive */
+.esc-lead{font-size:14px;line-height:1.7;color:var(--ink2);margin-bottom:1.25rem;}
+.esc-channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:1rem;}
+.esc-chan{text-align:left;background:var(--white);border:1.5px solid var(--gray);border-radius:12px;padding:14px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.esc-chan:hover{border-color:var(--cyan);box-shadow:0 3px 10px rgba(14,165,196,.14);transform:translateY(-1px);}
+.esc-chan-name{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--navy);margin-bottom:5px;}
+.esc-chan-desc{font-size:12px;color:var(--ink3);line-height:1.5;}
+.esc-active-chan{display:inline-block;font-family:'Syne',sans-serif;font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--navy);border-radius:20px;padding:5px 14px;margin-bottom:1rem;}
+.esc-step{background:var(--surface);border-left:3px solid var(--cyan);border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:12px;animation:escIn .25s ease;}
+.esc-step-n{font-family:'Syne',sans-serif;font-weight:800;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:4px;}
+.esc-step-text{font-size:14px;line-height:1.6;color:var(--ink);}
+.esc-decision{background:rgba(14,165,196,.06);border:1.5px solid var(--cyan);border-radius:12px;padding:16px;margin-bottom:12px;animation:escIn .25s ease;}
+.esc-decision-q{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--navy);margin-bottom:12px;}
+.esc-btns{display:flex;gap:10px;}
+.esc-btn{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:9px 22px;border-radius:9px;border:none;cursor:pointer;transition:all .15s;}
+.esc-btn-yes{background:var(--green);color:#fff;}
+.esc-btn-no{background:#B91C1C;color:#fff;}
+.esc-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.esc-next{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:9px 22px;border-radius:9px;border:none;background:var(--cyan);color:#fff;cursor:pointer;}
+.esc-next:hover{filter:brightness(1.08);}
+.esc-end{border-radius:12px;padding:16px 18px;margin-bottom:12px;animation:escIn .25s ease;}
+.esc-end.go{background:var(--green-lt);border:1.5px solid var(--green);}
+.esc-end.stop{background:#FEE2E2;border:1.5px solid #B91C1C;}
+.esc-end.warn{background:#FDF5E0;border:1.5px solid #D4A027;}
+.esc-end-title{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:6px;}
+.esc-end.go .esc-end-title{color:var(--green);}
+.esc-end.stop .esc-end-title{color:#B91C1C;}
+.esc-end.warn .esc-end-title{color:#9a7414;}
+.esc-end-follow{font-size:13px;line-height:1.6;color:var(--ink2);}
+.esc-fallback{margin-top:14px;font-size:12.5px;line-height:1.6;color:var(--ink3);background:var(--surface);border-radius:10px;padding:12px 14px;}
+.esc-fallback strong{color:var(--navy);font-family:'Syne',sans-serif;}
+.esc-restart{margin-top:6px;background:transparent;border:1.5px solid var(--gray);color:var(--navy);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;cursor:pointer;}
+.esc-restart:hover{border-color:var(--cyan);}
+@keyframes escIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
 </style>
 </head>
 <body>
@@ -181,6 +217,11 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
       <button class="sidebar-link" onclick="showPanel('remarks')">Required Remarks</button>
       <button class="sidebar-link" onclick="showPanel('checklist')">Release Checklist</button>
     </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Procedures</div>
+      <button class="sidebar-link" onclick="showPanel('escalation')">&#9888; Crew Escalation</button>
+    </div>
     <div class="sidebar-section">
       <div class="sidebar-label">ATC / Flight Plans</div>
       <button class="sidebar-link" onclick="showPanel('fpl-guide')">ICAO FPL Quick Reference</button>
@@ -200,6 +241,17 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
 
   <!-- Content -->
   <div class="content">
+    <div class="panel" id="panel-escalation">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#9888;</span>
+          <span class="guide-card-title">Crew Escalation Process</span>
+        </div>
+        <div class="guide-card-body">
+          <div id="esc-root"></div>
+        </div>
+      </div>
+    </div>
     <div class="panel" id="panel-section-flashcards">
       <div class="guide-card">
         <div class="guide-card-header">
@@ -1813,6 +1865,155 @@ function loadChecklistFromSheet() {
   document.body.appendChild(s);
   setTimeout(function(){ if(!done) cleanup(); }, 12000);
 }
+
+
+// ── Crew Escalation interactive engine ──
+// Crew Escalation decision flows, transcribed from Breeze Crew Escalation Page 3
+const ESCALATION = {
+  intro: {
+    title: "Crew Escalation Process",
+    lead: "When a PIC raises a concern, the dispatcher and PIC jointly choose an escalation channel. Select the channel that matches the concern to walk through its resolution flow.",
+    channels: [
+      {key:'airworthiness', label:'Airworthiness', desc:'Legality of sign-off, deferral application, or overall AC airworthiness'},
+      {key:'business', label:'Business Smart', desc:'Concern of diversion / getting stuck; legality and safety already ruled out'},
+      {key:'procedural', label:'Procedural', desc:'No active procedure, or conflicting procedures (e.g. conflicting MEL)'},
+      {key:'legality', label:'Dispatch Legality', desc:'Weather legality, performance, MEL limitations, or enroute routing'},
+      {key:'safety', label:'Safety', desc:'Overall safety concern; all other buckets must be vetted and ruled out first'}
+    ]
+  },
+  // Each flow = ordered list of nodes. type: 'step' (click Next) or 'decision' (Yes/No) or 'end'
+  flows: {
+    airworthiness: [
+      {type:'step', text:'Dispatcher notifies bridge (DX Sup, OCC DM).'},
+      {type:'step', text:'OCC DM holds conference with MOC DM, DX, and DX Sup.'},
+      {type:'decision', text:'MOC DM: Is the aircraft airworthy?',
+        yes:{goto:'depart'}, no:{goto:'oos'}},
+      {type:'end', id:'depart', text:'Flight departs.', tone:'go'},
+      {type:'end', id:'oos', text:'Aircraft out of service.', tone:'stop',
+        follow:'CPO & MOC concur whether the AC can be used. If yes, conf call with PIC — MOC DM explains airworthiness. If PIC agrees, flight departs; if not, see escalation fallback.'}
+    ],
+    business: [
+      {type:'step', text:'Dispatcher notifies bridge (DX Sup, OCC DM).'},
+      {type:'step', text:'OCC DM reviews business risk.'},
+      {type:'decision', text:'DM: Is it best to continue the operation?',
+        yes:{goto:'depart'}, no:{goto:'delay'}},
+      {type:'end', id:'depart', text:'Flight departs.', tone:'go'},
+      {type:'end', id:'delay', text:'Implement delay or recovery.', tone:'warn',
+        follow:'OCC DM conf call with DX & PIC to explain rationale and alternate plans. If PIC agrees, proceed; if not, see escalation fallback.'}
+    ],
+    procedural: [
+      {type:'step', text:'Dispatcher notifies bridge (DX Sup, OCC DM).'},
+      {type:'step', text:'OCC DM conferences DX Sup, CPO/Tech Pilot (and MOC DM if warranted).'},
+      {type:'decision', text:'CPO/Tech Pilot: Does an adequate procedure exist?',
+        yes:{goto:'depart'}, no:{goto:'unusable'}},
+      {type:'end', id:'depart', text:'Flight departs.', tone:'go'},
+      {type:'end', id:'unusable', text:'AC unusable in current configuration.', tone:'stop',
+        follow:'OCC DM conf call with DX, CPO/Tech Pilot & PIC to provide guidance. If PIC agrees, proceed; if not, see escalation fallback.'}
+    ],
+    legality: [
+      {type:'step', text:'Dispatcher notifies bridge (DX Sup, OCC DM).'},
+      {type:'step', text:'OCC DM conf call with DX Leader & CPO to determine legality.'},
+      {type:'decision', text:'DX Leadership & CPO: Is the flight legal?',
+        yes:{goto:'depart'}, no:{goto:'nodispatch'}},
+      {type:'end', id:'depart', text:'Flight departs.', tone:'go'},
+      {type:'end', id:'nodispatch', text:"Can't be dispatched.", tone:'stop',
+        follow:'Conf call with PIC — OCC DM, DX Leader, CPO & DX explain legality. If PIC agrees, proceed; if not, see escalation fallback.'}
+    ],
+    safety: [
+      {type:'step', text:'All other buckets vetted; concern confirmed as Safety.'},
+      {type:'step', text:'Dispatcher notifies bridge (DX Sup, OCC DM).'},
+      {type:'step', text:'OCC DM conf call with DX Leader & CPO to evaluate safety.'},
+      {type:'decision', text:'DX, MOC & CPO: Is it safe to operate?',
+        yes:{goto:'depart'}, no:{goto:'nodispatch'}},
+      {type:'end', id:'depart', text:'Flight departs.', tone:'go'},
+      {type:'end', id:'nodispatch', text:"Can't be dispatched.", tone:'stop',
+        follow:'Conf call with PIC — OCC DM, DX Leader, CPO & DX explain safety. If PIC agrees, proceed; if not, see escalation fallback.'}
+    ]
+  },
+  fallback: "If the pilot is not accepting the resolution flow, the DM selects a resolution to enable the flight to depart most expeditiously. The OCC Duty Manager completes a BOSS event to document the escalation."
+};
+
+let escChannel = null;
+let escIdx = 0;
+
+function escEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function escStart(){
+  escChannel = null; escIdx = 0;
+  const root = document.getElementById('esc-root');
+  if (!root) return;
+  let html = '<div class="esc-lead">' + escEsc(ESCALATION.intro.lead) + '</div>';
+  html += '<div class="esc-channels">';
+  ESCALATION.intro.channels.forEach(function(c){
+    html += '<button class="esc-chan" onclick="escPick(\''+c.key+'\')">'
+         + '<div class="esc-chan-name">'+escEsc(c.label)+'</div>'
+         + '<div class="esc-chan-desc">'+escEsc(c.desc)+'</div></button>';
+  });
+  html += '</div>';
+  root.innerHTML = html;
+}
+
+function escPick(key){ escChannel = key; escIdx = 0; escRender(); }
+
+function escRender(){
+  const root = document.getElementById('esc-root');
+  const chan = ESCALATION.intro.channels.find(function(c){return c.key===escChannel;});
+  const flow = ESCALATION.flows[escChannel];
+  let html = '<div class="esc-active-chan">'+escEsc(chan.label)+'</div>';
+  // render revealed nodes up to escIdx (skipping end nodes that aren't the active target)
+  let stepNum = 0;
+  for (let i=0;i<=escIdx && i<flow.length;i++){
+    const node = flow[i];
+    if (node.type==='step'){
+      stepNum++;
+      html += '<div class="esc-step"><div class="esc-step-n">Step '+stepNum+'</div><div class="esc-step-text">'+escEsc(node.text)+'</div></div>';
+    } else if (node.type==='decision'){
+      if (i===escIdx){
+        html += '<div class="esc-decision"><div class="esc-decision-q">'+escEsc(node.text)+'</div>'
+             + '<div class="esc-btns"><button class="esc-btn esc-btn-yes" onclick="escAnswer(\'yes\')">Yes</button>'
+             + '<button class="esc-btn esc-btn-no" onclick="escAnswer(\'no\')">No</button></div></div>';
+      } else {
+        html += '<div class="esc-step"><div class="esc-step-n">Decision</div><div class="esc-step-text">'+escEsc(node.text)+' &mdash; <strong>'+escEsc(escLastAnswer||'')+'</strong></div></div>';
+      }
+    }
+  }
+  // advance button for plain steps
+  const cur = flow[escIdx];
+  if (cur && cur.type==='step' && escIdx < flow.length-1 && flow[escIdx+1] && flow[escIdx+1].type!=='end'){
+    html += '<button class="esc-next" onclick="escAdvance()">Next step &rarr;</button> ';
+  }
+  html += ' <button class="esc-restart" onclick="escStart()">Start over</button>';
+  root.innerHTML = html;
+}
+
+let escLastAnswer = '';
+function escAdvance(){ escIdx++; escRender(); }
+
+function escAnswer(ans){
+  const flow = ESCALATION.flows[escChannel];
+  const node = flow[escIdx];
+  escLastAnswer = ans==='yes' ? 'Yes' : 'No';
+  const target = ans==='yes' ? node.yes.goto : node.no.goto;
+  const end = flow.find(function(n){return n.type==='end' && n.id===target;});
+  escShowEnd(end);
+}
+
+function escShowEnd(end){
+  escRender(); // shows steps + answered decision
+  const root = document.getElementById('esc-root');
+  let html = '<div class="esc-end '+(end.tone||'')+'">'
+    + '<div class="esc-end-title">'+escEsc(end.text)+'</div>'
+    + (end.follow ? '<div class="esc-end-follow">'+escEsc(end.follow)+'</div>' : '')
+    + '</div>';
+  html += '<div class="esc-fallback"><strong>If the pilot does not accept the resolution:</strong> '+escEsc(ESCALATION.fallback)+'</div>';
+  // insert before the restart button
+  const restart = root.querySelector('.esc-restart');
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  while (wrap.firstChild) root.insertBefore(wrap.firstChild, restart);
+}
+
+escStart();
 
 loadAirportsFromSheet();
 loadChecklistFromSheet();
