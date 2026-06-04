@@ -2237,7 +2237,7 @@ document.addEventListener('keydown', function(e){
 });
 
 
-// Drew peek-a-boo — slowly rises to his mouth, then jumps back down
+// Drew peek-a-boo — slowly rises to his mouth, then slowly sinks back down
 (function(){
   var el = document.getElementById('drew-peek');
   if (!el) return;
@@ -2246,8 +2246,8 @@ document.addEventListener('keydown', function(e){
     el.style.transform = 'translateY(58%)';            // up to about his mouth
     var stay = 1400 + Math.random()*1000;              // pause ~1.4-2.4s at the top
     setTimeout(function(){
-      el.style.transition = 'transform .28s cubic-bezier(.55,0,.85,.4)'; // fast drop
-      el.style.transform = 'translateY(105%)';         // jump back down out of view
+      el.style.transition = 'transform 3.4s ease-in';  // slow descent
+      el.style.transform = 'translateY(105%)';         // sink back down out of view
       schedule();
     }, 3400 + stay);                                   // wait for rise to finish + pause
   }
