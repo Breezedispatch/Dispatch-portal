@@ -317,7 +317,7 @@ function buildQuizList() {
       const count = allQuestions.filter(x => x.quizId === q.id).length;
       html += '<div class="qlist-item' + (q.id===currentId?' active':'') + '" draggable="true" data-id="' + esc(q.id) + '" data-section="' + esc(section) + '">'
             + '<div class="qi-name"><span class="qi-grip" title="Drag to reorder">&#9776;</span>' + esc(q.name) + '</div>'
-            + '<div class="qi-meta">' + esc(q.mod) + ' &middot; ' + (q.type==='test'?'Test':'KC') + ' &middot; ' + count + ' Qs</div>'
+            + '<div class="qi-meta">' + esc(q.mod) + ' &middot; ' + (q.type==='test'?'Test':(q.type==='practice'?'Practice':'KC')) + ' &middot; ' + count + ' Qs</div>'
             + '<button class="qi-del" data-del="' + esc(q.id) + '" title="Delete quiz">&times;</button>'
             + '</div>';
     });
@@ -489,7 +489,7 @@ function renderEditor() {
   let html = '<div class="meta-card"><div class="meta-grid">'
     + field('Quiz name','name',m.name,'full')
     + field('Module label','mod',m.mod)
-    + selectField('Type','type',m.type,[['kc','Knowledge Check'],['test','Test / Final']])
+    + selectField('Type','type',m.type,[['kc','Knowledge Check'],['test','Test / Final'],['practice','Practice']])
     + field('Subtitle','sub',m.sub,'full')
     + field('Section','section',m.section)
     + field('Pass mark (%)','passMark',m.passMark,'','number')
