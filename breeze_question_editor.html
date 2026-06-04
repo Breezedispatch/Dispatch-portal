@@ -133,6 +133,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
 .qcard-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;}
 .qcard-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#fff;background:var(--navy);border-radius:6px;padding:3px 10px;}
 .qcard-ctrls{display:flex;gap:6px;align-items:center;}
+.qkind-sel{padding:4px 8px;border:1.5px solid var(--gray);border-radius:7px;font-size:12px;font-family:'Instrument Sans',sans-serif;background:#fff;color:var(--navy);cursor:pointer;}
 .opt-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
 .opt-letter{font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:var(--ink3);width:18px;text-align:center;flex-shrink:0;}
 .opt-row input[type=text]{flex:1;padding:7px 10px;border:1.5px solid var(--gray);border-radius:7px;font-size:13px;font-family:'Instrument Sans',sans-serif;}
@@ -452,9 +453,18 @@ function selectQuiz(id) {
   const meta = allQuizzes.find(q => q.id === id);
   const qs = allQuestions.filter(q => q.quizId === id)
     .sort((a,b)=>(Number(a.n)||0)-(Number(b.n)||0))
-    .map(q => ({ n:Number(q.n), pts:Number(q.pts), text:q.text||'',
-      options:[q.optionA||'',q.optionB||'',q.optionC||'',q.optionD||''],
-      correct: LETTERS.indexOf(String(q.correct||'A').trim().toUpperCase()), cite:q.cite||'' }));
+    .map(q => {
+      const model = (q.model != null ? String(q.model) : '').trim();
+      const isWritten = model.length > 0;
+      return {
+        n:Number(q.n), pts:Number(q.pts), text:q.text||'',
+        kind: isWritten ? 'written' : 'mc',
+        options:[q.optionA||'',q.optionB||'',q.optionC||'',q.optionD||''],
+        correct: Math.max(0, LETTERS.indexOf(String(q.correct||'A').trim().toUpperCase())),
+        model: model,
+        cite:q.cite||''
+      };
+    });
   working = { quiz: Object.assign({}, meta), questions: qs };
   dirty = false;
   buildQuizList();
@@ -503,23 +513,35 @@ function selectField(label,key,val,opts){
     + '</select></div>'; }
 
 function questionCard(q,i){
-  let opts='';
-  for (let oi=0; oi<4; oi++){
-    opts += '<div class="opt-row'+(q.correct===oi?' correct':'')+'">'
-      + '<span class="opt-letter">'+LETTERS[oi]+'</span>'
-      + '<input type="text" value="'+esc(q.options[oi])+'" oninput="setOpt('+i+','+oi+',this.value)" placeholder="Option '+LETTERS[oi]+'">'
-      + '<label class="opt-radio"><input type="radio" name="correct'+i+'" '+(q.correct===oi?'checked':'')+' onchange="setCorrect('+i+','+oi+')">correct</label>'
-      + '</div>';
+  const isWritten = q.kind === 'written';
+  let body = '';
+  if (isWritten) {
+    body = '<div class="field full"><label>Model answer (used for grading reference)</label>'
+      + '<textarea oninput="setModel('+i+',this.value)" placeholder="Enter the model / ideal answer…">'+esc(q.model||'')+'</textarea></div>';
+  } else {
+    let opts='';
+    for (let oi=0; oi<4; oi++){
+      opts += '<div class="opt-row'+(q.correct===oi?' correct':'')+'">'
+        + '<span class="opt-letter">'+LETTERS[oi]+'</span>'
+        + '<input type="text" value="'+esc(q.options[oi])+'" oninput="setOpt('+i+','+oi+',this.value)" placeholder="Option '+LETTERS[oi]+'">'
+        + '<label class="opt-radio"><input type="radio" name="correct'+i+'" '+(q.correct===oi?'checked':'')+' onchange="setCorrect('+i+','+oi+')">correct</label>'
+        + '</div>';
+    }
+    body = '<div style="margin-top:.6rem;">'+opts+'</div>';
   }
   return '<div class="qcard">'
     + '<div class="qcard-top"><span class="qcard-num">Q'+q.n+'</span>'
     + '<div class="qcard-ctrls">'
+    + '<select class="qkind-sel" onchange="setKind('+i+',this.value)" title="Question type">'
+    +   '<option value="mc"'+(!isWritten?' selected':'')+'>Multiple choice</option>'
+    +   '<option value="written"'+(isWritten?' selected':'')+'>Written answer</option>'
+    + '</select>'
     + '<button class="btn btn-sm" onclick="moveQ('+i+',-1)" title="Move up">↑</button>'
     + '<button class="btn btn-sm" onclick="moveQ('+i+',1)" title="Move down">↓</button>'
     + '<button class="btn btn-sm btn-danger" onclick="delQ('+i+')">Delete</button>'
     + '</div></div>'
     + '<div class="field full"><label>Question text</label><textarea oninput="setText('+i+',this.value)">'+esc(q.text)+'</textarea></div>'
-    + '<div style="margin-top:.6rem;">'+opts+'</div>'
+    + body
     + '<div class="row2">'
     + '<div class="field"><label>Points</label><input type="number" value="'+q.pts+'" oninput="setPts('+i+',this.value)"></div>'
     + '<div class="field"><label>Citation / reference</label><input type="text" value="'+esc(q.cite)+'" oninput="setCite('+i+',this.value)"></div>'
@@ -535,6 +557,18 @@ function setOpt(i,oi,v){ working.questions[i].options[oi]=v; markDirty(); }
 function setCorrect(i,oi){ working.questions[i].correct=oi; markDirty(); refreshCard(i); }
 function setPts(i,v){ working.questions[i].pts=Number(v)||0; markDirty(); }
 function setCite(i,v){ working.questions[i].cite=v; markDirty(); }
+function setModel(i,v){ working.questions[i].model=v; markDirty(); }
+function setKind(i,v){
+  const q = working.questions[i];
+  q.kind = (v === 'written') ? 'written' : 'mc';
+  if (q.kind === 'written') {
+    if (typeof q.model !== 'string') q.model = '';
+  } else {
+    if (!Array.isArray(q.options)) q.options = ['','','',''];
+    if (typeof q.correct !== 'number') q.correct = 0;
+  }
+  markDirty(); refreshCard(i);
+}
 
 function refreshCard(i){
   const cards = document.querySelectorAll('#qcards .qcard');
@@ -543,7 +577,7 @@ function refreshCard(i){
 
 function addQuestion(){
   const nextN = working.questions.length ? Math.max.apply(null,working.questions.map(q=>q.n))+1 : 1;
-  working.questions.push({ n:nextN, pts:10, text:'', options:['','','',''], correct:0, cite:'' });
+  working.questions.push({ n:nextN, pts:10, text:'', kind:'mc', options:['','','',''], correct:0, model:'', cite:'' });
   markDirty(); renderEditor();
 }
 function delQ(i){ if(!confirm('Delete Q'+working.questions[i].n+'?'))return; working.questions.splice(i,1); markDirty(); renderEditor(); }
@@ -562,16 +596,30 @@ function saveCurrentQuiz(){
   // validate
   for (const q of working.questions){
     if(!q.text.trim()){ toast('A question is missing its text','err'); return; }
+    if(q.kind === 'written'){
+      if(!(q.model||'').trim()){ toast('Q'+q.n+' (written) needs a model answer','err'); return; }
+    } else {
+      const filled = q.options.filter(o=>(o||'').trim()).length;
+      if(filled < 2){ toast('Q'+q.n+' needs at least two options','err'); return; }
+    }
   }
   const btn=document.getElementById('save-btn'); btn.disabled=true; btn.textContent='Saving…';
   const payload = {
     action:'saveQuiz',
     quiz: working.quiz,
-    questions: working.questions.map(q=>({
-      quizId: working.quiz.id, n:q.n, pts:q.pts, text:q.text,
-      optionA:q.options[0], optionB:q.options[1], optionC:q.options[2], optionD:q.options[3],
-      correct: LETTERS[q.correct]||'A', cite:q.cite
-    }))
+    questions: working.questions.map(q=>{
+      const written = q.kind === 'written';
+      return {
+        quizId: working.quiz.id, n:q.n, pts:q.pts, text:q.text,
+        optionA: written ? '' : (q.options[0]||''),
+        optionB: written ? '' : (q.options[1]||''),
+        optionC: written ? '' : (q.options[2]||''),
+        optionD: written ? '' : (q.options[3]||''),
+        correct: written ? '' : (LETTERS[q.correct]||'A'),
+        model: written ? (q.model||'') : '',
+        cite:q.cite
+      };
+    })
   };
   postData(payload, function(){
     btn.disabled=false; btn.textContent='Save to sheet';

@@ -287,6 +287,8 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 .option.correct-ans .opt-letter{background:var(--green);color:#fff;}
 .option.wrong-ans .opt-letter{background:var(--red);color:#fff;}
 .opt-text{font-size:13.5px;line-height:1.55;color:var(--ink2);}
+.written-input{width:100%;margin-top:.75rem;padding:11px 13px;border:1.5px solid var(--gray);border-radius:10px;font-size:14px;font-family:'Open Sans',sans-serif;line-height:1.6;color:var(--ink2);min-height:120px;resize:vertical;outline:none;transition:border-color .15s;}
+.written-input:focus{border-color:var(--blue);}
 .submit-wrap{margin:2rem 0;}
 .submit-card{background:var(--navy);border-radius:12px;padding:2rem;text-align:center;}
 .submit-card h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:.4rem;}
@@ -960,12 +962,16 @@ function buildQuizzesFromSheet(quizRows, questionRows) {
   questionRows.forEach(function(q){
     const quiz = byId[q.quizId];
     if (!quiz) return;
+    const model = (q.model != null ? String(q.model) : '').trim();
+    const written = model.length > 0;
     quiz.questions.push({
       n: Number(q.n) || (quiz.questions.length + 1),
       pts: Number(q.pts) || 10,
       text: q.text || '',
       options: [q.optionA||'', q.optionB||'', q.optionC||'', q.optionD||''],
       correct: Math.max(0, LETTERS.indexOf(String(q.correct||'A').trim().toUpperCase())),
+      model: model,
+      written: written,
       cite: q.cite || ''
     });
   });
@@ -1252,6 +1258,7 @@ function startQuiz(qid) {
   if (!quiz) return;
   currentQuiz  = quiz;
   examSelected = {};
+  window._examWritten = {};
   examResults  = null;
   document.getElementById('exam-topbar-title').textContent = currentQuiz.mod + ' — ' + currentQuiz.name;
   updateExamProgress();
@@ -1299,16 +1306,25 @@ function renderExam() {
       <div id="exam-questions">`;
 
   q.questions.forEach((qu, i) => {
-    html += `<div class="q-card" id="qcard-${qu.n}">
-      <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts</span></div>
-      <div class="q-text">${qu.text}</div>
-      <div class="options">
-        ${qu.options.map((o,oi) => `<label class="option" id="opt-${qu.n}-${oi}" onclick="selectOpt(${qu.n},${oi})">
-          <span class="opt-letter">${'ABCD'[oi]}</span>
-          <span class="opt-text">${o}</span>
-        </label>`).join('')}
-      </div>
-    </div>`;
+    if (isWrittenQ(qu)) {
+      const prior = (window._examWritten && window._examWritten[qu.n]) || '';
+      html += `<div class="q-card" id="qcard-${qu.n}">
+        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts · Written</span></div>
+        <div class="q-text">${qu.text}</div>
+        <textarea class="written-input" id="written-${qu.n}" placeholder="Type your answer…" oninput="setWritten(${qu.n}, this.value)">${prior}</textarea>
+      </div>`;
+    } else {
+      html += `<div class="q-card" id="qcard-${qu.n}">
+        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts</span></div>
+        <div class="q-text">${qu.text}</div>
+        <div class="options">
+          ${qu.options.map((o,oi) => `<label class="option" id="opt-${qu.n}-${oi}" onclick="selectOpt(${qu.n},${oi})">
+            <span class="opt-letter">${'ABCD'[oi]}</span>
+            <span class="opt-text">${o}</span>
+          </label>`).join('')}
+        </div>
+      </div>`;
+    }
   });
 
   html += `</div>
@@ -1324,6 +1340,22 @@ function renderExam() {
   content.innerHTML = html;
 }
 
+// A question is "written" if it has a model answer and no real multiple-choice options.
+function isWrittenQ(qu) {
+  if (qu.written === true) return true;
+  const hasModel = qu.model && String(qu.model).trim().length > 0;
+  const realOpts = Array.isArray(qu.options) && qu.options.filter(o => (o||'').trim()).length >= 2;
+  return !!hasModel && !realOpts;
+}
+
+function setWritten(qn, val) {
+  if (!window._examWritten) window._examWritten = {};
+  window._examWritten[qn] = val;
+  const card = document.getElementById('qcard-' + qn);
+  if (card) { if (val.trim()) card.classList.add('answered'); else card.classList.remove('answered'); }
+  updateExamProgress();
+}
+
 function selectOpt(qn, oi) {
   examSelected[qn] = oi;
   document.querySelectorAll(`[id^="opt-${qn}-"]`).forEach(e => e.classList.remove('selected'));
@@ -1335,7 +1367,10 @@ function selectOpt(qn, oi) {
 function updateExamProgress() {
   if (!currentQuiz) return;
   const total = currentQuiz.totalQuestions;
-  const done  = Object.keys(examSelected).length;
+  const w = window._examWritten || {};
+  let writtenDone = 0;
+  currentQuiz.questions.forEach(qu => { if (isWrittenQ(qu) && (w[qu.n]||'').trim()) writtenDone++; });
+  const done  = Object.keys(examSelected).length + writtenDone;
   const pct   = total > 0 ? Math.round(done/total*100) : 0;
   document.getElementById('exam-prog-fill').style.width = pct + '%';
   document.getElementById('exam-prog-count').textContent = done + ' / ' + total;
@@ -1343,20 +1378,39 @@ function updateExamProgress() {
 
 async function submitExam() {
   const q = currentQuiz;
-  const ua = q.questions.length - Object.keys(examSelected).length;
+  const written = window._examWritten || {};
+  // Count unanswered across both MC and written
+  let answeredCount = 0;
+  q.questions.forEach(qu => {
+    if (isWrittenQ(qu)) { if ((written[qu.n]||'').trim()) answeredCount++; }
+    else if (examSelected[qu.n] !== undefined) answeredCount++;
+  });
+  const ua = q.questions.length - answeredCount;
   if (ua > 0 && !confirm(ua + ' question' + (ua>1?'s are':' is') + ' unanswered. Submit anyway?')) return;
 
   let earned = 0;
-  let totalPts = 0;
+  let totalPts = 0;          // only auto-graded (MC) points count toward the score
+  let writtenCount = 0;
   const results = {};
+  const writtenAnswers = {};
   q.questions.forEach(qu => {
-    totalPts += qu.pts;
-    const a = examSelected[qu.n];
-    const correct = a !== undefined && a === qu.correct;
-    if (correct) earned += qu.pts;
-    results[qu.n] = { selected: a, correct };
+    if (isWrittenQ(qu)) {
+      writtenCount++;
+      writtenAnswers[qu.n] = (written[qu.n] || '');
+      results[qu.n] = { written: true, answer: writtenAnswers[qu.n], model: qu.model || '' };
+    } else {
+      totalPts += qu.pts;
+      const a = examSelected[qu.n];
+      const correct = a !== undefined && a === qu.correct;
+      if (correct) earned += qu.pts;
+      results[qu.n] = { selected: a, correct };
+    }
   });
 
+  // Persist written answers for instructor grading
+  if (writtenCount > 0) saveSAAnswers(currentUser, q.id, writtenAnswers);
+
+  // Score reflects MC questions; if a quiz is entirely written, score is pending (0 until graded)
   const pct = totalPts > 0 ? Math.round(earned / totalPts * 100) : 0;
   examResults = results;
   const pass = pct >= PASS_THRESHOLD;
@@ -1371,16 +1425,22 @@ async function submitExam() {
       first: currentUserFirst, last: currentUserLast, id: currentUser,
       date: new Date().toISOString().slice(0,10),
       score: pct, pass: pass ? 'Pass' : 'Fail',
-      correct: q.questions.filter(qu => results[qu.n].correct).length,
-      total: q.questions.length,
+      correct: q.questions.filter(qu => !isWrittenQ(qu) && results[qu.n].correct).length,
+      total: q.questions.filter(qu => !isWrittenQ(qu)).length,
+      writtenPending: writtenCount,
       exam: q.mod + ' — ' + q.name,
       submittedAt: new Date().toISOString(),
-      answers: q.questions.map(qu => ({
-        q: qu.n,
-        selected: examSelected[qu.n] !== undefined ? qu.options[examSelected[qu.n]] : 'Not answered',
-        correct: qu.options[qu.correct],
-        isCorrect: results[qu.n].correct
-      }))
+      answers: q.questions.map(qu => {
+        if (isWrittenQ(qu)) {
+          return { q: qu.n, written: true, selected: writtenAnswers[qu.n] || 'Not answered', correct: '(written — pending grading)', isCorrect: '' };
+        }
+        return {
+          q: qu.n,
+          selected: examSelected[qu.n] !== undefined ? qu.options[examSelected[qu.n]] : 'Not answered',
+          correct: qu.options[qu.correct],
+          isCorrect: results[qu.n].correct
+        };
+      })
     };
     await new Promise(resolve => {
       const form = document.createElement('form');
@@ -1400,8 +1460,15 @@ async function submitExam() {
 
 function showResults(score, pass, results) {
   const q = currentQuiz;
-  const correct = q.questions.filter(qu => results[qu.n].correct).length;
+  const mcQuestions = q.questions.filter(qu => !isWrittenQ(qu));
+  const writtenQuestions = q.questions.filter(qu => isWrittenQ(qu));
+  const correct = mcQuestions.filter(qu => results[qu.n] && results[qu.n].correct).length;
+  const incorrect = mcQuestions.length - correct;
   const content = document.getElementById('exam-content');
+
+  const writtenNote = writtenQuestions.length
+    ? `<div class="result-sub" style="margin-top:.5rem;">${writtenQuestions.length} written ${writtenQuestions.length>1?'answers':'answer'} submitted for instructor grading. Score shown reflects multiple-choice questions only.</div>`
+    : '';
 
   let html = `<div class="wrap">
     <div class="result-banner ${pass ? 'pass' : 'fail'}">
@@ -1409,10 +1476,11 @@ function showResults(score, pass, results) {
       <div class="result-verdict">${pass ? 'PASS' : 'FAIL'}</div>
       <div class="result-score">${score} / 100</div>
       <div class="result-sub">${currentUser} &nbsp;·&nbsp; ${new Date().toLocaleDateString()}</div>
+      ${writtenNote}
       <div class="result-meta">
         <div class="rmeta"><div class="rmeta-val">${correct}</div><div class="rmeta-lbl">Correct</div></div>
-        <div class="rmeta"><div class="rmeta-val">${q.questions.length - correct}</div><div class="rmeta-lbl">Incorrect</div></div>
-        <div class="rmeta"><div class="rmeta-val">${score}%</div><div class="rmeta-lbl">Score</div></div>
+        <div class="rmeta"><div class="rmeta-val">${incorrect}</div><div class="rmeta-lbl">Incorrect</div></div>
+        <div class="rmeta"><div class="rmeta-val">${score}%</div><div class="rmeta-lbl">MC Score</div></div>
       </div>
     </div>
     <div class="result-actions">
@@ -1422,23 +1490,33 @@ function showResults(score, pass, results) {
     <div class="review-title">Question review — with correct answers</div>`;
 
   q.questions.forEach(qu => {
-    const r = results[qu.n];
-    html += `<div class="q-card ${r.correct ? 'correct' : 'incorrect'}" style="margin-bottom:.75rem;">
-      <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${r.correct ? '✓ +' + qu.pts + ' pts' : '✗ 0 pts'}</span></div>
-      <div class="q-text">${qu.text}</div>
-      <div class="options" style="margin-top:.75rem;">
-        ${qu.options.map((o,oi) => {
-          let cls = '';
-          if (oi === qu.correct) cls = 'correct-ans';
-          else if (oi === r.selected && !r.correct) cls = 'wrong-ans';
-          return `<div class="option ${cls}" style="cursor:default;">
-            <span class="opt-letter">${'ABCD'[oi]}</span>
-            <span class="opt-text">${o}${oi===qu.correct?' <strong>(correct)</strong>':''}${oi===r.selected&&!r.correct?' <em>(your answer)</em>':''}</span>
-          </div>`;
-        }).join('')}
-      </div>
-      ${qu.cite ? '<div class="q-cite">📄 ' + qu.cite + '</div>' : ''}
-    </div>`;
+    const r = results[qu.n] || {};
+    if (isWrittenQ(qu)) {
+      html += `<div class="q-card" style="margin-bottom:.75rem;">
+        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">Written · pending grading</span></div>
+        <div class="q-text">${qu.text}</div>
+        <div class="grade-model" style="margin-top:.75rem;"><strong>Your answer:</strong><br>${(r.answer && r.answer.trim()) ? r.answer.replace(/</g,'&lt;') : '<em>Not answered</em>'}</div>
+        ${qu.model ? '<div class="grade-model"><strong>Model answer:</strong> ' + qu.model + '</div>' : ''}
+        ${qu.cite ? '<div class="q-cite">📄 ' + qu.cite + '</div>' : ''}
+      </div>`;
+    } else {
+      html += `<div class="q-card ${r.correct ? 'correct' : 'incorrect'}" style="margin-bottom:.75rem;">
+        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${r.correct ? '✓ +' + qu.pts + ' pts' : '✗ 0 pts'}</span></div>
+        <div class="q-text">${qu.text}</div>
+        <div class="options" style="margin-top:.75rem;">
+          ${qu.options.map((o,oi) => {
+            let cls = '';
+            if (oi === qu.correct) cls = 'correct-ans';
+            else if (oi === r.selected && !r.correct) cls = 'wrong-ans';
+            return `<div class="option ${cls}" style="cursor:default;">
+              <span class="opt-letter">${'ABCD'[oi]}</span>
+              <span class="opt-text">${o}${oi===qu.correct?' <strong>(correct)</strong>':''}${oi===r.selected&&!r.correct?' <em>(your answer)</em>':''}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        ${qu.cite ? '<div class="q-cite">📄 ' + qu.cite + '</div>' : ''}
+      </div>`;
+    }
   });
 
   html += `</div>`;
@@ -1795,6 +1873,9 @@ function saveSAGrades(uid, grades) {
 }
 function getSAAnswers(uid, quizId) {
   try { return JSON.parse(localStorage.getItem('bz_sa_answers_' + uid + '_' + quizId) || '{}'); } catch(e) { return {}; }
+}
+function saveSAAnswers(uid, quizId, answers) {
+  try { localStorage.setItem('bz_sa_answers_' + uid + '_' + quizId, JSON.stringify(answers)); } catch(e) {}
 }
 
 function openGrading(uid, quizId) {
