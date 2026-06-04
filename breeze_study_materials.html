@@ -2237,23 +2237,39 @@ document.addEventListener('keydown', function(e){
 });
 
 
-// Drew peek-a-boo — slowly rises to his mouth, then slowly sinks back down
+// Drew peek-a-boo — slowly rises to his mouth, holds, then slowly sinks and disappears
 (function(){
   var el = document.getElementById('drew-peek');
   if (!el) return;
-  function peek(){
-    el.style.transition = 'transform 3.4s ease-out';  // slow rise
+  var busy = false;
+
+  function rise(){
+    busy = true;
+    el.style.transition = 'transform 3.4s ease-out';
     el.style.transform = 'translateY(58%)';            // up to about his mouth
-    var stay = 1400 + Math.random()*1000;              // pause ~1.4-2.4s at the top
-    setTimeout(function(){
-      el.style.transition = 'transform 3.4s ease-in';  // slow descent
-      el.style.transform = 'translateY(105%)';         // sink back down out of view
-      schedule();
-    }, 3400 + stay);                                   // wait for rise to finish + pause
   }
+  function sink(){
+    el.style.transition = 'transform 3.4s ease-in';
+    el.style.transform = 'translateY(105%)';           // back down, out of view
+  }
+
+  // Drive the next step off the actual end of each transition (robust vs. timer throttling)
+  el.addEventListener('transitionend', function(){
+    if (!busy) return;
+    if (el.style.transform.indexOf('58%') !== -1) {
+      // finished rising -> hold, then sink
+      var hold = 1400 + Math.random()*1000;
+      setTimeout(sink, hold);
+    } else {
+      // finished sinking -> done, schedule next appearance
+      busy = false;
+      schedule();
+    }
+  });
+
   function schedule(){
     var wait = 18000 + Math.random()*22000;            // next peek in ~18-40s
-    setTimeout(function(){ if(!document.hidden) peek(); else schedule(); }, wait);
+    setTimeout(function(){ rise(); }, wait);
   }
   schedule();
 })();
