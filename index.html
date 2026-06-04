@@ -130,7 +130,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 
 
 /* ── Home screen ── */
-.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-bottom:2rem;}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;margin-bottom:2rem;}
 .home-card{background:var(--white);border:2px solid var(--gray);border-radius:20px;padding:2rem 1.75rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;display:flex;flex-direction:column;}
 .home-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--navy),var(--blue));opacity:0;transition:opacity .2s;pointer-events:none;}
 .home-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:0 12px 32px rgba(26,95,180,.15);}
@@ -139,6 +139,9 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 .home-card-icon,.home-card-title,.home-card-sub,.home-card-arrow{position:relative;z-index:1;}
 .home-card-study::before{background:linear-gradient(135deg,#1A5A3A,#22A05A);}
 .home-card-study:hover{border-color:#22A05A;box-shadow:0 12px 32px rgba(34,160,90,.15);}
+.home-card-practice::before{background:linear-gradient(135deg,#B0285A,#F0457A);}
+.home-card-practice:hover{border-color:#F0457A;box-shadow:0 12px 32px rgba(240,69,122,.15);}
+.home-card-practice .home-card-arrow{color:#F0457A;}
 .home-card-icon{font-size:36px;margin-bottom:1rem;}
 .home-card-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy);margin-bottom:.6rem;transition:color .2s;}
 .home-card-sub{font-size:13px;color:var(--ink3);line-height:1.6;flex:1;transition:color .2s;}
@@ -426,6 +429,12 @@ tbody tr:hover td{background:#FAFAF7;}
         <div class="home-card-sub">Reference guides, module notes, and training resources. Coming soon.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
+      <div class="home-card home-card-practice" onclick="showPortalSection('practice')">
+        <div class="home-card-icon">&#9998;</div>
+        <div class="home-card-title">Practice Scenarios &amp; Worksheets</div>
+        <div class="home-card-sub">Hands-on dispatch scenarios, fuel and weather worksheets, and practice exercises. Coming soon.</div>
+        <div class="home-card-arrow">&#8594;</div>
+      </div>
     </div>
 
     <!-- Quiz / test content (hidden until card clicked) -->
@@ -442,6 +451,12 @@ tbody tr:hover td{background:#FAFAF7;}
         <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy);margin-bottom:.5rem;">Study Materials</div>
         <div style="font-size:14px;color:var(--ink3);max-width:400px;margin:0 auto;">Reference guides, module notes, and training resources will be available here. Check back soon.</div>
       </div>
+    </div>
+
+    <!-- Practice Scenarios & Worksheets (hidden until card clicked) -->
+    <div id="portal-practice" style="display:none;">
+      <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
+      <div id="practice-section-container"></div>
     </div>
   </div>
 </div>
@@ -1138,9 +1153,14 @@ function renderPortal() {
 function showPortalSection(tab) {
   document.getElementById('portal-home').style.display = 'none';
   document.getElementById('portal-study').style.display = 'none';
+  document.getElementById('portal-content').style.display = 'none';
+  document.getElementById('portal-practice').style.display = 'none';
   if (tab === 'study') {
-    document.getElementById('portal-content').style.display = 'none';
     document.getElementById('portal-study').style.display = 'block';
+  } else if (tab === 'practice') {
+    if (!window._practiceTab) window._practiceTab = 'kc';
+    renderPractice();
+    document.getElementById('portal-practice').style.display = 'block';
   } else {
     window._portalTab = tab;
     renderPortal();
@@ -1152,6 +1172,81 @@ function showPortalHome() {
   document.getElementById('portal-home').style.display = 'grid';
   document.getElementById('portal-content').style.display = 'none';
   document.getElementById('portal-study').style.display = 'none';
+  document.getElementById('portal-practice').style.display = 'none';
+}
+
+function setPracticeTab(tab) {
+  window._practiceTab = tab;
+  renderPractice();
+}
+
+// ── Render Practice Scenarios & Worksheets (placeholder content) ───────────────
+function renderPractice() {
+  if (!window._practiceTab) window._practiceTab = 'kc';
+  const activeTab = window._practiceTab;
+
+  // Placeholder items per sub-section. Replace these with real content later.
+  const PRACTICE = {
+    kc: [
+      {mod:'Scenario 1', name:'Fuel Planning Walkthrough', sub:'Placeholder — practice knowledge check coming soon'},
+      {mod:'Scenario 2', name:'Alternate Selection Drill', sub:'Placeholder — practice knowledge check coming soon'}
+    ],
+    test: [
+      {mod:'Worksheet A', name:'Weather Minimums Worksheet', sub:'Placeholder — practice test coming soon'},
+      {mod:'Worksheet B', name:'MEL/CDL Application Worksheet', sub:'Placeholder — practice test coming soon'}
+    ],
+    study: [
+      {mod:'Reference', name:'Scenario Library', sub:'Placeholder — practice study materials coming soon'}
+    ]
+  };
+
+  const tabMeta = [
+    {key:'kc',    label:'&#9642; Knowledge Checks'},
+    {key:'test',  label:'&#9654; Tests &amp; Finals'},
+    {key:'study', label:'&#128218; Study Materials'}
+  ];
+
+  let html = `<div class="tab-bar">`;
+  tabMeta.forEach(t => {
+    const items = PRACTICE[t.key] || [];
+    html += `<button class="tab-btn ${activeTab===t.key?'active':''}" onclick="setPracticeTab('${t.key}')">
+      ${t.label} <span class="tab-count">${items.length}</span>
+    </button>`;
+  });
+  html += `</div>`;
+
+  const items = PRACTICE[activeTab] || [];
+  const sectionLabel = activeTab === 'kc' ? 'Practice Knowledge Checks'
+                     : activeTab === 'test' ? 'Practice Tests & Finals'
+                     : 'Practice Study Materials';
+
+  html += `<div class="quiz-section-group">
+    <div class="module-section-label">${sectionLabel}</div>
+    <div class="quiz-grid">`;
+
+  if (!items.length) {
+    html += `<div class="qc-sub" style="padding:1rem;">Placeholder content coming soon.</div>`;
+  } else {
+    items.forEach(it => {
+      html += `<div class="quiz-card">
+        <div class="qc-mod">${it.mod}</div>
+        <div class="qc-name">${it.name}</div>
+        <div class="qc-sub">${it.sub}</div>
+        <div class="qc-meta">
+          <span class="qc-badge">Placeholder</span>
+          <span class="qc-score pending">Not available yet</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">
+          <span class="type-badge type-kc">&#9998; Practice</span>
+          <button class="start-btn" disabled style="opacity:.5;cursor:not-allowed;">&#9654; Coming soon</button>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div></div>`;
+
+  const container = document.getElementById('practice-section-container');
+  if (container) container.innerHTML = html;
 }
 
 function setPortalTab(tab) {
