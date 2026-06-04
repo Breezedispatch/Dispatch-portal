@@ -106,6 +106,46 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
 .ap-card-city{font-size:12px;color:var(--ink3);margin-top:2px;}
 .ap-card-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--blue-lt);color:var(--blue);padding:2px 7px;border-radius:4px;}
 
+/* ── Section Flashcards ─────────────────────────────────────────── */
+.sf-crumbs{font-size:12px;color:var(--ink3);margin-bottom:1rem;min-height:18px;}
+.sf-crumbs .sf-crumb{cursor:pointer;color:var(--blue);font-weight:600;}
+.sf-crumbs .sf-crumb:hover{text-decoration:underline;}
+.sf-crumbs .sf-sep{margin:0 7px;color:var(--gray-dk);}
+.sf-tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
+.sf-tile{background:var(--white);border:1.5px solid var(--gray);border-radius:12px;padding:18px 18px;cursor:pointer;transition:all .15s;text-align:left;}
+.sf-tile:hover{border-color:var(--cyan);box-shadow:0 2px 8px rgba(14,165,196,.12);transform:translateY(-2px);}
+.sf-tile-eyebrow{font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan);margin-bottom:7px;}
+.sf-tile-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--navy);margin-bottom:5px;}
+.sf-tile-meta{font-size:12px;color:var(--ink3);}
+.sf-view{display:none;}
+.sf-view.active{display:block;}
+.sf-deck-header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:1rem;}
+.sf-deck-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--navy);}
+.sf-progress{font-size:12px;color:var(--ink3);}
+.sf-progress strong{color:var(--blue);}
+.sf-card-stage{perspective:1200px;margin:0 auto 1rem;max-width:560px;}
+.sf-card{position:relative;width:100%;min-height:230px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.8,.2,1);cursor:pointer;}
+.sf-card.flipped{transform:rotateY(180deg);}
+.sf-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:14px;padding:32px 28px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
+.sf-face-label{position:absolute;top:14px;left:18px;font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;}
+.sf-face-text{font-size:20px;font-weight:600;line-height:1.45;font-family:'Plus Jakarta Sans',sans-serif;}
+.sf-face-front{background:var(--navy);color:#fff;}
+.sf-face-front .sf-face-label{color:var(--cyan);}
+.sf-face-back{background:var(--blue);color:#fff;transform:rotateY(180deg);}
+.sf-face-back .sf-face-label{color:var(--blue-lt);}
+.sf-tap-hint{margin-top:14px;font-size:10px;opacity:.55;letter-spacing:.05em;}
+.sf-controls{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:.75rem;}
+.sf-known{border-color:var(--green)!important;color:var(--green)!important;}
+.sf-known:hover:not(:disabled){background:var(--green)!important;color:#fff!important;}
+.sf-btn-dim:disabled{opacity:.35;cursor:not-allowed;}
+.sf-deck-footer{text-align:center;}
+.sf-reset-link{background:none;border:none;color:var(--ink3);font-size:12px;cursor:pointer;text-decoration:underline;padding:4px 8px;}
+.sf-reset-link:hover{color:var(--navy);}
+.sf-finished{text-align:center;padding:36px 20px;}
+.sf-finished h3{font-family:'Syne',sans-serif;font-size:18px;color:var(--navy);margin-bottom:8px;}
+.sf-finished p{font-size:13px;color:var(--ink3);margin-bottom:1rem;}
+
+@media(max-width:700px){.page{grid-template-columns:1fr;}.sidebar{position:static;}}
 @media(max-width:700px){.page{grid-template-columns:1fr;}.sidebar{position:static;}}
 </style>
 </head>
@@ -129,6 +169,11 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
       <div class="sidebar-label">Flight Planning</div>
       <button class="sidebar-link active" onclick="showPanel('fp-steps')">Step-by-Step Guide</button>
     </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Study Decks</div>
+      <button class="sidebar-link" onclick="showPanel('section-flashcards')">&#9636; Section Flashcards</button>
+    </div>
+    <div class="sidebar-section">
     <div class="sidebar-section">
       <div class="sidebar-label">Dispatch Release</div>
       <button class="sidebar-link" onclick="showPanel('release-guide')">Release Explanation Guide</button>
@@ -155,13 +200,59 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
 
   <!-- Content -->
   <div class="content">
+    <div class="panel" id="panel-section-flashcards">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#9636;</span>
+          <span class="guide-card-title">Section Flashcards</span>
+        </div>
+        <div class="guide-card-body">
+          <div class="sf-crumbs" id="sf-crumbs"></div>
+
+          <div class="sf-view active" id="sf-view-sections">
+            <p style="font-size:13.5px;color:var(--ink2);line-height:1.6;margin-bottom:1.25rem;">Quick-recall flashcards organized by training section, then module, then topic. Click a tile to drill in.</p>
+            <div class="sf-tile-grid" id="sf-section-grid"></div>
+          </div>
+
+          <div class="sf-view" id="sf-view-modules">
+            <div class="sf-tile-grid" id="sf-module-grid"></div>
+          </div>
+
+          <div class="sf-view" id="sf-view-categories">
+            <div class="sf-tile-grid" id="sf-category-grid"></div>
+          </div>
+
+          <div class="sf-view" id="sf-view-deck">
+            <div class="sf-deck-header">
+              <button class="ap-btn" onclick="sfGoToCategories()">&larr; Categories</button>
+              <span class="sf-deck-title" id="sf-deck-title">Deck</span>
+              <span class="sf-progress" id="sf-progress">Card <strong>1</strong> of <strong>1</strong></span>
+            </div>
+            <div class="sf-card-stage" id="sf-card-stage">
+              <div class="sf-card" id="sf-card" onclick="sfFlip()">
+                <div class="sf-face sf-face-front"><span class="sf-face-label">Term</span><span class="sf-face-text" id="sf-front-text">&mdash;</span><span class="sf-tap-hint">Tap card to reveal</span></div>
+                <div class="sf-face sf-face-back"><span class="sf-face-label">Definition</span><span class="sf-face-text" id="sf-back-text">&mdash;</span><span class="sf-tap-hint">Tap to flip back</span></div>
+              </div>
+            </div>
+            <div class="sf-controls" id="sf-controls">
+              <button class="ap-btn sf-btn-dim" id="sf-prev-btn" onclick="sfPrev()">&larr; Previous</button>
+              <button class="ap-btn sf-known sf-btn-dim" id="sf-known-btn" onclick="sfMarkKnown()">&#10003; Got it</button>
+              <button class="ap-btn" onclick="sfShuffle()">&#8644; Shuffle</button>
+              <button class="ap-btn-primary sf-btn-dim" id="sf-next-btn" onclick="sfNext()">Next &rarr;</button>
+            </div>
+            <div class="sf-deck-footer"><button class="sf-reset-link" onclick="sfResetKnown()">Reset "Got it" cards in this deck</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- ── FLIGHT PLANNING STEPS ── -->
     <div class="panel active" id="panel-fp-steps">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
-          <span class="guide-card-title">Flight Planning — Step-by-Step Guide</span>
+          <span class="guide-card-title" data-sm-edit="sm0001">Flight Planning — Step-by-Step Guide</span>
         </div>
         <div class="guide-card-body">
           <div class="step-group">
@@ -226,10 +317,10 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#128196;</span>
-          <span class="guide-card-title">Dispatch Release Explanation Guide</span>
+          <span class="guide-card-title" data-sm-edit="sm0002">Dispatch Release Explanation Guide</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;">Click each page to view full size. Numbers on the images correspond to the reference table below.</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;" data-sm-edit="sm0003">Click each page to view full size. Numbers on the images correspond to the reference table below.</p>
           
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:2rem;">
             <div>
@@ -251,55 +342,55 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
               </a>
             </div>
           </div>
-          <p style="font-size:12px;color:var(--ink3);margin-bottom:1.5rem;font-style:italic;">&#128269; Click any image to open full size in a new tab.</p>
+          <p style="font-size:12px;color:var(--ink3);margin-bottom:1.5rem;font-style:italic;" data-sm-edit="sm0004">&#128269; Click any image to open full size in a new tab.</p>
 
           <table class="ref-table">
-            <thead><tr><th>#</th><th>Field</th><th>Description</th></tr></thead>
+            <thead><tr><th>#</th><th data-sm-edit="sm0005">Field</th><th data-sm-edit="sm0006">Description</th></tr></thead>
             <tbody>
-              <tr><td><span class="ref-num">1</span></td><td>Flight / Airline / Type</td><td>Flight Number, Airline Code (MXY), Statement of type of flight (IFR)</td></tr>
-              <tr><td><span class="ref-num">2</span></td><td>Origin / Dest / Alt / Tkof Alt / ETD / ETA</td><td>Origin, Destination, 1st Destination Alternate (additional alternates in alternate summary box), Takeoff Alternate, ETD, ETA</td></tr>
-              <tr><td><span class="ref-num">3</span></td><td>Aircraft</td><td>Aircraft Type / Aircraft Registration Number</td></tr>
-              <tr><td><span class="ref-num">4</span></td><td>Dispatcher / RAIM</td><td>Dispatcher Name, Time &amp; Date of Computation / PASS = RAIM Check passed</td></tr>
-              <tr><td><span class="ref-num">5</span></td><td>Revision / FP ID / Groups / Phone</td><td>Revision Number (increments by 1 per computation) / Unique Flight Plan ID / Desk assigned / IOCC Phone Number</td></tr>
-              <tr><td><span class="ref-num">6</span></td><td>Crew</td><td>List of all crew names</td></tr>
-              <tr><td><span class="ref-num">7</span></td><td>High Minimums</td><td>High Minimums Captain designator</td></tr>
-              <tr><td><span class="ref-num">8</span></td><td>Remarks</td><td>Remarks section</td></tr>
-              <tr><td><span class="ref-num">9</span></td><td>MEL / CDL</td><td>Applied MELs and/or CDLs</td></tr>
-              <tr><td><span class="ref-num">10</span></td><td>ATC Strip</td><td>1. Filed IFR FPL, flight type (I=IFR, S=Scheduled) &nbsp; 2. Equipment type, wake turbulence category, equipment codes (S=VHF/VOR/ILS, D=DME, G=GPS, I=IRU, W=RVSM, E3=ACARS/PDC, R=PBN, E=Mode S/ACID/Alt, B2=1090MHz) &nbsp; 3. Departure / ETD &nbsp; 4. KTAS / Filed Alt / Route &nbsp; 5. Destination / ETE / Alternate. Plus PBN section, DOF, REG, SELCAL.</td></tr>
-              <tr><td><span class="ref-num">11</span></td><td>Route Summary</td><td>Filed Route Summary</td></tr>
-              <tr><td><span class="ref-num">12</span></td><td>CI / FL</td><td>Cost Index / Filed Flight Level</td></tr>
-              <tr><td><span class="ref-num">13</span></td><td>Avg Wind / ISA</td><td>Average wind and ISA deviations used in planning</td></tr>
-              <tr><td><span class="ref-num">14</span></td><td>Fuel Bias / PFACT</td><td>Fuel bias and/or factor to account for increased burn</td></tr>
-              <tr><td><span class="ref-num">15</span></td><td>MIN TO (MINTO)</td><td>FAR 121.639 minimum fuel for takeoff — includes enroute burn, alternate (most distant), holding, contingency, ballast, and reserve. Also called "Above-the-line Fuel"</td></tr>
-              <tr><td><span class="ref-num">16</span></td><td>Extra Fuel</td><td>Additional fuel not designated as required fuel</td></tr>
-              <tr><td><span class="ref-num">17</span></td><td>RAMP / REMF</td><td>Planned Ramp (block out) fuel weight &amp; time endurance / Planned remaining arrival fuel weight &amp; time endurance</td></tr>
-              <tr><td><span class="ref-num">18</span></td><td>ZFW Burn</td><td>Additional trip fuel burn associated with 1,000 lb increase in ZFW</td></tr>
-              <tr><td><span class="ref-num">19</span></td><td>Payload / MFL</td><td>Planned Payload / Maximum planned flight level</td></tr>
-              <tr><td><span class="ref-num">20</span></td><td>DIST</td><td>Straight-line distance (DIST) / Total distance in nautical air miles</td></tr>
-              <tr><td><span class="ref-num">21</span></td><td>BOW</td><td>Basic Operating Weight</td></tr>
-              <tr><td><span class="ref-num">22</span></td><td>Payload / ZFW</td><td>Planned Payload / Planned Zero Fuel Weight</td></tr>
-              <tr><td><span class="ref-num">23</span></td><td>TOF</td><td>Planned takeoff fuel weight and time endurance</td></tr>
-              <tr><td><span class="ref-num">24</span></td><td>TOGW / Burn / LDGW</td><td>Planned Takeoff Weight / Planned trip burn / Planned Landing Weight</td></tr>
-              <tr><td><span class="ref-num">25</span></td><td>MZFW</td><td>Maximum zero fuel weight</td></tr>
-              <tr><td><span class="ref-num">26</span></td><td>MTOW</td><td>Maximum takeoff weight (lower of structural or operational)</td></tr>
-              <tr><td><span class="ref-num">27</span></td><td>MLDW</td><td>Maximum landing weight (lower of structural or operational)</td></tr>
-              <tr><td><span class="ref-num">28</span></td><td>WPT / FRQ</td><td>Waypoint name or identifier / Frequency change</td></tr>
-              <tr><td><span class="ref-num">29</span></td><td>LAT/LONG / RTE / MORA</td><td>Latitude &amp; Longitude / Route Identifier / MORA for this flight segment</td></tr>
-              <tr><td><span class="ref-num">30</span></td><td>MC / MH</td><td>Magnetic Course / Magnetic Heading</td></tr>
-              <tr><td><span class="ref-num">31</span></td><td>DIST / TC</td><td>Distance of this flight leg / True Course</td></tr>
-              <tr><td><span class="ref-num">32</span></td><td>TAS / GS</td><td>True Air Speed / Ground Speed</td></tr>
-              <tr><td><span class="ref-num">33</span></td><td>DV / WS</td><td>ISA Deviation / Wind Shear (higher number = rougher air)</td></tr>
-              <tr><td><span class="ref-num">34</span></td><td>LEG-T / TOT-T</td><td>Leg Time / Total Time</td></tr>
-              <tr><td><span class="ref-num">35</span></td><td>ETA / ATA</td><td>Estimated Time of Arrival / Actual Time of Arrival</td></tr>
-              <tr><td><span class="ref-num">36</span></td><td>FL</td><td>Flight Level</td></tr>
-              <tr><td><span class="ref-num">37</span></td><td>TEMP / WIND/COMP</td><td>Temperature / Wind direction and speed / Wind component</td></tr>
-              <tr><td><span class="ref-num">38</span></td><td>PFRM / AFRM</td><td>Planned Fuel Remaining / Actual Fuel Remaining</td></tr>
-              <tr><td><span class="ref-num">39</span></td><td>Escape Routes — TIME</td><td>Time in mins to alternate via escape routing</td></tr>
-              <tr><td><span class="ref-num">40</span></td><td>Escape Routing</td><td>Routing towards escape alternate</td></tr>
-              <tr><td><span class="ref-num">41</span></td><td>Destination Alternate</td><td>Destination Alternate Airport</td></tr>
-              <tr><td><span class="ref-num">42–48</span></td><td>Alternate Summary</td><td>GMA / Mileage / True track / Wind component / FL / Trip time / Fuel burn to alternate</td></tr>
-              <tr><td><span class="ref-num">52–53</span></td><td>Wind Summary</td><td>Wind summary — Waypoint name / Flight level of report</td></tr>
-              <tr><td><span class="ref-num">54</span></td><td>Signature</td><td>Fit for duty / Dispatch Release signature (Captain + FO)</td></tr>
+              <tr><td><span class="ref-num">1</span></td><td data-sm-edit="sm0007">Flight / Airline / Type</td><td data-sm-edit="sm0008">Flight Number, Airline Code (MXY), Statement of type of flight (IFR)</td></tr>
+              <tr><td><span class="ref-num">2</span></td><td data-sm-edit="sm0009">Origin / Dest / Alt / Tkof Alt / ETD / ETA</td><td data-sm-edit="sm0010">Origin, Destination, 1st Destination Alternate (additional alternates in alternate summary box), Takeoff Alternate, ETD, ETA</td></tr>
+              <tr><td><span class="ref-num">3</span></td><td data-sm-edit="sm0011">Aircraft</td><td data-sm-edit="sm0012">Aircraft Type / Aircraft Registration Number</td></tr>
+              <tr><td><span class="ref-num">4</span></td><td data-sm-edit="sm0013">Dispatcher / RAIM</td><td data-sm-edit="sm0014">Dispatcher Name, Time &amp; Date of Computation / PASS = RAIM Check passed</td></tr>
+              <tr><td><span class="ref-num">5</span></td><td data-sm-edit="sm0015">Revision / FP ID / Groups / Phone</td><td data-sm-edit="sm0016">Revision Number (increments by 1 per computation) / Unique Flight Plan ID / Desk assigned / IOCC Phone Number</td></tr>
+              <tr><td><span class="ref-num">6</span></td><td data-sm-edit="sm0017">Crew</td><td data-sm-edit="sm0018">List of all crew names</td></tr>
+              <tr><td><span class="ref-num">7</span></td><td data-sm-edit="sm0019">High Minimums</td><td data-sm-edit="sm0020">High Minimums Captain designator</td></tr>
+              <tr><td><span class="ref-num">8</span></td><td data-sm-edit="sm0021">Remarks</td><td data-sm-edit="sm0022">Remarks section</td></tr>
+              <tr><td><span class="ref-num">9</span></td><td data-sm-edit="sm0023">MEL / CDL</td><td data-sm-edit="sm0024">Applied MELs and/or CDLs</td></tr>
+              <tr><td><span class="ref-num">10</span></td><td data-sm-edit="sm0025">ATC Strip</td><td data-sm-edit="sm0026">1. Filed IFR FPL, flight type (I=IFR, S=Scheduled) &nbsp; 2. Equipment type, wake turbulence category, equipment codes (S=VHF/VOR/ILS, D=DME, G=GPS, I=IRU, W=RVSM, E3=ACARS/PDC, R=PBN, E=Mode S/ACID/Alt, B2=1090MHz) &nbsp; 3. Departure / ETD &nbsp; 4. KTAS / Filed Alt / Route &nbsp; 5. Destination / ETE / Alternate. Plus PBN section, DOF, REG, SELCAL.</td></tr>
+              <tr><td><span class="ref-num">11</span></td><td data-sm-edit="sm0027">Route Summary</td><td data-sm-edit="sm0028">Filed Route Summary</td></tr>
+              <tr><td><span class="ref-num">12</span></td><td data-sm-edit="sm0029">CI / FL</td><td data-sm-edit="sm0030">Cost Index / Filed Flight Level</td></tr>
+              <tr><td><span class="ref-num">13</span></td><td data-sm-edit="sm0031">Avg Wind / ISA</td><td data-sm-edit="sm0032">Average wind and ISA deviations used in planning</td></tr>
+              <tr><td><span class="ref-num">14</span></td><td data-sm-edit="sm0033">Fuel Bias / PFACT</td><td data-sm-edit="sm0034">Fuel bias and/or factor to account for increased burn</td></tr>
+              <tr><td><span class="ref-num">15</span></td><td data-sm-edit="sm0035">MIN TO (MINTO)</td><td data-sm-edit="sm0036">FAR 121.639 minimum fuel for takeoff — includes enroute burn, alternate (most distant), holding, contingency, ballast, and reserve. Also called "Above-the-line Fuel"</td></tr>
+              <tr><td><span class="ref-num">16</span></td><td data-sm-edit="sm0037">Extra Fuel</td><td data-sm-edit="sm0038">Additional fuel not designated as required fuel</td></tr>
+              <tr><td><span class="ref-num">17</span></td><td data-sm-edit="sm0039">RAMP / REMF</td><td data-sm-edit="sm0040">Planned Ramp (block out) fuel weight &amp; time endurance / Planned remaining arrival fuel weight &amp; time endurance</td></tr>
+              <tr><td><span class="ref-num">18</span></td><td data-sm-edit="sm0041">ZFW Burn</td><td data-sm-edit="sm0042">Additional trip fuel burn associated with 1,000 lb increase in ZFW</td></tr>
+              <tr><td><span class="ref-num">19</span></td><td data-sm-edit="sm0043">Payload / MFL</td><td data-sm-edit="sm0044">Planned Payload / Maximum planned flight level</td></tr>
+              <tr><td><span class="ref-num">20</span></td><td data-sm-edit="sm0045">DIST</td><td data-sm-edit="sm0046">Straight-line distance (DIST) / Total distance in nautical air miles</td></tr>
+              <tr><td><span class="ref-num">21</span></td><td data-sm-edit="sm0047">BOW</td><td data-sm-edit="sm0048">Basic Operating Weight</td></tr>
+              <tr><td><span class="ref-num">22</span></td><td data-sm-edit="sm0049">Payload / ZFW</td><td data-sm-edit="sm0050">Planned Payload / Planned Zero Fuel Weight</td></tr>
+              <tr><td><span class="ref-num">23</span></td><td data-sm-edit="sm0051">TOF</td><td data-sm-edit="sm0052">Planned takeoff fuel weight and time endurance</td></tr>
+              <tr><td><span class="ref-num">24</span></td><td data-sm-edit="sm0053">TOGW / Burn / LDGW</td><td data-sm-edit="sm0054">Planned Takeoff Weight / Planned trip burn / Planned Landing Weight</td></tr>
+              <tr><td><span class="ref-num">25</span></td><td data-sm-edit="sm0055">MZFW</td><td data-sm-edit="sm0056">Maximum zero fuel weight</td></tr>
+              <tr><td><span class="ref-num">26</span></td><td data-sm-edit="sm0057">MTOW</td><td data-sm-edit="sm0058">Maximum takeoff weight (lower of structural or operational)</td></tr>
+              <tr><td><span class="ref-num">27</span></td><td data-sm-edit="sm0059">MLDW</td><td data-sm-edit="sm0060">Maximum landing weight (lower of structural or operational)</td></tr>
+              <tr><td><span class="ref-num">28</span></td><td data-sm-edit="sm0061">WPT / FRQ</td><td data-sm-edit="sm0062">Waypoint name or identifier / Frequency change</td></tr>
+              <tr><td><span class="ref-num">29</span></td><td data-sm-edit="sm0063">LAT/LONG / RTE / MORA</td><td data-sm-edit="sm0064">Latitude &amp; Longitude / Route Identifier / MORA for this flight segment</td></tr>
+              <tr><td><span class="ref-num">30</span></td><td data-sm-edit="sm0065">MC / MH</td><td data-sm-edit="sm0066">Magnetic Course / Magnetic Heading</td></tr>
+              <tr><td><span class="ref-num">31</span></td><td data-sm-edit="sm0067">DIST / TC</td><td data-sm-edit="sm0068">Distance of this flight leg / True Course</td></tr>
+              <tr><td><span class="ref-num">32</span></td><td data-sm-edit="sm0069">TAS / GS</td><td data-sm-edit="sm0070">True Air Speed / Ground Speed</td></tr>
+              <tr><td><span class="ref-num">33</span></td><td data-sm-edit="sm0071">DV / WS</td><td data-sm-edit="sm0072">ISA Deviation / Wind Shear (higher number = rougher air)</td></tr>
+              <tr><td><span class="ref-num">34</span></td><td data-sm-edit="sm0073">LEG-T / TOT-T</td><td data-sm-edit="sm0074">Leg Time / Total Time</td></tr>
+              <tr><td><span class="ref-num">35</span></td><td data-sm-edit="sm0075">ETA / ATA</td><td data-sm-edit="sm0076">Estimated Time of Arrival / Actual Time of Arrival</td></tr>
+              <tr><td><span class="ref-num">36</span></td><td data-sm-edit="sm0077">FL</td><td data-sm-edit="sm0078">Flight Level</td></tr>
+              <tr><td><span class="ref-num">37</span></td><td data-sm-edit="sm0079">TEMP / WIND/COMP</td><td data-sm-edit="sm0080">Temperature / Wind direction and speed / Wind component</td></tr>
+              <tr><td><span class="ref-num">38</span></td><td data-sm-edit="sm0081">PFRM / AFRM</td><td data-sm-edit="sm0082">Planned Fuel Remaining / Actual Fuel Remaining</td></tr>
+              <tr><td><span class="ref-num">39</span></td><td data-sm-edit="sm0083">Escape Routes — TIME</td><td data-sm-edit="sm0084">Time in mins to alternate via escape routing</td></tr>
+              <tr><td><span class="ref-num">40</span></td><td data-sm-edit="sm0085">Escape Routing</td><td data-sm-edit="sm0086">Routing towards escape alternate</td></tr>
+              <tr><td><span class="ref-num">41</span></td><td data-sm-edit="sm0087">Destination Alternate</td><td data-sm-edit="sm0088">Destination Alternate Airport</td></tr>
+              <tr><td><span class="ref-num">42–48</span></td><td data-sm-edit="sm0089">Alternate Summary</td><td data-sm-edit="sm0090">GMA / Mileage / True track / Wind component / FL / Trip time / Fuel burn to alternate</td></tr>
+              <tr><td><span class="ref-num">52–53</span></td><td data-sm-edit="sm0091">Wind Summary</td><td data-sm-edit="sm0092">Wind summary — Waypoint name / Flight level of report</td></tr>
+              <tr><td><span class="ref-num">54</span></td><td data-sm-edit="sm0093">Signature</td><td data-sm-edit="sm0094">Fit for duty / Dispatch Release signature (Captain + FO)</td></tr>
             </tbody>
           </table>
         </div>
@@ -311,7 +402,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#128270;</span>
-          <span class="guide-card-title">Thorough Release Review Guide</span>
+          <span class="guide-card-title" data-sm-edit="sm0095">Thorough Release Review Guide</span>
         </div>
         <div class="guide-card-body">
 
@@ -341,7 +432,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
             <div class="step-list">
               <div class="step-item"><span class="step-num">&#9642;</span><div><div class="step-text">Dispatcher is responsible to ensure MEL/CDL limitations are not contradictory to any 14 CFR, Company policies, NOTAMs, TFRs, or aircraft operating procedures. (IOCM 21.3.2)</div></div></div>
               <div class="step-item"><span class="step-num">&#9642;</span><div><div class="step-text">Review MEL/CDL items and their specific conditions, provisions, and limitations: Operational limitations, Performance limitations, Performance restrictions (altitude, speed, weather), Operations procedures, W&amp;B restrictions. (IOCM 21.4)</div></div></div>
-              <div class="step-item"><span class="step-num">&#9642;</span><div><div class="step-text"><strong>N-FP "List" page</strong> — Restrictive MELs show in <span style="color:var(--red);font-weight:700;">red</span>. Non-restrictive show in black.</div></div></div>
+              <div class="step-item"><span class="step-num">&#9642;</span><div><div class="step-text"><strong>N-FP "List" page</strong> — Restrictive MELs show in <span style="color:var(--red);font-weight:700;" data-sm-edit="sm0096">red</span>. Non-restrictive show in black.</div></div></div>
             </div>
           </div>
 
@@ -396,10 +487,10 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--surface);color:va
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#128221;</span>
-          <span class="guide-card-title">Required Remarks Reference</span>
+          <span class="guide-card-title" data-sm-edit="sm0097">Required Remarks Reference</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;">Standard required remarks for common situations. Tailor each to the specific flight — check spelling and ensure remarks apply to the flight you are currently planning, especially when reusing remarks for similar city pairings.</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;" data-sm-edit="sm0098">Standard required remarks for common situations. Tailor each to the specific flight — check spelling and ensure remarks apply to the flight you are currently planning, especially when reusing remarks for similar city pairings.</p>
 
           <div class="remarks-example">
             <div class="remarks-label">Additional Fuel — Hold</div>
@@ -505,10 +596,10 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9989;</span>
-          <span class="guide-card-title">Release Review Checklist</span>
+          <span class="guide-card-title" data-sm-edit="sm0099">Release Review Checklist</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.25rem;">Check each item before sending the release package. Click to mark complete.</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.25rem;" data-sm-edit="sm0100">Check each item before sending the release package. Click to mark complete.</p>
           <div id="checklist-wrap"></div>
           <button onclick="resetChecklist()" style="margin-top:1rem;padding:7px 16px;border:1.5px solid var(--gray);border-radius:8px;background:var(--white);font-size:13px;cursor:pointer;font-family:'Instrument Sans',sans-serif;">&#8635; Reset checklist</button>
         </div>
@@ -520,10 +611,10 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#127788;</span>
-          <span class="guide-card-title">Wind Summary Decode Guide</span>
+          <span class="guide-card-title" data-sm-edit="sm0101">Wind Summary Decode Guide</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;">The Wind Summary uses encoded wind data. Here is how to decode each group.</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;" data-sm-edit="sm0102">The Wind Summary uses encoded wind data. Here is how to decode each group.</p>
 
           <div class="decode-box">
             <div class="decode-label">Rule 1 — Speed &gt; 100 knots (subtract 50 from direction, add 100 to speed)</div>
@@ -573,10 +664,10 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9878;</span>
-          <span class="guide-card-title">Exemption 22897</span>
+          <span class="guide-card-title" data-sm-edit="sm0103">Exemption 22897</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;">Reference: IOCMTR-20 &nbsp;&middot;&nbsp; Recurrent Training October 2024</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;" data-sm-edit="sm0104">Reference: IOCMTR-20 &nbsp;&middot;&nbsp; Recurrent Training October 2024</p>
 
           <div class="step-group">
             <div class="step-group-title">What is Exemption 22897?</div>
@@ -584,7 +675,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
               Exemption 22897 allows the dispatcher to release a flight to an airport or alternate when the TAF indicates, through <strong>conditional statements (TEMPO, PROB, BECMG)</strong> that the weather could be below authorized landing minimums at the estimated time of arrival.<br><br>
               The <strong>main body of the forecast MUST indicate that the weather will be AT or ABOVE authorized minimums</strong> at the estimated time of arrival.
             </div>
-            <p style="font-size:12px;color:var(--ink3);">Reference: IOCM Bulletins &nbsp;&middot;&nbsp; IOCMTR-20 EXEMPTION 22897</p>
+            <p style="font-size:12px;color:var(--ink3);" data-sm-edit="sm0105">Reference: IOCM Bulletins &nbsp;&middot;&nbsp; IOCMTR-20 EXEMPTION 22897</p>
           </div>
 
           <div class="step-group">
@@ -611,21 +702,21 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
           <div class="step-group">
             <div class="step-group-title">Conditional Language Requirements</div>
             <table class="ref-table" style="margin-bottom:1rem;">
-              <thead><tr><th>Airport</th><th>Main Body Requirement</th><th>Conditional Language Minimum</th></tr></thead>
+              <thead><tr><th data-sm-edit="sm0106">Airport</th><th data-sm-edit="sm0107">Main Body Requirement</th><th data-sm-edit="sm0108">Conditional Language Minimum</th></tr></thead>
               <tbody>
                 <tr>
                   <td><strong>Destination</strong></td>
-                  <td>AT or ABOVE authorized landing minimums</td>
+                  <td data-sm-edit="sm0109">AT or ABOVE authorized landing minimums</td>
                   <td>Visibility no less than <strong>½ of the lowest minimum visibility</strong> for the approach expected to be used</td>
                 </tr>
                 <tr>
                   <td><strong>First Alternate</strong></td>
-                  <td>AT or ABOVE alternate minimums (ceiling and visibility)</td>
+                  <td data-sm-edit="sm0110">AT or ABOVE alternate minimums (ceiling and visibility)</td>
                   <td>No less than <strong>½ of the alternate minimum ceiling and visibility</strong></td>
                 </tr>
                 <tr>
                   <td><strong>Second Alternate</strong></td>
-                  <td>AT or ABOVE alternate minimums</td>
+                  <td data-sm-edit="sm0111">AT or ABOVE alternate minimums</td>
                   <td>Conditional language must be <strong>at or above alternate minimums</strong> — no reduction allowed</td>
                 </tr>
               </tbody>
@@ -713,10 +804,10 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
-          <span class="guide-card-title">FAA ICAO Flight Plan Quick Reference</span>
+          <span class="guide-card-title" data-sm-edit="sm0112">FAA ICAO Flight Plan Quick Reference</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;">Version 8 &nbsp;&middot;&nbsp; September 2022 &nbsp;&middot;&nbsp; Reference: AIM Appendix 4 / AIP Appendix 2</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;" data-sm-edit="sm0113">Version 8 &nbsp;&middot;&nbsp; September 2022 &nbsp;&middot;&nbsp; Reference: AIM Appendix 4 / AIP Appendix 2</p>
 
           <!-- Page images -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:2rem;">
@@ -733,7 +824,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
               </a>
             </div>
           </div>
-          <p style="font-size:12px;color:var(--ink3);margin-bottom:2rem;font-style:italic;">&#128269; Click any image to open full size in a new tab.</p>
+          <p style="font-size:12px;color:var(--ink3);margin-bottom:2rem;font-style:italic;" data-sm-edit="sm0114">&#128269; Click any image to open full size in a new tab.</p>
 
           <div class="step-group">
             <div class="step-group-title">FPL Format</div>
@@ -760,24 +851,24 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
           <div class="step-group">
             <div class="step-group-title">Item 10a — Navigation, Communications &amp; Approach Aid</div>
             <table class="ref-table">
-              <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+              <thead><tr><th data-sm-edit="sm0115">Code</th><th data-sm-edit="sm0116">Meaning</th></tr></thead>
               <tbody>
-                <tr><td>N</td><td>No capabilities</td></tr>
-                <tr><td>S</td><td>Standard (VOR, VHF, ILS)</td></tr>
+                <tr><td>N</td><td data-sm-edit="sm0117">No capabilities</td></tr>
+                <tr><td>S</td><td data-sm-edit="sm0118">Standard (VOR, VHF, ILS)</td></tr>
                 <tr><td>Z</td><td>Other capabilities — indicate in NAV/, DAT/, or COM/. <strong>Always include Z when filing NAV/</strong></td></tr>
-                <tr><td>W</td><td>RVSM — file only if authorized for RVSM operations</td></tr>
-                <tr><td>G</td><td>GNSS</td></tr>
-                <tr><td>I</td><td>INS</td></tr>
-                <tr><td>D</td><td>DME</td></tr>
-                <tr><td>R</td><td>PBN — include type in Item 18 PBN/</td></tr>
-                <tr><td>L</td><td>ILS</td></tr>
-                <tr><td>E1</td><td>ACARS FMC WPR</td></tr>
-                <tr><td>E2</td><td>ACARS D-FIS</td></tr>
-                <tr><td>E3</td><td>ACARS PDC</td></tr>
-                <tr><td>J1</td><td>CPDLC ATN VDL Mode 2</td></tr>
-                <tr><td>J4</td><td>CPDLC FANS 1/A VDL Mode 2</td></tr>
-                <tr><td>J5</td><td>CPDLC FANS 1/A Satellite Inmarsat</td></tr>
-                <tr><td>J7</td><td>CPDLC FANS 1/A Satellite Iridium</td></tr>
+                <tr><td>W</td><td data-sm-edit="sm0119">RVSM — file only if authorized for RVSM operations</td></tr>
+                <tr><td>G</td><td data-sm-edit="sm0120">GNSS</td></tr>
+                <tr><td>I</td><td data-sm-edit="sm0121">INS</td></tr>
+                <tr><td>D</td><td data-sm-edit="sm0122">DME</td></tr>
+                <tr><td>R</td><td data-sm-edit="sm0123">PBN — include type in Item 18 PBN/</td></tr>
+                <tr><td>L</td><td data-sm-edit="sm0124">ILS</td></tr>
+                <tr><td data-sm-edit="sm0125">E1</td><td data-sm-edit="sm0126">ACARS FMC WPR</td></tr>
+                <tr><td data-sm-edit="sm0127">E2</td><td data-sm-edit="sm0128">ACARS D-FIS</td></tr>
+                <tr><td data-sm-edit="sm0129">E3</td><td data-sm-edit="sm0130">ACARS PDC</td></tr>
+                <tr><td data-sm-edit="sm0131">J1</td><td data-sm-edit="sm0132">CPDLC ATN VDL Mode 2</td></tr>
+                <tr><td data-sm-edit="sm0133">J4</td><td data-sm-edit="sm0134">CPDLC FANS 1/A VDL Mode 2</td></tr>
+                <tr><td data-sm-edit="sm0135">J5</td><td data-sm-edit="sm0136">CPDLC FANS 1/A Satellite Inmarsat</td></tr>
+                <tr><td data-sm-edit="sm0137">J7</td><td data-sm-edit="sm0138">CPDLC FANS 1/A Satellite Iridium</td></tr>
               </tbody>
             </table>
           </div>
@@ -785,19 +876,19 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
           <div class="step-group">
             <div class="step-group-title">Item 10b — Surveillance</div>
             <table class="ref-table">
-              <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+              <thead><tr><th data-sm-edit="sm0139">Code</th><th data-sm-edit="sm0140">Meaning</th></tr></thead>
               <tbody>
-                <tr><td>N</td><td>No capabilities</td></tr>
-                <tr><td>C</td><td>Transponder Modes A and C</td></tr>
-                <tr><td>S</td><td>Mode S — ACID and Altitude</td></tr>
-                <tr><td>E</td><td>Mode S — ACID, Altitude, Extended Squitter</td></tr>
-                <tr><td>L</td><td>Mode S — ACID, Altitude, Enhanced Surveillance, Extended Squitter</td></tr>
-                <tr><td>B1</td><td>ADS-B 1090 MHz "out"</td></tr>
-                <tr><td>B2</td><td>ADS-B 1090 MHz "out" and "in"</td></tr>
-                <tr><td>U1</td><td>ADS-B UAT "out"</td></tr>
-                <tr><td>U2</td><td>ADS-B UAT "out" and "in"</td></tr>
-                <tr><td>D1</td><td>ADS-C FANS 1/A</td></tr>
-                <tr><td>G1</td><td>ADS-C ATN</td></tr>
+                <tr><td>N</td><td data-sm-edit="sm0141">No capabilities</td></tr>
+                <tr><td>C</td><td data-sm-edit="sm0142">Transponder Modes A and C</td></tr>
+                <tr><td>S</td><td data-sm-edit="sm0143">Mode S — ACID and Altitude</td></tr>
+                <tr><td>E</td><td data-sm-edit="sm0144">Mode S — ACID, Altitude, Extended Squitter</td></tr>
+                <tr><td>L</td><td data-sm-edit="sm0145">Mode S — ACID, Altitude, Enhanced Surveillance, Extended Squitter</td></tr>
+                <tr><td data-sm-edit="sm0146">B1</td><td data-sm-edit="sm0147">ADS-B 1090 MHz "out"</td></tr>
+                <tr><td data-sm-edit="sm0148">B2</td><td data-sm-edit="sm0149">ADS-B 1090 MHz "out" and "in"</td></tr>
+                <tr><td data-sm-edit="sm0150">U1</td><td data-sm-edit="sm0151">ADS-B UAT "out"</td></tr>
+                <tr><td data-sm-edit="sm0152">U2</td><td data-sm-edit="sm0153">ADS-B UAT "out" and "in"</td></tr>
+                <tr><td data-sm-edit="sm0154">D1</td><td data-sm-edit="sm0155">ADS-C FANS 1/A</td></tr>
+                <tr><td data-sm-edit="sm0156">G1</td><td data-sm-edit="sm0157">ADS-C ATN</td></tr>
               </tbody>
             </table>
           </div>
@@ -805,24 +896,24 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
           <div class="step-group">
             <div class="step-group-title">Item 18 — Other Information Fields</div>
             <table class="ref-table">
-              <thead><tr><th>Field</th><th>Description</th><th>Example</th></tr></thead>
+              <thead><tr><th data-sm-edit="sm0158">Field</th><th data-sm-edit="sm0159">Description</th><th data-sm-edit="sm0160">Example</th></tr></thead>
               <tbody>
-                <tr><td>STS/</td><td>Special handling reason</td><td>STS/MEDEVAC</td></tr>
-                <tr><td>PBN/</td><td>Performance Based Navigation capabilities (up to 8)</td><td>PBN/D1O2</td></tr>
-                <tr><td>NAV/</td><td>Other navigation capability — requires Z in Item 10a</td><td>NAV/Z1</td></tr>
-                <tr><td>COM/</td><td>Other communications capability</td><td></td></tr>
-                <tr><td>DAT/</td><td>Other data application (FANS, PDC)</td><td>DAT/1FANS2PDC</td></tr>
-                <tr><td>SUR/</td><td>Other surveillance capability</td><td>SUR/260B RSP180</td></tr>
-                <tr><td>DOF/</td><td>Date of flight (YYMMDD)</td><td>DOF/220501</td></tr>
-                <tr><td>REG/</td><td>Aircraft registration</td><td>REG/N123A</td></tr>
-                <tr><td>SEL/</td><td>SELCAL code</td><td>SEL/BPAM</td></tr>
-                <tr><td>CODE/</td><td>Aircraft Mode S address (hex)</td><td>CODE/A05ED7</td></tr>
-                <tr><td>RMK/</td><td>Remarks — any information instructed to include</td><td>RMK/DVRSN</td></tr>
-                <tr><td>EET/</td><td>Estimated elapsed times</td><td>EET/KZNY0124</td></tr>
-                <tr><td>TALT/</td><td>Takeoff alternate</td><td>TALT/KTEB</td></tr>
-                <tr><td>RALT/</td><td>Enroute alternates</td><td>RALT/EINN CYYR</td></tr>
-                <tr><td>PER/</td><td>Performance category</td><td>PER/C</td></tr>
-                <tr><td>OPR/</td><td>Operator when not evident from ACID</td><td></td></tr>
+                <tr><td data-sm-edit="sm0161">STS/</td><td data-sm-edit="sm0162">Special handling reason</td><td data-sm-edit="sm0163">STS/MEDEVAC</td></tr>
+                <tr><td data-sm-edit="sm0164">PBN/</td><td data-sm-edit="sm0165">Performance Based Navigation capabilities (up to 8)</td><td data-sm-edit="sm0166">PBN/D1O2</td></tr>
+                <tr><td data-sm-edit="sm0167">NAV/</td><td data-sm-edit="sm0168">Other navigation capability — requires Z in Item 10a</td><td data-sm-edit="sm0169">NAV/Z1</td></tr>
+                <tr><td data-sm-edit="sm0170">COM/</td><td data-sm-edit="sm0171">Other communications capability</td><td></td></tr>
+                <tr><td data-sm-edit="sm0172">DAT/</td><td data-sm-edit="sm0173">Other data application (FANS, PDC)</td><td data-sm-edit="sm0174">DAT/1FANS2PDC</td></tr>
+                <tr><td data-sm-edit="sm0175">SUR/</td><td data-sm-edit="sm0176">Other surveillance capability</td><td data-sm-edit="sm0177">SUR/260B RSP180</td></tr>
+                <tr><td data-sm-edit="sm0178">DOF/</td><td data-sm-edit="sm0179">Date of flight (YYMMDD)</td><td data-sm-edit="sm0180">DOF/220501</td></tr>
+                <tr><td data-sm-edit="sm0181">REG/</td><td data-sm-edit="sm0182">Aircraft registration</td><td data-sm-edit="sm0183">REG/N123A</td></tr>
+                <tr><td data-sm-edit="sm0184">SEL/</td><td data-sm-edit="sm0185">SELCAL code</td><td data-sm-edit="sm0186">SEL/BPAM</td></tr>
+                <tr><td data-sm-edit="sm0187">CODE/</td><td data-sm-edit="sm0188">Aircraft Mode S address (hex)</td><td data-sm-edit="sm0189">CODE/A05ED7</td></tr>
+                <tr><td data-sm-edit="sm0190">RMK/</td><td data-sm-edit="sm0191">Remarks — any information instructed to include</td><td data-sm-edit="sm0192">RMK/DVRSN</td></tr>
+                <tr><td data-sm-edit="sm0193">EET/</td><td data-sm-edit="sm0194">Estimated elapsed times</td><td data-sm-edit="sm0195">EET/KZNY0124</td></tr>
+                <tr><td data-sm-edit="sm0196">TALT/</td><td data-sm-edit="sm0197">Takeoff alternate</td><td data-sm-edit="sm0198">TALT/KTEB</td></tr>
+                <tr><td data-sm-edit="sm0199">RALT/</td><td data-sm-edit="sm0200">Enroute alternates</td><td data-sm-edit="sm0201">RALT/EINN CYYR</td></tr>
+                <tr><td data-sm-edit="sm0202">PER/</td><td data-sm-edit="sm0203">Performance category</td><td data-sm-edit="sm0204">PER/C</td></tr>
+                <tr><td data-sm-edit="sm0205">OPR/</td><td data-sm-edit="sm0206">Operator when not evident from ACID</td><td></td></tr>
               </tbody>
             </table>
           </div>
@@ -830,19 +921,19 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
           <div class="step-group">
             <div class="step-group-title">Item 18 PBN/ Codes</div>
             <table class="ref-table">
-              <thead><tr><th>Code</th><th>Capability</th></tr></thead>
+              <thead><tr><th data-sm-edit="sm0207">Code</th><th data-sm-edit="sm0208">Capability</th></tr></thead>
               <tbody>
-                <tr><td>A1</td><td>RNAV 10 (RNP 10)</td></tr>
-                <tr><td>L1</td><td>RNP 4</td></tr>
-                <tr><td>B1/B2/B3/B4/B5</td><td>RNAV 5 — All / GNSS / DME/DME / VOR/DME / INS or IRS</td></tr>
-                <tr><td>C1/C2/C4</td><td>RNAV 2 — All / GNSS / DME/DME/IRU</td></tr>
-                <tr><td>D1/D2/D4</td><td>RNAV 1 — All / GNSS / DME/DME/IRU</td></tr>
-                <tr><td>O1/O2</td><td>RNP 1 — All / GNSS</td></tr>
-                <tr><td>S1/S2</td><td>RNP Approach / RNP APCH with Baro VNAV</td></tr>
-                <tr><td>T1</td><td>RNP AR Approach with RF</td></tr>
-                <tr><td>Z1/Z2</td><td>Additional: Radius to Fix (RF) / Fixed Radius Transitions (FRT)</td></tr>
-                <tr><td>P1</td><td>Advanced RNP (A-RNP)</td></tr>
-                <tr><td>M1/M2</td><td>RNP 2 Continental / Oceanic</td></tr>
+                <tr><td data-sm-edit="sm0209">A1</td><td data-sm-edit="sm0210">RNAV 10 (RNP 10)</td></tr>
+                <tr><td data-sm-edit="sm0211">L1</td><td data-sm-edit="sm0212">RNP 4</td></tr>
+                <tr><td data-sm-edit="sm0213">B1/B2/B3/B4/B5</td><td data-sm-edit="sm0214">RNAV 5 — All / GNSS / DME/DME / VOR/DME / INS or IRS</td></tr>
+                <tr><td data-sm-edit="sm0215">C1/C2/C4</td><td data-sm-edit="sm0216">RNAV 2 — All / GNSS / DME/DME/IRU</td></tr>
+                <tr><td data-sm-edit="sm0217">D1/D2/D4</td><td data-sm-edit="sm0218">RNAV 1 — All / GNSS / DME/DME/IRU</td></tr>
+                <tr><td data-sm-edit="sm0219">O1/O2</td><td data-sm-edit="sm0220">RNP 1 — All / GNSS</td></tr>
+                <tr><td data-sm-edit="sm0221">S1/S2</td><td data-sm-edit="sm0222">RNP Approach / RNP APCH with Baro VNAV</td></tr>
+                <tr><td data-sm-edit="sm0223">T1</td><td data-sm-edit="sm0224">RNP AR Approach with RF</td></tr>
+                <tr><td data-sm-edit="sm0225">Z1/Z2</td><td data-sm-edit="sm0226">Additional: Radius to Fix (RF) / Fixed Radius Transitions (FRT)</td></tr>
+                <tr><td data-sm-edit="sm0227">P1</td><td data-sm-edit="sm0228">Advanced RNP (A-RNP)</td></tr>
+                <tr><td data-sm-edit="sm0229">M1/M2</td><td data-sm-edit="sm0230">RNP 2 Continental / Oceanic</td></tr>
               </tbody>
             </table>
           </div>
@@ -867,14 +958,14 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
           <div class="step-group">
             <div class="step-group-title">Performance Categories (PER/)</div>
             <table class="ref-table">
-              <thead><tr><th>Category</th><th>Speed (Vref or 1.3Vso at max landing weight)</th></tr></thead>
+              <thead><tr><th data-sm-edit="sm0231">Category</th><th data-sm-edit="sm0232">Speed (Vref or 1.3Vso at max landing weight)</th></tr></thead>
               <tbody>
-                <tr><td><strong>A</strong></td><td>Less than 91 knots IAS</td></tr>
-                <tr><td><strong>B</strong></td><td>91 to less than 121 knots IAS</td></tr>
-                <tr><td><strong>C</strong></td><td>121 to less than 141 knots IAS</td></tr>
-                <tr><td><strong>D</strong></td><td>141 to less than 166 knots IAS</td></tr>
-                <tr><td><strong>E</strong></td><td>166 to less than 211 knots IAS</td></tr>
-                <tr><td><strong>H</strong></td><td>Helicopters</td></tr>
+                <tr><td><strong>A</strong></td><td data-sm-edit="sm0233">Less than 91 knots IAS</td></tr>
+                <tr><td><strong>B</strong></td><td data-sm-edit="sm0234">91 to less than 121 knots IAS</td></tr>
+                <tr><td><strong>C</strong></td><td data-sm-edit="sm0235">121 to less than 141 knots IAS</td></tr>
+                <tr><td><strong>D</strong></td><td data-sm-edit="sm0236">141 to less than 166 knots IAS</td></tr>
+                <tr><td><strong>E</strong></td><td data-sm-edit="sm0237">166 to less than 211 knots IAS</td></tr>
+                <tr><td><strong>H</strong></td><td data-sm-edit="sm0238">Helicopters</td></tr>
               </tbody>
             </table>
           </div>
@@ -888,10 +979,10 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#127758;</span>
-          <span class="guide-card-title">International Supplemental Operations</span>
+          <span class="guide-card-title" data-sm-edit="sm0239">International Supplemental Operations</span>
         </div>
         <div class="guide-card-body">
-          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;">Reference: SPATCH Learning Lab &nbsp;&middot;&nbsp; IOCM Chapter 27 &nbsp;&middot;&nbsp; § 121.645</p>
+          <p style="font-size:13px;color:var(--ink3);margin-bottom:1.5rem;" data-sm-edit="sm0240">Reference: SPATCH Learning Lab &nbsp;&middot;&nbsp; IOCM Chapter 27 &nbsp;&middot;&nbsp; § 121.645</p>
 
           <div class="step-group">
             <div class="step-group-title">Overview — Topics Covered</div>
@@ -1009,7 +1100,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
-          <span class="guide-card-title">Breeze Airways — Airport Code Study Tool</span>
+          <span class="guide-card-title" data-sm-edit="sm0241">Breeze Airways — Airport Code Study Tool</span>
         </div>
         <div class="guide-card-body">
 
@@ -1519,6 +1610,105 @@ function resetChecklist() {
 }
 
 buildChecklist();
+
+// ── Study-materials content overrides (loaded from the sheet) ──────────────────
+const SM_CONTENT_URL = 'https://script.google.com/macros/s/AKfycbxO1FIbW4oaaHTfOEqbSN4eMDzRXuyxNz7bFLHYBmAkpBpifVkHeQRDQOlfFVXW5qF2/exec';
+
+function applyContentOverrides(map) {
+  if (!map) return;
+  Object.keys(map).forEach(function(id){
+    const el = document.querySelector('[data-sm-edit="' + id + '"]');
+    if (el && typeof map[id] === 'string' && map[id].length) {
+      el.textContent = map[id];
+    }
+  });
+}
+
+function loadContentOverrides() {
+  if (!SM_CONTENT_URL || SM_CONTENT_URL.indexOf('PASTE_') === 0) return;
+  const cb = 'smcb_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let done = false;
+  function cleanup(){ delete window[cb]; if (s.parentNode) s.parentNode.removeChild(s); }
+  window[cb] = function(res){
+    done = true;
+    try {
+      if (res && res.status === 'ok' && res.content) {
+        const map = {};
+        (res.content || []).forEach(function(row){ if (row.id) map[row.id] = row.text; });
+        applyContentOverrides(map);
+      }
+    } catch(e){}
+    cleanup();
+  };
+  s.onerror = function(){ if(!done) cleanup(); };
+  s.src = SM_CONTENT_URL + (SM_CONTENT_URL.indexOf('?')>-1?'&':'?') + 'mode=content&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ if(!done) cleanup(); }, 12000);
+}
+
+// ── Section Flashcards ────────────────────────────────────────────────────────
+// To add real content: rename module/category titles and replace the placeholder
+// { front, back } cards. Add or remove modules, categories, and cards freely.
+// CBT-only modules (22, 23, 32, 33) are intentionally not represented.
+const SF_DATA = {
+  "basic-indoc": { title:"Basic Indoctrination", eyebrow:"Section 1", modules:{
+    "module-1":{title:"Module 1",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-2":{title:"Module 2",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-3":{title:"Module 3",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}}
+  }},
+  "general-subjects": { title:"General Subjects", eyebrow:"Section 2", modules:{
+    "module-1":{title:"Module 1",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-2":{title:"Module 2",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-3":{title:"Module 3",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}}
+  }},
+  "group-ii": { title:"Group II Aircraft", eyebrow:"Section 3", modules:{
+    "module-1":{title:"Module 1",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-2":{title:"Module 2",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-3":{title:"Module 3",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}}
+  }},
+  "supplemental": { title:"Supplemental", eyebrow:"Section 4", modules:{
+    "module-1":{title:"Module 1",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-2":{title:"Module 2",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}},
+    "module-3":{title:"Module 3",categories:{"category-a":{title:"Category A",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]},"category-b":{title:"Category B",cards:[{front:"Placeholder front 1",back:"Placeholder back 1"},{front:"Placeholder front 2",back:"Placeholder back 2"},{front:"Placeholder front 3",back:"Placeholder back 3"}]}}}
+  }}
+};
+
+let sfState = { sectionKey:null, moduleKey:null, categoryKey:null, order:[], position:0, known:{} };
+function sfKnownKey(s,m,c){ return s+"/"+m+"/"+c; }
+
+function sfLoadKnown(){ try{ const raw=localStorage.getItem('bz_sf_known'); if(raw){ const p=JSON.parse(raw); Object.keys(p).forEach(k=>{ sfState.known[k]=new Set(p[k]); }); } }catch(e){} }
+function sfSaveKnown(){ try{ const out={}; Object.keys(sfState.known).forEach(k=>{ out[k]=Array.from(sfState.known[k]); }); localStorage.setItem('bz_sf_known',JSON.stringify(out)); }catch(e){} }
+
+function sfShowView(viewId){ ['sf-view-sections','sf-view-modules','sf-view-categories','sf-view-deck'].forEach(id=>document.getElementById(id).classList.remove('active')); document.getElementById(viewId).classList.add('active'); sfUpdateCrumbs(); }
+
+function sfUpdateCrumbs(){ const c=document.getElementById('sf-crumbs'); const p=[]; p.push('<span class="sf-crumb" onclick="sfGoToSections()">All sections</span>'); if(sfState.sectionKey){ const sec=SF_DATA[sfState.sectionKey]; p.push('<span class="sf-sep">&rsaquo;</span>'); if(sfState.moduleKey){ p.push('<span class="sf-crumb" onclick="sfGoToModules(\''+sfState.sectionKey+'\')">'+sec.title+'</span>'); } else { p.push('<span>'+sec.title+'</span>'); } } if(sfState.moduleKey){ const mod=SF_DATA[sfState.sectionKey].modules[sfState.moduleKey]; p.push('<span class="sf-sep">&rsaquo;</span>'); if(sfState.categoryKey){ p.push('<span class="sf-crumb" onclick="sfGoToCategories()">'+mod.title+'</span>'); } else { p.push('<span>'+mod.title+'</span>'); } } if(sfState.categoryKey){ const cat=SF_DATA[sfState.sectionKey].modules[sfState.moduleKey].categories[sfState.categoryKey]; p.push('<span class="sf-sep">&rsaquo;</span>'); p.push('<span>'+cat.title+'</span>'); } c.innerHTML=p.join(''); }
+
+function sfBuildSectionGrid(){ const g=document.getElementById('sf-section-grid'); g.innerHTML=''; Object.keys(SF_DATA).forEach(k=>{ const sec=SF_DATA[k]; const mc=Object.keys(sec.modules).length; const t=document.createElement('div'); t.className='sf-tile'; t.onclick=()=>sfGoToModules(k); t.innerHTML='<div class="sf-tile-eyebrow">'+sec.eyebrow+'</div><div class="sf-tile-title">'+sec.title+'</div><div class="sf-tile-meta">'+mc+' module'+(mc===1?'':'s')+'</div>'; g.appendChild(t); }); }
+function sfGoToSections(){ sfState.sectionKey=null; sfState.moduleKey=null; sfState.categoryKey=null; sfBuildSectionGrid(); sfShowView('sf-view-sections'); }
+function sfGoToModules(sk){ sfState.sectionKey=sk; sfState.moduleKey=null; sfState.categoryKey=null; sfBuildModuleGrid(); sfShowView('sf-view-modules'); }
+function sfBuildModuleGrid(){ const g=document.getElementById('sf-module-grid'); g.innerHTML=''; const sec=SF_DATA[sfState.sectionKey]; Object.keys(sec.modules).forEach(k=>{ const mod=sec.modules[k]; const cc=Object.keys(mod.categories).length; let cd=0; Object.keys(mod.categories).forEach(ck=>cd+=mod.categories[ck].cards.length); const t=document.createElement('div'); t.className='sf-tile'; t.onclick=()=>sfGoToCategoriesFor(k); t.innerHTML='<div class="sf-tile-eyebrow">'+sec.title+'</div><div class="sf-tile-title">'+mod.title+'</div><div class="sf-tile-meta">'+cc+' categor'+(cc===1?'y':'ies')+' &middot; '+cd+' card'+(cd===1?'':'s')+'</div>'; g.appendChild(t); }); }
+function sfGoToCategoriesFor(mk){ sfState.moduleKey=mk; sfState.categoryKey=null; sfBuildCategoryGrid(); sfShowView('sf-view-categories'); }
+function sfGoToCategories(){ sfState.categoryKey=null; sfBuildCategoryGrid(); sfShowView('sf-view-categories'); }
+function sfBuildCategoryGrid(){ const g=document.getElementById('sf-category-grid'); g.innerHTML=''; const mod=SF_DATA[sfState.sectionKey].modules[sfState.moduleKey]; Object.keys(mod.categories).forEach(k=>{ const cat=mod.categories[k]; const kk=sfKnownKey(sfState.sectionKey,sfState.moduleKey,k); const kn=sfState.known[kk]?sfState.known[kk].size:0; const tot=cat.cards.length; const t=document.createElement('div'); t.className='sf-tile'; t.onclick=()=>sfOpenDeck(k); t.innerHTML='<div class="sf-tile-eyebrow">'+mod.title+'</div><div class="sf-tile-title">'+cat.title+'</div><div class="sf-tile-meta">'+tot+' cards &middot; '+kn+' marked "got it"</div>'; g.appendChild(t); }); }
+
+function sfOpenDeck(ck){ sfState.categoryKey=ck; const kk=sfKnownKey(sfState.sectionKey,sfState.moduleKey,sfState.categoryKey); if(!sfState.known[kk]) sfState.known[kk]=new Set(); sfRebuildOrder(); sfState.position=0; const cat=SF_DATA[sfState.sectionKey].modules[sfState.moduleKey].categories[sfState.categoryKey]; document.getElementById('sf-deck-title').textContent=cat.title; sfEnsureCardMarkup(); sfRenderCard(); sfShowView('sf-view-deck'); }
+function sfRebuildOrder(){ const cat=SF_DATA[sfState.sectionKey].modules[sfState.moduleKey].categories[sfState.categoryKey]; const kk=sfKnownKey(sfState.sectionKey,sfState.moduleKey,sfState.categoryKey); const kn=sfState.known[kk]; sfState.order=cat.cards.map((_,i)=>i).filter(i=>!kn.has(i)); }
+function sfEnsureCardMarkup(){ const s=document.getElementById('sf-card-stage'); if(!document.getElementById('sf-card')){ s.innerHTML='<div class="sf-card" id="sf-card" onclick="sfFlip()"><div class="sf-face sf-face-front"><span class="sf-face-label">Term</span><span class="sf-face-text" id="sf-front-text">&mdash;</span><span class="sf-tap-hint">Tap card to reveal</span></div><div class="sf-face sf-face-back"><span class="sf-face-label">Definition</span><span class="sf-face-text" id="sf-back-text">&mdash;</span><span class="sf-tap-hint">Tap to flip back</span></div></div>'; } document.getElementById('sf-controls').style.display='flex'; }
+function sfRenderCard(){ const card=document.getElementById('sf-card'); if(!card) return; card.classList.remove('flipped'); if(sfState.order.length===0){ sfShowFinished(); return; } const cat=SF_DATA[sfState.sectionKey].modules[sfState.moduleKey].categories[sfState.categoryKey]; const ci=sfState.order[sfState.position]; const cd=cat.cards[ci]; document.getElementById('sf-front-text').textContent=cd.front; document.getElementById('sf-back-text').textContent=cd.back; document.getElementById('sf-progress').innerHTML='Card <strong>'+(sfState.position+1)+'</strong> of <strong>'+sfState.order.length+'</strong>'; document.getElementById('sf-prev-btn').disabled=sfState.position===0; document.getElementById('sf-next-btn').disabled=sfState.position===sfState.order.length-1; document.getElementById('sf-known-btn').disabled=false; }
+function sfShowFinished(){ document.getElementById('sf-card-stage').innerHTML='<div class="sf-finished"><h3>Deck complete</h3><p>You\'ve marked every card in this deck as "got it." Reset below to study them again.</p></div>'; document.getElementById('sf-controls').style.display='none'; document.getElementById('sf-progress').innerHTML='<strong>Done</strong>'; }
+function sfFlip(){ const c=document.getElementById('sf-card'); if(c) c.classList.toggle('flipped'); }
+function sfNext(){ if(sfState.position<sfState.order.length-1){ sfState.position++; sfRenderCard(); } }
+function sfPrev(){ if(sfState.position>0){ sfState.position--; sfRenderCard(); } }
+function sfShuffle(){ for(let i=sfState.order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [sfState.order[i],sfState.order[j]]=[sfState.order[j],sfState.order[i]]; } sfState.position=0; sfRenderCard(); }
+function sfMarkKnown(){ const ci=sfState.order[sfState.position]; const kk=sfKnownKey(sfState.sectionKey,sfState.moduleKey,sfState.categoryKey); sfState.known[kk].add(ci); sfSaveKnown(); sfState.order.splice(sfState.position,1); if(sfState.position>=sfState.order.length){ sfState.position=Math.max(0,sfState.order.length-1); } sfEnsureCardMarkup(); sfRenderCard(); }
+function sfResetKnown(){ if(!sfState.categoryKey) return; if(!confirm('Reset all "got it" cards in this deck?')) return; const kk=sfKnownKey(sfState.sectionKey,sfState.moduleKey,sfState.categoryKey); sfState.known[kk]=new Set(); sfSaveKnown(); sfRebuildOrder(); sfState.position=0; sfEnsureCardMarkup(); sfRenderCard(); }
+
+sfLoadKnown();
+sfBuildSectionGrid();
+sfUpdateCrumbs();
+
+loadContentOverrides();
 </script>
 </body>
 </html>
