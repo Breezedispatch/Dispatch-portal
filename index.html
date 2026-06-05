@@ -1202,14 +1202,26 @@ function buildStudentsFromSheet() {
     const rec = {
       score: Number(r.score)||0,
       pass: String(r.pass).toLowerCase() === 'pass',
+      status: String(r.status||'').toLowerCase(),
       date: r.date || (r.submittedAt||'').slice(0,10),
       submittedAt: r.submittedAt || '',
       writtenPending: Number(r.writtenPending)||0,
       answers: Array.isArray(r.answers) ? r.answers : [],
       exam: r.exam || ''
     };
-    // keep the most recent attempt
-    if (!prev || (rec.submittedAt > (prev.submittedAt||''))) students[uid][quizId] = rec;
+    if (!prev) {
+      students[uid][quizId] = rec;
+    } else {
+      // Newest row wins for score/status/date, but never lose answers:
+      // if the newer row has no answers (e.g. a finalize row), keep the older answers.
+      const newer = rec.submittedAt > (prev.submittedAt||'') ? rec : prev;
+      const older = newer === rec ? prev : rec;
+      const merged = Object.assign({}, older, newer);
+      if ((!newer.answers || !newer.answers.length) && older.answers && older.answers.length) {
+        merged.answers = older.answers;
+      }
+      students[uid][quizId] = merged;
+    }
   });
   return { students, names };
 }
@@ -2388,7 +2400,8 @@ function saveSAAnswers(uid, quizId, answers) {
   try { localStorage.setItem('bz_sa_answers_' + uid + '_' + quizId, JSON.stringify(answers)); } catch(e) {}
 }
 
-// Get the multiple-choice answers from a student's most recent sheet attempt for a quiz.
+// Get the multiple-choice answers from a student's sheet attempt for a quiz.
+// Prefer the most recent attempt that actually contains answers (finalize rows have none).
 function getMCAnswersForAttempt(uid, quizId) {
   const quiz = QUIZZES.find(q => q.id === quizId);
   const examName = quiz ? (quiz.mod + ' — ' + quiz.name) : '';
@@ -2396,9 +2409,10 @@ function getMCAnswersForAttempt(uid, quizId) {
   const mine = SHEET_RESULTS.filter(r =>
     String(r.id||'').toUpperCase() === U && (r.exam === examName));
   if (!mine.length) return [];
-  // most recent attempt
+  // newest first
   mine.sort((a,b)=> (b.submittedAt||'').localeCompare(a.submittedAt||''));
-  const attempt = mine[0];
+  // choose the most recent attempt that has any answers recorded
+  let attempt = mine.find(r => Array.isArray(r.answers) && r.answers.length) || mine[0];
   const answers = Array.isArray(attempt.answers) ? attempt.answers : [];
   const qLookup = {};
   if (quiz) (quiz.questions||[]).forEach(qq => qLookup[qq.n] = qq);
