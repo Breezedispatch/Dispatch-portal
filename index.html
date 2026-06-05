@@ -357,6 +357,8 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 .tr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;border-bottom:1.5px solid var(--gray);padding-bottom:1rem;margin-bottom:1rem;flex-wrap:wrap;}
 .tr-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--navy);}
 .tr-id{font-size:12px;color:var(--ink3);margin-top:2px;}
+.tr-delete-btn{margin-top:.6rem;background:none;border:1.5px solid var(--red);color:var(--red);font-size:11px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;font-family:'Instrument Sans',sans-serif;}
+.tr-delete-btn:hover{background:var(--red);color:#fff;}
 .tr-stats{display:flex;gap:1.25rem;}
 .tr-stat{text-align:center;}
 .tr-stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--blue);}
@@ -475,6 +477,7 @@ tbody tr:hover td{background:#FAFAF7;}
     </div>
     <div class="portal-user">
       <span class="portal-id" id="portal-id-display"></span>
+      <button class="logout-btn" id="portal-switch-btn" onclick="backToChoice()" style="margin-left:8px;display:none;">&#8646; Switch portal</button>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </header>
@@ -562,6 +565,7 @@ tbody tr:hover td{background:#FAFAF7;}
       <button class="gs-pull-btn" onclick="openSheetImport()">&#8635; Load from Sheets</button>
       <span class="gs-status" id="gs-pull-status"></span>
       <button class="logout-btn" onclick="exportAdminCSV()" style="margin-left:8px;">&#8595; CSV</button>
+      <button class="logout-btn" onclick="backToChoice()" style="margin-left:8px;">&#8646; Switch portal</button>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </header>
@@ -1210,12 +1214,24 @@ function chooseAdmin() {
 function enterStudentPortal(val, first, last) {
   currentUser = val;
   showScreen('screen-portal');
+  // Show "Switch portal" only for the trainer
+  const isTrainer = (String(val).trim() === TRAINER_ID)
+    && (first.toLowerCase() === TRAINER_FIRST)
+    && (last.toLowerCase() === TRAINER_LAST);
+  const sb = document.getElementById('portal-switch-btn');
+  if (sb) sb.style.display = isTrainer ? '' : 'none';
   try {
     document.getElementById('portal-id-display').innerHTML = first + ' ' + last + '<br><span style="font-size:10px;opacity:.7;">' + val + '</span>';
     document.getElementById('portal-welcome-msg').textContent = 'Welcome, ' + first + '!';
     setName(val, first, last);
     renderPortal();
   } catch(e) { console.error('portal render error:', e); }
+}
+
+// Return to the Student/Admin choice screen (trainer convenience)
+function backToChoice() {
+  document.getElementById('choice-name').textContent = currentUserFirst + ' ' + currentUserLast;
+  showScreen('screen-choice');
 }
 
 function enterAdmin() {
@@ -1841,6 +1857,7 @@ function openTrainee(uid) {
       <div>
         <div class="tr-name">${name || uid}</div>
         <div class="tr-id">${uid}${name ? '' : ' · (no name on file)'}</div>
+        <button class="tr-delete-btn" onclick="deleteTrainee('${uid}')">&#128465; Delete employee &amp; scores</button>
       </div>
       <div class="tr-stats">
         <div class="tr-stat"><div class="tr-stat-val">${completed}/${QUIZZES.length}</div><div class="tr-stat-lbl">Completed</div></div>
@@ -1918,6 +1935,42 @@ function toggleTraineeQuiz(rowId) {
   const open = el.style.display !== 'none';
   el.style.display = open ? 'none' : 'block';
   if (caret) caret.textContent = open ? '▸' : '▾';
+}
+
+function deleteTrainee(uid) {
+  const name = getName(uid) || uid;
+  if (!confirm('Delete ' + name + ' (' + uid + ') and ALL their scores and answers?\n\nThis removes them from the sheet and cannot be undone.')) return;
+
+  // 1) Remove local data for this user
+  try {
+    localStorage.removeItem('bz_scores_' + uid);
+    localStorage.removeItem('bz_name_' + uid);
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.indexOf('bz_sa_answers_' + uid) === 0 || k.indexOf('bz_sa_grades_' + uid) === 0)) localStorage.removeItem(k);
+    }
+  } catch(e) {}
+
+  // 2) Tell the sheet to delete their Results rows
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='delhf'; form.style.display='none';
+    const inp = document.createElement('input');
+    inp.type='hidden'; inp.name='data';
+    inp.value=JSON.stringify({ action:'deleteStudent', id: uid });
+    form.appendChild(inp);
+    const ifr = document.createElement('iframe');
+    ifr.name='delhf'; ifr.style.display='none';
+    document.body.appendChild(ifr); document.body.appendChild(form); form.submit();
+  } catch(e) {}
+
+  // 3) Remove from in-memory sheet results so the UI updates immediately
+  SHEET_RESULTS = SHEET_RESULTS.filter(r => String(r.id||'').toUpperCase() !== String(uid).toUpperCase());
+
+  closeTrainee();
+  // Re-pull from sheet after a moment so the roster reflects the deletion
+  setTimeout(function(){ loadResults(function(){ renderAdmin(); }); }, 1500);
+  renderAdmin();
 }
 
 function exportAdminCSV() {
