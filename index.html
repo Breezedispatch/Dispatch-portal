@@ -334,6 +334,42 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 .grade-btn:hover{background:#1d8f44;}
 /* ── Admin screen ── */
 #screen-admin{background:var(--surface);}
+#screen-choice{background:var(--navy);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.choice-wrap{max-width:680px;width:100%;padding:2rem;text-align:center;}
+.choice-eyebrow{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:.75rem;}
+.choice-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;margin:0 0 .4rem;}
+.choice-sub{font-size:15px;color:rgba(255,255,255,.65);margin:0 0 2.25rem;}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;}
+.choice-card{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);border-radius:16px;padding:1.75rem 1.5rem;cursor:pointer;transition:all .2s;text-align:left;}
+.choice-card:hover{background:rgba(37,102,204,.16);border-color:var(--blue);transform:translateY(-3px);box-shadow:0 14px 36px rgba(0,0,0,.3);}
+.choice-card-admin:hover{background:rgba(240,69,122,.14);border-color:#F0457A;}
+.choice-card-icon{font-size:34px;margin-bottom:.85rem;}
+.choice-card-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:.4rem;}
+.choice-card-sub{font-size:13px;color:rgba(255,255,255,.6);line-height:1.55;}
+.choice-back{margin-top:2rem;background:none;border:none;color:rgba(255,255,255,.5);font-family:'Instrument Sans',sans-serif;font-size:13px;cursor:pointer;}
+.choice-back:hover{color:#fff;}
+@media(max-width:560px){.choice-grid{grid-template-columns:1fr;}}
+#trainee-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-start;justify-content:center;}
+.tr-overlay{position:absolute;inset:0;background:rgba(1,12,30,.55);}
+.tr-panel{position:relative;background:var(--white);max-width:760px;width:92%;margin:3.5rem auto;border-radius:16px;padding:1.75rem;max-height:85vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.35);}
+.tr-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:26px;color:var(--ink3);cursor:pointer;line-height:1;}
+.tr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;border-bottom:1.5px solid var(--gray);padding-bottom:1rem;margin-bottom:1rem;flex-wrap:wrap;}
+.tr-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--navy);}
+.tr-id{font-size:12px;color:var(--ink3);margin-top:2px;}
+.tr-stats{display:flex;gap:1.25rem;}
+.tr-stat{text-align:center;}
+.tr-stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--blue);}
+.tr-stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);}
+.tr-section-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin:1.25rem 0 .5rem;}
+.tr-row{padding:.7rem .85rem;border:1.5px solid var(--gray);border-radius:10px;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;}
+.tr-row-empty{opacity:.6;}
+.tr-row-name{font-size:13.5px;font-weight:600;color:var(--ink2);flex:1;min-width:200px;}
+.tr-row-date{font-size:11px;color:var(--ink3);font-weight:400;margin-top:2px;}
+.tr-written{flex-basis:100%;margin-top:.6rem;border-top:1px dashed var(--gray);padding-top:.6rem;}
+.tr-wa{background:var(--surface);border-radius:8px;padding:.6rem .75rem;margin-bottom:.5rem;}
+.tr-wa-q{font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:.35rem;}
+.tr-wa-ans{font-size:12.5px;color:var(--ink2);line-height:1.55;}
+.tr-wa-model{font-size:12px;color:var(--ink3);margin-top:.3rem;line-height:1.5;}
 .admin-header{background:var(--navy);padding:.85rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
 .admin-badge{background:var(--gold);color:var(--navy-dk);font-family:'Syne',sans-serif;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-left:8px;}
 .admin-wrap{max-width:1100px;margin:0 auto;padding:1.5rem 2rem 3rem;}
@@ -397,6 +433,28 @@ tbody tr:hover td{background:#FAFAF7;}
       <div class="login-error" id="login-error">Please fill in your name and Employee ID</div>
     </div>
     <div class="login-footer">Breeze Airways Integrated Operations Control Center &nbsp;·&nbsp; Dispatch Training</div>
+  </div>
+</div>
+
+<!-- ══ CHOICE SCREEN (trainer only) ══════════════════════════════ -->
+<div class="screen" id="screen-choice">
+  <div class="choice-wrap">
+    <div class="choice-eyebrow">Breeze Dispatch Training</div>
+    <h1 class="choice-title">Welcome, <span id="choice-name">Brian Spencer</span></h1>
+    <p class="choice-sub">Where would you like to go?</p>
+    <div class="choice-grid">
+      <div class="choice-card" onclick="chooseStudent()">
+        <div class="choice-card-icon">&#127891;</div>
+        <div class="choice-card-title">Student Training Portal</div>
+        <div class="choice-card-sub">Take knowledge checks, tests, and practice sheets as a trainee.</div>
+      </div>
+      <div class="choice-card choice-card-admin" onclick="chooseAdmin()">
+        <div class="choice-card-icon">&#128202;</div>
+        <div class="choice-card-title">Admin Portal</div>
+        <div class="choice-card-sub">Training proficiency tracker — search trainees, view scores and answers.</div>
+      </div>
+    </div>
+    <button class="choice-back" onclick="doLogout()">&#8592; Sign out</button>
   </div>
 </div>
 
@@ -503,7 +561,8 @@ tbody tr:hover td{background:#FAFAF7;}
     <div class="admin-summary" id="admin-summary"></div>
     <div class="admin-section-title">Student completion</div>
     <div class="admin-filter-row">
-      <input type="text" id="admin-search" placeholder="Search Employee ID…" oninput="renderAdmin()">
+      <input type="text" id="admin-search" placeholder="Search by name or Employee ID…" oninput="renderAdmin()">
+      <button onclick="enterAdmin()" style="padding:7px 12px;border:1.5px solid var(--gray);border-radius:8px;background:var(--white);color:var(--ink2);font-size:12px;font-weight:600;cursor:pointer;">↻ Refresh</button>
       <select id="admin-filter-quiz" onchange="renderAdmin()">
         <option value="all">All quizzes</option>
       </select>
@@ -528,6 +587,15 @@ tbody tr:hover td{background:#FAFAF7;}
         <tbody id="admin-quiz-summary"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- ══ TRAINEE DETAIL MODAL ══════════════════════════════════════ -->
+<div id="trainee-modal" style="display:none;">
+  <div class="tr-overlay" onclick="closeTrainee()"></div>
+  <div class="tr-panel">
+    <button class="tr-close" onclick="closeTrainee()">&times;</button>
+    <div id="trainee-body"></div>
   </div>
 </div>
 
@@ -1010,8 +1078,56 @@ function loadQuestions(done) {
 }
 
 
-// ── State ────────────────────────────────────────────────────────────────────
-let currentUser = null;
+// ── Load student results from the sheet (cross-device proficiency data) ────────
+let SHEET_RESULTS = [];           // raw rows from the Results tab
+function loadResults(done) {
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'rcb_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && res.status === 'ok' && Array.isArray(res.results)) {
+        SHEET_RESULTS = res.results;
+        finish(true);
+      } else { finish(false); }
+    } catch(e) { finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=results&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
+
+// Merge sheet results into a {uid: {quizId: {score,pass,date,...}}} structure,
+// keyed by employee ID. Also records names and written answers.
+function buildStudentsFromSheet() {
+  const students = {};
+  const names = {};
+  SHEET_RESULTS.forEach(r => {
+    const uid = String(r.id || '').toUpperCase();
+    if (!uid) return;
+    if (!students[uid]) students[uid] = {};
+    if (r.first || r.last) names[uid] = ((r.first||'') + ' ' + (r.last||'')).trim();
+    // Match this exam back to a quiz id by comparing "mod — name"
+    const quiz = QUIZZES.find(q => (q.mod + ' — ' + q.name) === r.exam);
+    const quizId = quiz ? quiz.id : r.exam;
+    const prev = students[uid][quizId];
+    const rec = {
+      score: Number(r.score)||0,
+      pass: String(r.pass).toLowerCase() === 'pass',
+      date: r.date || (r.submittedAt||'').slice(0,10),
+      submittedAt: r.submittedAt || '',
+      writtenPending: Number(r.writtenPending)||0,
+      answers: Array.isArray(r.answers) ? r.answers : [],
+      exam: r.exam || ''
+    };
+    // keep the most recent attempt
+    if (!prev || (rec.submittedAt > (prev.submittedAt||''))) students[uid][quizId] = rec;
+  });
+  return { students, names };
+}
 let currentUserFirst = '';
 let currentUserLast = '';
 let currentQuiz = null;
@@ -1021,9 +1137,10 @@ let examResults  = null;
 // ── Local score storage ───────────────────────────────────────────────────────
 function getName(uid) {
   try {
-    const key = 'bz_name_' + uid;
-    return localStorage.getItem(key) || '';
-  } catch(e) { return ''; }
+    const local = localStorage.getItem('bz_name_' + uid);
+    if (local) return local;
+  } catch(e) {}
+  return (SHEET_NAMES && SHEET_NAMES[uid]) ? SHEET_NAMES[uid] : '';
 }
 
 function setName(uid, first, last) {
@@ -1043,6 +1160,10 @@ function setScore(uid, quizId, score, pass) {
 // Admin password — change this to something only you know
 const ADMIN_PASSWORD = 'breeze2024dispatch';
 const ADMIN_IDS = ['ADMIN', 'DISPATCH-ADMIN', 'BRIAN.SPENCER'];
+// Trainer credentials: this exact ID + name gets the portal-choice screen (no password).
+const TRAINER_ID = '987945';
+const TRAINER_FIRST = 'brian';
+const TRAINER_LAST = 'spencer';
 
 function doLogin() {
   const val = document.getElementById('login-id').value.trim().toUpperCase();
@@ -1056,8 +1177,17 @@ function doLogin() {
   currentUserFirst = first;
   currentUserLast  = last;
 
-  // Check for admin access
-  if (ADMIN_IDS.includes(val) || val === 'ADMIN') {
+  // Trainer: exact ID + first + last (case-insensitive) → choose Student or Admin
+  if (val === TRAINER_ID &&
+      first.toLowerCase() === TRAINER_FIRST &&
+      last.toLowerCase() === TRAINER_LAST) {
+    document.getElementById('choice-name').textContent = first + ' ' + last;
+    showScreen('screen-choice');
+    return;
+  }
+
+  // Legacy admin IDs still work (with password) as a fallback
+  if (ADMIN_IDS.includes(val)) {
     const pw = prompt('Enter admin password:');
     if (pw !== ADMIN_PASSWORD) {
       document.getElementById('login-error').textContent = 'Incorrect admin password.';
@@ -1065,17 +1195,38 @@ function doLogin() {
       return;
     }
     currentUser = val;
-    renderAdmin();
-    showScreen('screen-admin');
+    enterAdmin();
     return;
   }
 
+  enterStudentPortal(val, first, last);
+}
+
+// Trainer picked "Student Training Portal"
+function chooseStudent() {
+  enterStudentPortal(TRAINER_ID, currentUserFirst, currentUserLast);
+}
+
+// Trainer picked "Admin Portal"
+function chooseAdmin() {
+  currentUser = TRAINER_ID;
+  enterAdmin();
+}
+
+function enterStudentPortal(val, first, last) {
   currentUser = val;
   document.getElementById('portal-id-display').innerHTML = first + ' ' + last + '<br><span style="font-size:10px;opacity:.7;">' + val + '</span>';
   document.getElementById('portal-welcome-msg').textContent = 'Welcome, ' + first + '!';
   setName(val, first, last);
   renderPortal();
   showScreen('screen-portal');
+}
+
+function enterAdmin() {
+  showScreen('screen-admin');
+  const tbody = document.getElementById('admin-tbody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="99" style="text-align:center;padding:2rem;color:var(--ink3);">Loading trainee results…</td></tr>`;
+  loadResults(function(){ renderAdmin(); });
 }
 
 function doLogout() {
@@ -1424,6 +1575,7 @@ async function submitExam() {
   // Send to Google Sheets
   try {
     const payload = {
+      action: 'submitResult',
       first: currentUserFirst, last: currentUserLast, id: currentUser,
       date: new Date().toISOString().slice(0,10),
       score: pct, pass: pass ? 'Pass' : 'Fail',
@@ -1530,14 +1682,30 @@ function showResults(score, pass, results) {
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 // Get all student scores across all users stored in this browser
+// Sheet-derived names, populated by buildStudentsFromSheet during renderAdmin
+let SHEET_NAMES = {};
+
 function getAllStudentScores() {
   const students = {};
+  // 1) Sheet results first (cross-device, authoritative)
+  try {
+    const fromSheet = buildStudentsFromSheet();
+    Object.keys(fromSheet.students).forEach(uid => {
+      students[uid] = Object.assign({}, fromSheet.students[uid]);
+    });
+    SHEET_NAMES = fromSheet.names || {};
+  } catch(e) {}
+  // 2) Local storage (same-device) fills any gaps not already in sheet data
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('bz_scores_')) {
       const uid = key.replace('bz_scores_', '');
       try {
-        students[uid] = JSON.parse(localStorage.getItem(key));
+        const local = JSON.parse(localStorage.getItem(key));
+        if (!students[uid]) students[uid] = {};
+        Object.keys(local).forEach(qid => {
+          if (!students[uid][qid]) students[uid][qid] = local[qid];
+        });
       } catch(e) {}
     }
   }
@@ -1589,7 +1757,7 @@ function renderAdmin() {
 
   // Filter and build rows
   let rows = Object.entries(allStudents);
-  if (search) rows = rows.filter(([uid]) => uid.toLowerCase().includes(search));
+  if (search) rows = rows.filter(([uid]) => uid.toLowerCase().includes(search) || (getName(uid)||'').toLowerCase().includes(search));
   if (filterQ !== 'all') {
     rows = rows.filter(([, scores]) => {
       if (filterS === 'completed') return scores[filterQ];
@@ -1627,7 +1795,7 @@ function renderAdmin() {
         return `<td><span class="badge ${sc.pass ? 'badge-pass' : 'badge-fail'}">${sc.score}%</span>${gradeBtn}<div style="font-size:10px;color:var(--ink3);">${sc.date||''}</div></td>`;
       }).join('');
       return `<tr>
-        <td style="font-weight:600;font-family:'Syne',sans-serif;">${uid}<div style='font-size:11px;color:var(--ink3);font-weight:400;font-family:var(--font);'>${getName(uid)}</div></td>
+        <td style="font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;" onclick="openTrainee('${uid}')"><span style="color:var(--blue);text-decoration:underline;">${uid}</span><div style='font-size:11px;color:var(--ink3);font-weight:400;font-family:var(--font);'>${getName(uid)}</div></td>
         ${quizCells}
         <td>
           <div class="progress-mini">
@@ -1656,6 +1824,76 @@ function renderAdmin() {
       <td>${avg !== null ? avg + '%' : '—'}</td>
     </tr>`;
   }).join('');
+}
+
+// ── Per-trainee detail view (proficiency tracker) ──────────────────────────────
+function openTrainee(uid) {
+  const allStudents = getAllStudentScores();
+  const scores = allStudents[uid] || {};
+  const name = getName(uid) || '';
+
+  const completed = QUIZZES.filter(q => scores[q.id]).length;
+  const attempts = Object.values(scores);
+  const avg = attempts.length ? Math.round(attempts.map(a=>a.score||0).reduce((a,b)=>a+b,0)/attempts.length) : null;
+
+  // Group quizzes by section for a clean readout
+  let body = `<div class="tr-head">
+      <div>
+        <div class="tr-name">${name || uid}</div>
+        <div class="tr-id">${uid}${name ? '' : ' · (no name on file)'}</div>
+      </div>
+      <div class="tr-stats">
+        <div class="tr-stat"><div class="tr-stat-val">${completed}/${QUIZZES.length}</div><div class="tr-stat-lbl">Completed</div></div>
+        <div class="tr-stat"><div class="tr-stat-val">${avg!==null?avg+'%':'—'}</div><div class="tr-stat-lbl">Avg score</div></div>
+        <div class="tr-stat"><div class="tr-stat-val">${attempts.filter(a=>a.pass).length}</div><div class="tr-stat-lbl">Passed</div></div>
+      </div>
+    </div>`;
+
+  const TYPE_LABEL = { kc:'Knowledge Checks', test:'Tests & Finals', practice:'Practice' };
+  ['kc','test','practice'].forEach(type => {
+    const qs = QUIZZES.filter(q => (q.type||'kc') === type);
+    if (!qs.length) return;
+    body += `<div class="tr-section-title">${TYPE_LABEL[type]}</div>`;
+    qs.forEach(q => {
+      const sc = scores[q.id];
+      if (!sc) {
+        body += `<div class="tr-row tr-row-empty">
+          <div class="tr-row-name">${q.mod} — ${q.name}</div>
+          <div class="tr-row-status"><span class="badge badge-pending">Not started</span></div>
+        </div>`;
+        return;
+      }
+      const writtenAnswers = (sc.answers||[]).filter(a => a.written);
+      let written = '';
+      if (writtenAnswers.length) {
+        const qLookup = {};
+        (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
+        written = `<div class="tr-written">` + writtenAnswers.map(a => {
+          const qq = qLookup[a.q] || {};
+          return `<div class="tr-wa">
+            <div class="tr-wa-q">Q${a.q}. ${qq.text || ''}</div>
+            <div class="tr-wa-ans"><strong>Answer:</strong> ${(a.selected && String(a.selected).trim()) ? String(a.selected).replace(/</g,'&lt;') : '<em>Not answered</em>'}</div>
+            ${qq.model ? `<div class="tr-wa-model"><strong>Model:</strong> ${qq.model}</div>` : ''}
+          </div>`;
+        }).join('') + `</div>`;
+      }
+      body += `<div class="tr-row">
+        <div class="tr-row-name">${q.mod} — ${q.name}<div class="tr-row-date">${sc.date||''}</div></div>
+        <div class="tr-row-status">
+          <span class="badge ${sc.pass?'badge-pass':'badge-fail'}">${sc.score}% · ${sc.pass?'Pass':'Fail'}</span>
+          ${sc.writtenPending ? `<span class="badge badge-pending" style="margin-left:4px;">${sc.writtenPending} written</span>` : ''}
+        </div>
+        ${written}
+      </div>`;
+    });
+  });
+
+  document.getElementById('trainee-body').innerHTML = body;
+  document.getElementById('trainee-modal').style.display = 'flex';
+}
+
+function closeTrainee() {
+  document.getElementById('trainee-modal').style.display = 'none';
 }
 
 function exportAdminCSV() {
