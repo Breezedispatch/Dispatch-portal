@@ -1177,17 +1177,18 @@ function doLogin() {
   currentUserFirst = first;
   currentUserLast  = last;
 
-  // Trainer: exact ID + first + last (case-insensitive) → choose Student or Admin
-  if (val === TRAINER_ID &&
-      first.toLowerCase() === TRAINER_FIRST &&
-      last.toLowerCase() === TRAINER_LAST) {
+  const isTrainer = (val === TRAINER_ID)
+    && (first.toLowerCase() === TRAINER_FIRST)
+    && (last.toLowerCase() === TRAINER_LAST);
+
+  if (isTrainer) {
     document.getElementById('choice-name').textContent = first + ' ' + last;
     showScreen('screen-choice');
     return;
   }
 
   // Legacy admin IDs still work (with password) as a fallback
-  if (ADMIN_IDS.includes(val)) {
+  if (ADMIN_IDS.indexOf(val) > -1) {
     const pw = prompt('Enter admin password:');
     if (pw !== ADMIN_PASSWORD) {
       document.getElementById('login-error').textContent = 'Incorrect admin password.';
@@ -1199,6 +1200,7 @@ function doLogin() {
     return;
   }
 
+  // Everyone else → student training portal
   enterStudentPortal(val, first, last);
 }
 
@@ -1215,18 +1217,22 @@ function chooseAdmin() {
 
 function enterStudentPortal(val, first, last) {
   currentUser = val;
-  document.getElementById('portal-id-display').innerHTML = first + ' ' + last + '<br><span style="font-size:10px;opacity:.7;">' + val + '</span>';
-  document.getElementById('portal-welcome-msg').textContent = 'Welcome, ' + first + '!';
-  setName(val, first, last);
-  renderPortal();
   showScreen('screen-portal');
+  try {
+    document.getElementById('portal-id-display').innerHTML = first + ' ' + last + '<br><span style="font-size:10px;opacity:.7;">' + val + '</span>';
+    document.getElementById('portal-welcome-msg').textContent = 'Welcome, ' + first + '!';
+    setName(val, first, last);
+    renderPortal();
+  } catch(e) { console.error('portal render error:', e); }
 }
 
 function enterAdmin() {
   showScreen('screen-admin');
   const tbody = document.getElementById('admin-tbody');
   if (tbody) tbody.innerHTML = `<tr><td colspan="99" style="text-align:center;padding:2rem;color:var(--ink3);">Loading trainee results…</td></tr>`;
-  loadResults(function(){ renderAdmin(); });
+  try {
+    loadResults(function(){ try { renderAdmin(); } catch(e){ console.error('renderAdmin error:', e); if(tbody) tbody.innerHTML='<tr><td colspan=99 style="padding:2rem;text-align:center;color:var(--ink3);">Could not load results. Check the Apps Script deployment.</td></tr>'; } });
+  } catch(e) { console.error('loadResults error:', e); }
 }
 
 function doLogout() {
