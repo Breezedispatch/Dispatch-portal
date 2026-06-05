@@ -366,11 +366,18 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 .tr-row-empty{opacity:.6;}
 .tr-row-name{font-size:13.5px;font-weight:600;color:var(--ink2);flex:1;min-width:200px;}
 .tr-row-date{font-size:11px;color:var(--ink3);font-weight:400;margin-top:2px;}
-.tr-written{flex-basis:100%;margin-top:.6rem;border-top:1px dashed var(--gray);padding-top:.6rem;}
-.tr-wa{background:var(--surface);border-radius:8px;padding:.6rem .75rem;margin-bottom:.5rem;}
-.tr-wa-q{font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:.35rem;}
-.tr-wa-ans{font-size:12.5px;color:var(--ink2);line-height:1.55;}
-.tr-wa-model{font-size:12px;color:var(--ink3);margin-top:.3rem;line-height:1.5;}
+.tr-row-click{cursor:pointer;}
+.tr-row-click:hover{border-color:var(--blue);background:var(--blue-lt);}
+.tr-caret{display:inline-block;margin-left:8px;color:var(--ink3);font-size:12px;}
+.tr-detail{margin:-.25rem 0 .6rem;padding:.5rem .25rem .25rem;}
+.tr-ans{border-left:3px solid var(--gray);padding:.5rem .75rem;margin-bottom:.4rem;border-radius:0 8px 8px 0;background:var(--surface);}
+.tr-ans-right{border-left-color:var(--green);}
+.tr-ans-wrong{border-left-color:var(--red);}
+.tr-ans-written{border-left-color:var(--blue);}
+.tr-ans-q{font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:.3rem;}
+.tr-ans-line{font-size:12.5px;color:var(--ink2);line-height:1.5;}
+.tr-ans-correct{font-size:12.5px;color:var(--green);margin-top:.2rem;}
+.tr-ans-model{font-size:12px;color:var(--ink3);margin-top:.3rem;line-height:1.5;}
 .admin-header{background:var(--navy);padding:.85rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
 .admin-badge{background:var(--gold);color:var(--navy-dk);font-family:'Syne',sans-serif;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-left:8px;}
 .admin-wrap{max-width:1100px;margin:0 auto;padding:1.5rem 2rem 3rem;}
@@ -1856,28 +1863,43 @@ function openTrainee(uid) {
         </div>`;
         return;
       }
-      const writtenAnswers = (sc.answers||[]).filter(a => a.written);
-      let written = '';
-      if (writtenAnswers.length) {
-        const qLookup = {};
-        (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
-        written = `<div class="tr-written">` + writtenAnswers.map(a => {
+      const answers = Array.isArray(sc.answers) ? sc.answers : [];
+      const qLookup = {};
+      (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
+
+      let detail = '';
+      if (answers.length) {
+        detail = answers.map(a => {
           const qq = qLookup[a.q] || {};
-          return `<div class="tr-wa">
-            <div class="tr-wa-q">Q${a.q}. ${qq.text || ''}</div>
-            <div class="tr-wa-ans"><strong>Answer:</strong> ${(a.selected && String(a.selected).trim()) ? String(a.selected).replace(/</g,'&lt;') : '<em>Not answered</em>'}</div>
-            ${qq.model ? `<div class="tr-wa-model"><strong>Model:</strong> ${qq.model}</div>` : ''}
+          const qText = qq.text || ('Question ' + a.q);
+          if (a.written) {
+            return `<div class="tr-ans tr-ans-written">
+              <div class="tr-ans-q">Q${a.q}. ${qText}</div>
+              <div class="tr-ans-line"><strong>Their answer:</strong> ${(a.selected && String(a.selected).trim()) ? String(a.selected).replace(/</g,'&lt;') : '<em>Not answered</em>'}</div>
+              ${qq.model ? `<div class="tr-ans-model"><strong>Model answer:</strong> ${qq.model}</div>` : ''}
+            </div>`;
+          }
+          const right = a.isCorrect === true || a.isCorrect === 'true';
+          return `<div class="tr-ans ${right?'tr-ans-right':'tr-ans-wrong'}">
+            <div class="tr-ans-q">${right?'✓':'✗'} Q${a.q}. ${qText}</div>
+            <div class="tr-ans-line"><strong>Their answer:</strong> ${a.selected!=null?String(a.selected).replace(/</g,'&lt;'):'<em>Not answered</em>'}</div>
+            ${!right ? `<div class="tr-ans-correct"><strong>Correct answer:</strong> ${a.correct!=null?String(a.correct).replace(/</g,'&lt;'):''}</div>` : ''}
           </div>`;
-        }).join('') + `</div>`;
+        }).join('');
+      } else {
+        detail = `<div class="tr-ans" style="color:var(--ink3);font-size:12.5px;">No per-question detail was recorded for this attempt.</div>`;
       }
-      body += `<div class="tr-row">
-        <div class="tr-row-name">${q.mod} — ${q.name}<div class="tr-row-date">${sc.date||''}</div></div>
+
+      const rowId = 'trq-' + uid + '-' + q.id;
+      body += `<div class="tr-row tr-row-click" onclick="toggleTraineeQuiz('${rowId}')">
+        <div class="tr-row-name">${q.mod} — ${q.name}<div class="tr-row-date">${sc.date||''} · click to see answers</div></div>
         <div class="tr-row-status">
           <span class="badge ${sc.pass?'badge-pass':'badge-fail'}">${sc.score}% · ${sc.pass?'Pass':'Fail'}</span>
           ${sc.writtenPending ? `<span class="badge badge-pending" style="margin-left:4px;">${sc.writtenPending} written</span>` : ''}
+          <span class="tr-caret" id="${rowId}-caret">▸</span>
         </div>
-        ${written}
-      </div>`;
+      </div>
+      <div class="tr-detail" id="${rowId}" style="display:none;">${detail}</div>`;
     });
   });
 
@@ -1887,6 +1909,15 @@ function openTrainee(uid) {
 
 function closeTrainee() {
   document.getElementById('trainee-modal').style.display = 'none';
+}
+
+function toggleTraineeQuiz(rowId) {
+  const el = document.getElementById(rowId);
+  const caret = document.getElementById(rowId + '-caret');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (caret) caret.textContent = open ? '▸' : '▾';
 }
 
 function exportAdminCSV() {
