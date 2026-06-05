@@ -334,8 +334,9 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--navy-dk);color:va
 .grade-btn:hover{background:#1d8f44;}
 /* ── Admin screen ── */
 #screen-admin{background:var(--surface);}
-#screen-choice{background:var(--navy);min-height:100vh;display:flex;align-items:center;justify-content:center;}
-.choice-wrap{max-width:680px;width:100%;padding:2rem;text-align:center;}
+#screen-choice{background:var(--navy);}
+#screen-choice.active{height:100vh;min-height:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:1rem;}
+.choice-wrap{max-width:680px;width:100%;padding:1rem;text-align:center;}
 .choice-eyebrow{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:.75rem;}
 .choice-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;margin:0 0 .4rem;}
 .choice-sub{font-size:15px;color:rgba(255,255,255,.65);margin:0 0 2.25rem;}
@@ -1157,10 +1158,7 @@ function setScore(uid, quizId, score, pass) {
 }
 
 // ── Login ────────────────────────────────────────────────────────────────────
-// Admin password — change this to something only you know
-const ADMIN_PASSWORD = 'breeze2024dispatch';
-const ADMIN_IDS = ['ADMIN', 'DISPATCH-ADMIN', 'BRIAN.SPENCER'];
-// Trainer credentials: this exact ID + name gets the portal-choice screen (no password).
+// Trainer credentials: this exact ID + name gets the portal-choice screen (Student or Admin).
 const TRAINER_ID = '987945';
 const TRAINER_FIRST = 'brian';
 const TRAINER_LAST = 'spencer';
@@ -1184,19 +1182,6 @@ function doLogin() {
   if (isTrainer) {
     document.getElementById('choice-name').textContent = first + ' ' + last;
     showScreen('screen-choice');
-    return;
-  }
-
-  // Legacy admin IDs still work (with password) as a fallback
-  if (ADMIN_IDS.indexOf(val) > -1) {
-    const pw = prompt('Enter admin password:');
-    if (pw !== ADMIN_PASSWORD) {
-      document.getElementById('login-error').textContent = 'Incorrect admin password.';
-      document.getElementById('login-error').style.display = 'block';
-      return;
-    }
-    currentUser = val;
-    enterAdmin();
     return;
   }
 
@@ -1238,6 +1223,8 @@ function enterAdmin() {
 function doLogout() {
   currentUser = null; currentQuiz = null;
   document.getElementById('login-id').value = '';
+  document.getElementById('login-first').value = '';
+  document.getElementById('login-last').value = '';
   showScreen('screen-login');
 }
 
