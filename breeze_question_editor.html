@@ -881,8 +881,8 @@ let fcLoaded = false;
 let fcDirty = false;
 let fcActiveCat = null;  // null = category overview; otherwise a category key
 
-// Fixed 7 categories (must match the Dispatch Flashcards page).
-const FC_CATS = [
+// Categories are loaded from the sheet; these are the fallback defaults.
+const FC_CATS_DEFAULT = [
   { key:'regs', label:'Regulations' },
   { key:'fuel', label:'Fuel & Weights' },
   { key:'wx',   label:'Weather & NOTAMs' },
@@ -891,12 +891,24 @@ const FC_CATS = [
   { key:'mel',  label:'MEL / CDL' },
   { key:'perf', label:'Aircraft & Perf' },
 ];
+let FC_CATS = FC_CATS_DEFAULT.slice();
 function fcCatLabel(key){ const c = FC_CATS.find(x=>x.key===key); return c ? c.label : key; }
+function fcSlugCat(label){
+  let base = String(label).toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,12) || 'cat';
+  let key = base, n = 2;
+  while (FC_CATS.some(c=>c.key===key)) { key = base + n; n++; }
+  return key;
+}
 
 function loadFlashcards() {
   document.getElementById('fc-editor-body').innerHTML = '<div class="sm-empty">Loading flashcards…</div>';
   jsonp(QUESTIONS_URL + '?mode=flashcards', function(res){
     fcCards = [];
+    if (res && Array.isArray(res.categories) && res.categories.length) {
+      FC_CATS = res.categories.map(function(c){ return { key:String(c.key||'').trim(), label:String(c.label||c.key||'').trim() }; }).filter(function(c){ return c.key; });
+    } else {
+      FC_CATS = FC_CATS_DEFAULT.slice();
+    }
     if (res && res.status==='ok' && Array.isArray(res.flashcards) && res.flashcards.length) {
       res.flashcards.forEach(function(c){
         if (!c || c.cat === 'secret') return;       // never edit the easter-egg card
@@ -944,16 +956,55 @@ function fcRender() {
 function fcCountFor(key){ return fcCards.filter(function(c){ return c.cat === key; }).length; }
 
 function fcRenderCategories(body) {
-  let html = '<div class="fc-tiles">';
+  let html = '<div class="fc-toolbar"><button class="btn-primary btn" onclick="fcAddCat()">+ Add category</button>'
+           + '<span style="font-size:12px;color:var(--ink3);">' + FC_CATS.length + ' categories · ' + fcCards.length + ' cards total</span></div>';
+  html += '<div class="fc-tiles">';
   FC_CATS.forEach(function(cat){
     const n = fcCountFor(cat.key);
-    html += '<div class="fc-tile" onclick="fcOpenCat(\'' + cat.key + '\')">'
-         +    '<div class="fc-tile-title">' + esc(cat.label) + '</div>'
-         +    '<div class="fc-tile-meta">' + n + ' card' + (n===1?'':'s') + '</div>'
+    html += '<div class="fc-tile">'
+         +    '<button class="fc-tile-x" title="Delete category" onclick="event.stopPropagation();fcDeleteCat(\'' + cat.key + '\')">&times;</button>'
+         +    '<div onclick="fcOpenCat(\'' + cat.key + '\')">'
+         +      '<div class="fc-tile-title">' + esc(cat.label) + '</div>'
+         +      '<div class="fc-tile-meta">' + n + ' card' + (n===1?'':'s') + '</div>'
+         +    '</div>'
+         +    '<button class="btn btn-sm" style="margin-top:10px;" onclick="event.stopPropagation();fcRenameCat(\'' + cat.key + '\')">Rename</button>'
          +  '</div>';
   });
   html += '</div>';
   body.innerHTML = html;
+}
+
+function fcAddCat(){
+  const label = (prompt('New category name:') || '').trim();
+  if (!label) return;
+  if (FC_CATS.some(function(c){ return c.label.toLowerCase() === label.toLowerCase(); })) {
+    alert('A category with that name already exists.'); return;
+  }
+  FC_CATS.push({ key: fcSlugCat(label), label: label });
+  fcMarkDirty(); fcRender();
+}
+
+function fcRenameCat(key){
+  const cat = FC_CATS.find(function(c){ return c.key === key; });
+  if (!cat) return;
+  const label = (prompt('Rename category:', cat.label) || '').trim();
+  if (!label || label === cat.label) return;
+  cat.label = label;            // key stays the same, so existing cards keep their category
+  fcMarkDirty(); fcRender();
+}
+
+function fcDeleteCat(key){
+  const cat = FC_CATS.find(function(c){ return c.key === key; });
+  if (!cat) return;
+  const n = fcCountFor(key);
+  const msg = n > 0
+    ? 'Delete the "' + cat.label + '" category AND its ' + n + ' card' + (n===1?'':'s') + '? This cannot be undone.'
+    : 'Delete the empty "' + cat.label + '" category?';
+  if (!confirm(msg)) return;
+  FC_CATS = FC_CATS.filter(function(c){ return c.key !== key; });
+  fcCards = fcCards.filter(function(c){ return c.cat !== key; });  // remove its cards too
+  if (fcActiveCat === key) fcActiveCat = null;
+  fcMarkDirty(); fcRender();
 }
 
 function fcRenderCards(body) {
@@ -1010,9 +1061,10 @@ function saveFlashcards(){
   const cards = fcCards
     .filter(function(c){ return c.cat && (c.q.trim() || c.a.trim()); })
     .map(function(c){ return { cat:c.cat, q:c.q, a:c.a, cite:c.cite }; });
+  const categories = FC_CATS.map(function(c){ return { key:c.key, label:c.label }; });
   const btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
-  postData({ action:'saveFlashcards', cards: cards }, function(){
+  postData({ action:'saveFlashcards', cards: cards, categories: categories }, function(){
     btn.disabled = false; btn.textContent = 'Save flashcards';
     fcDirty = false;
     document.getElementById('savebar').classList.remove('show');

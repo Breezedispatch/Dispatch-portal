@@ -92,6 +92,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .cat-atc{background:var(--accent-lt);color:var(--accent);}
 .cat-mel{background:#EEF1F6;color:#374151;}
 .cat-perf{background:#FDF4FF;color:#86198F;}
+.cat-default{background:var(--blue-lt);color:var(--blue);}
 
 .secret-card-front{background:linear-gradient(135deg,#041C34,#2566CC)!important;}
 
@@ -111,13 +112,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 
 <div class="controls">
   <button class="deck-btn active" onclick="loadDeck('all')">All Cards</button>
-  <button class="deck-btn" onclick="loadDeck('regs')">Regulations</button>
-  <button class="deck-btn" onclick="loadDeck('fuel')">Fuel &amp; Weights</button>
-  <button class="deck-btn" onclick="loadDeck('wx')">Weather &amp; NOTAMs</button>
-  <button class="deck-btn" onclick="loadDeck('ops')">Dispatch Ops</button>
-  <button class="deck-btn" onclick="loadDeck('atc')">ATC &amp; Flow</button>
-  <button class="deck-btn" onclick="loadDeck('mel')">MEL / CDL</button>
-  <button class="deck-btn" onclick="loadDeck('perf')">Aircraft &amp; Perf</button>
+  <span id="cat-btns"></span>
   <button class="deck-btn" onclick="loadDeck('wrong')">&#10007; Still Learning</button>
   <div class="controls-right">
     <button class="shuffle-btn" onclick="shuffle()">&#9700; Shuffle</button>
@@ -370,8 +365,9 @@ function renderCard() {
   const id = getCardId(card);
   document.getElementById('card-counter').textContent = 'Card ' + (currentIndex+1) + ' of ' + deck.length;
   const label = document.getElementById('card-cat-label');
-  label.textContent = CAT_LABELS[card.cat] || card.cat;
-  label.className = 'card-label ' + (CAT_COLORS[card.cat] || '');
+  const fcLabel = (FC_CATS.find(c => c.key === card.cat) || {}).label;
+  label.textContent = fcLabel || CAT_LABELS[card.cat] || card.cat;
+  label.className = 'card-label ' + (CAT_COLORS[card.cat] || 'cat-default');
   document.getElementById('card-question').textContent = card.q;
   // Secret card special styling
   const frontFace = document.querySelector('.card-front');
@@ -517,6 +513,11 @@ document.addEventListener('keydown', e => {
 const FLASH_URL = 'https://script.google.com/macros/s/AKfycbxO1FIbW4oaaHTfOEqbSN4eMDzRXuyxNz7bFLHYBmAkpBpifVkHeQRDQOlfFVXW5qF2/exec';
 const BUILTIN_CARDS = ALL_CARDS.slice();
 const SECRET_CARD = BUILTIN_CARDS.find(c => c.cat === 'secret');
+const FC_CATS_DEFAULT = [
+  {key:'regs',label:'Regulations'},{key:'fuel',label:'Fuel & Weights'},{key:'wx',label:'Weather & NOTAMs'},
+  {key:'ops',label:'Dispatch Ops'},{key:'atc',label:'ATC & Flow'},{key:'mel',label:'MEL / CDL'},{key:'perf',label:'Aircraft & Perf'}
+];
+let FC_CATS = FC_CATS_DEFAULT.slice();
 
 function loadCardsFromSheet() {
   if (!FLASH_URL || FLASH_URL.indexOf('PASTE_') === 0) { startApp(); return; }
@@ -526,6 +527,9 @@ function loadCardsFromSheet() {
   function finish(){ if(done) return; done = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); startApp(); }
   window[cb] = function(res){
     try {
+      if (res && Array.isArray(res.categories) && res.categories.length) {
+        FC_CATS = res.categories.map(c => ({ key:String(c.key||'').trim(), label:String(c.label||c.key||'').trim() })).filter(c => c.key);
+      }
       if (res && res.status === 'ok' && Array.isArray(res.flashcards) && res.flashcards.length) {
         const sheetCards = res.flashcards
           .filter(c => c && c.cat && c.cat !== 'secret' && (c.q || c.a))
@@ -544,7 +548,17 @@ function loadCardsFromSheet() {
   setTimeout(finish, 12000);
 }
 
+function buildCategoryButtons(){
+  const wrap = document.getElementById('cat-btns');
+  if (!wrap) return;
+  wrap.innerHTML = FC_CATS.map(c =>
+    '<button class="deck-btn" onclick="loadDeck(\'' + c.key + '\')">' +
+    c.label.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</button>'
+  ).join('');
+}
+
 function startApp(){
+  buildCategoryButtons();
   deck = [...ALL_CARDS];
   currentIndex = 0;
   loadState();
