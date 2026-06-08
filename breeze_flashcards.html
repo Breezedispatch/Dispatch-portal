@@ -165,7 +165,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 </div>
 
 <script>
-const ALL_CARDS = [
+let ALL_CARDS = [
   // ── REGULATIONS ──────────────────────────────────────────────────────────
   {cat:'regs',q:"What does § 121.533(b) establish?",a:"Joint responsibility between the aircraft dispatcher and the pilot in command for preflight planning, delay, and the dispatch release of each flight.",cite:"§ 121.533(b)"},
   {cat:'regs',q:"What are the dispatcher's three SOLE responsibilities under § 121.533(c)? (M-I-C)",a:"<strong>M</strong> — Monitor flight progress<br><strong>I</strong> — Issue necessary safety information to the PIC<br><strong>C</strong> — Cancel or redispatch if the flight cannot operate safely",cite:"§ 121.533(c)"},
@@ -511,9 +511,48 @@ document.addEventListener('keydown', e => {
   else if (e.key === '2') markLearn();
 });
 
-loadState();
-renderCard();
-updateStats();
+// ── Load cards from the Google Sheet (editable via Content Editor) ─────────────
+// Same backend as the portal/editor. Falls back to the built-in cards if the
+// sheet is empty or unreachable, and always preserves the secret easter-egg card.
+const FLASH_URL = 'https://script.google.com/macros/s/AKfycbxO1FIbW4oaaHTfOEqbSN4eMDzRXuyxNz7bFLHYBmAkpBpifVkHeQRDQOlfFVXW5qF2/exec';
+const BUILTIN_CARDS = ALL_CARDS.slice();
+const SECRET_CARD = BUILTIN_CARDS.find(c => c.cat === 'secret');
+
+function loadCardsFromSheet() {
+  if (!FLASH_URL || FLASH_URL.indexOf('PASTE_') === 0) { startApp(); return; }
+  const cb = 'fc_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let done = false;
+  function finish(){ if(done) return; done = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); startApp(); }
+  window[cb] = function(res){
+    try {
+      if (res && res.status === 'ok' && Array.isArray(res.flashcards) && res.flashcards.length) {
+        const sheetCards = res.flashcards
+          .filter(c => c && c.cat && c.cat !== 'secret' && (c.q || c.a))
+          .map(c => ({ cat: String(c.cat).trim(), q: c.q || '', a: c.a || '', cite: c.cite || '' }));
+        if (sheetCards.length) {
+          if (SECRET_CARD) sheetCards.push(SECRET_CARD);
+          ALL_CARDS = sheetCards;
+        }
+      }
+    } catch(e) {}
+    finish();
+  };
+  s.onerror = finish;
+  s.src = FLASH_URL + (FLASH_URL.indexOf('?')>-1?'&':'?') + 'mode=flashcards&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(finish, 12000);
+}
+
+function startApp(){
+  deck = [...ALL_CARDS];
+  currentIndex = 0;
+  loadState();
+  renderCard();
+  updateStats();
+}
+
+loadCardsFromSheet();
 </script>
 </body>
 </html>

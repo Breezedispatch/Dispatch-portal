@@ -876,22 +876,36 @@ function saveSmContent() {
 // ════════════════════════════════════════════════════════════════
 //  FLASHCARDS EDITOR
 // ════════════════════════════════════════════════════════════════
-let fcData = null;       // nested {section:{title,eyebrow,modules:{...}}}
+let fcCards = [];        // flat array of {cat,q,a,cite}
 let fcLoaded = false;
 let fcDirty = false;
-let fcNav = { section:null, module:null, category:null };
+let fcActiveCat = null;  // null = category overview; otherwise a category key
+
+// Fixed 7 categories (must match the Dispatch Flashcards page).
+const FC_CATS = [
+  { key:'regs', label:'Regulations' },
+  { key:'fuel', label:'Fuel & Weights' },
+  { key:'wx',   label:'Weather & NOTAMs' },
+  { key:'ops',  label:'Dispatch Ops' },
+  { key:'atc',  label:'ATC & Flow' },
+  { key:'mel',  label:'MEL / CDL' },
+  { key:'perf', label:'Aircraft & Perf' },
+];
+function fcCatLabel(key){ const c = FC_CATS.find(x=>x.key===key); return c ? c.label : key; }
 
 function loadFlashcards() {
   document.getElementById('fc-editor-body').innerHTML = '<div class="sm-empty">Loading flashcards…</div>';
   jsonp(QUESTIONS_URL + '?mode=flashcards', function(res){
-    if (res && res.status==='ok' && res.flashcards && Object.keys(res.flashcards).length) {
-      fcData = res.flashcards;
-    } else {
-      fcData = {}; // empty; user can build
+    fcCards = [];
+    if (res && res.status==='ok' && Array.isArray(res.flashcards) && res.flashcards.length) {
+      res.flashcards.forEach(function(c){
+        if (!c || c.cat === 'secret') return;       // never edit the easter-egg card
+        fcCards.push({ cat:String(c.cat||'').trim(), q:c.q||'', a:c.a||'', cite:c.cite||'' });
+      });
     }
     fcLoaded = true;
     fcRender();
-  }, function(){ fcData = fcData || {}; fcLoaded = true; fcRender(); });
+  }, function(){ fcCards = fcCards || []; fcLoaded = true; fcRender(); });
 }
 
 function fcMarkDirty(){ fcDirty = true; updateFcBar(); }
@@ -911,170 +925,100 @@ function updateFcBar() {
 
 function fcCrumbs() {
   const c = document.getElementById('fc-crumbs');
-  let p = ['<span class="fc-crumb" onclick="fcGo(null,null,null)">All sections</span>'];
-  if (fcNav.section) {
-    p.push('<span class="fc-sep">›</span>');
-    const t = fcData[fcNav.section] ? fcData[fcNav.section].title : fcNav.section;
-    if (fcNav.module) p.push('<span class="fc-crumb" onclick="fcGo(\''+fcNav.section+'\',null,null)">'+esc(t)+'</span>');
-    else p.push('<span>'+esc(t)+'</span>');
-  }
-  if (fcNav.module) {
-    const m = fcData[fcNav.section].modules[fcNav.module];
-    p.push('<span class="fc-sep">›</span>');
-    if (fcNav.category) p.push('<span class="fc-crumb" onclick="fcGo(\''+fcNav.section+'\',\''+fcNav.module+'\',null)">'+esc(m.title)+'</span>');
-    else p.push('<span>'+esc(m.title)+'</span>');
-  }
-  if (fcNav.category) {
-    const cat = fcData[fcNav.section].modules[fcNav.module].categories[fcNav.category];
-    p.push('<span class="fc-sep">›</span><span>'+esc(cat.title)+'</span>');
-  }
-  c.innerHTML = p.join('');
+  if (!c) return;
+  let p = ['<span class="fc-crumb" onclick="fcGoOverview()">All categories</span>'];
+  if (fcActiveCat) p.push('<span class="fc-sep">›</span>' + esc(fcCatLabel(fcActiveCat)));
+  c.innerHTML = p.join(' ');
 }
 
-function fcGo(s,m,c){ fcNav.section=s; fcNav.module=m; fcNav.category=c; fcRender(); }
+function fcGoOverview(){ fcActiveCat = null; fcRender(); }
+function fcOpenCat(key){ fcActiveCat = key; fcRender(); }
 
 function fcRender() {
   fcCrumbs();
   const body = document.getElementById('fc-editor-body');
-  if (!fcNav.section) return fcRenderSections(body);
-  if (!fcNav.module)  return fcRenderModules(body);
-  if (!fcNav.category) return fcRenderCategories(body);
+  if (!fcActiveCat) return fcRenderCategories(body);
   return fcRenderCards(body);
 }
 
-function fcRenderSections(body) {
-  let html = '<div class="fc-tiles">';
-  Object.keys(fcData).forEach(function(sk){
-    const sec = fcData[sk];
-    const mods = Object.keys(sec.modules||{}).length;
-    html += '<div class="fc-tile" onclick="fcGo(\''+sk+'\',null,null)">'
-          + '<button class="fc-tile-x" onclick="event.stopPropagation();fcDeleteSection(\''+sk+'\')">×</button>'
-          + '<div class="fc-tile-title">'+esc(sec.title||sk)+'</div>'
-          + '<div class="fc-tile-meta">'+esc(sec.eyebrow||'')+' · '+mods+' module'+(mods===1?'':'s')+'</div></div>';
-  });
-  html += '<div class="fc-tile fc-add-tile" onclick="fcAddSection()">+ Add section</div></div>';
-  body.innerHTML = html;
-}
-
-function fcRenderModules(body) {
-  const sec = fcData[fcNav.section];
-  let html = '<div class="fc-tiles">';
-  Object.keys(sec.modules).forEach(function(mk){
-    const mod = sec.modules[mk];
-    const cats = Object.keys(mod.categories||{}).length;
-    html += '<div class="fc-tile" onclick="fcGo(\''+fcNav.section+'\',\''+mk+'\',null)">'
-          + '<button class="fc-tile-x" onclick="event.stopPropagation();fcDeleteModule(\''+mk+'\')">×</button>'
-          + '<div class="fc-tile-title">'+esc(mod.title||mk)+'</div>'
-          + '<div class="fc-tile-meta">'+cats+' categor'+(cats===1?'y':'ies')+'</div></div>';
-  });
-  html += '<div class="fc-tile fc-add-tile" onclick="fcAddModule()">+ Add module</div></div>';
-  body.innerHTML = html;
-}
+function fcCountFor(key){ return fcCards.filter(function(c){ return c.cat === key; }).length; }
 
 function fcRenderCategories(body) {
-  const mod = fcData[fcNav.section].modules[fcNav.module];
   let html = '<div class="fc-tiles">';
-  Object.keys(mod.categories).forEach(function(ck){
-    const cat = mod.categories[ck];
-    const cards = (cat.cards||[]).length;
-    html += '<div class="fc-tile" onclick="fcGo(\''+fcNav.section+'\',\''+fcNav.module+'\',\''+ck+'\')">'
-          + '<button class="fc-tile-x" onclick="event.stopPropagation();fcDeleteCategory(\''+ck+'\')">×</button>'
-          + '<div class="fc-tile-title">'+esc(cat.title||ck)+'</div>'
-          + '<div class="fc-tile-meta">'+cards+' card'+(cards===1?'':'s')+'</div></div>';
+  FC_CATS.forEach(function(cat){
+    const n = fcCountFor(cat.key);
+    html += '<div class="fc-tile" onclick="fcOpenCat(\'' + cat.key + '\')">'
+         +    '<div class="fc-tile-title">' + esc(cat.label) + '</div>'
+         +    '<div class="fc-tile-meta">' + n + ' card' + (n===1?'':'s') + '</div>'
+         +  '</div>';
   });
-  html += '<div class="fc-tile fc-add-tile" onclick="fcAddCategory()">+ Add category</div></div>';
+  html += '</div>';
   body.innerHTML = html;
 }
 
 function fcRenderCards(body) {
-  const cat = fcData[fcNav.section].modules[fcNav.module].categories[fcNav.category];
-  let html = '<div class="fc-toolbar"><button class="btn-primary btn" onclick="fcAddCard()">+ Add card</button></div>';
-  (cat.cards||[]).forEach(function(card,i){
+  // indices into fcCards for the active category, in order
+  const idxs = [];
+  fcCards.forEach(function(c,i){ if (c.cat === fcActiveCat) idxs.push(i); });
+
+  let html = '<div class="fc-toolbar"><button class="btn-primary btn" onclick="fcAddCard()">+ Add card</button>'
+           + '<span style="font-size:12px;color:var(--ink3);">' + idxs.length + ' card' + (idxs.length===1?'':'s') + ' in ' + esc(fcCatLabel(fcActiveCat)) + '</span></div>';
+
+  if (!idxs.length) {
+    html += '<div class="sm-empty">No cards in this category yet. Click “+ Add card” to create one.</div>';
+  }
+
+  idxs.forEach(function(i, n){
+    const card = fcCards[i];
     html += '<div class="fc-card-edit">'
-      + '<div class="fc-card-top"><span class="fc-card-num">Card '+(i+1)+'</span>'
-      + '<button class="btn btn-sm btn-danger" onclick="fcDeleteCard('+i+')">Delete</button></div>'
-      + '<label>Front (term / question)</label>'
-      + '<textarea oninput="fcEditCard('+i+',\'front\',this.value)">'+esc(card.front||'')+'</textarea>'
-      + '<label>Back (definition / answer)</label>'
-      + '<textarea oninput="fcEditCard('+i+',\'back\',this.value)">'+esc(card.back||'')+'</textarea>'
-      + '</div>';
+         +    '<div class="fc-card-top"><span class="fc-card-num">Card ' + (n+1) + '</span>'
+         +      '<button class="btn-danger btn btn-sm" onclick="fcDeleteCard(' + i + ')">Delete</button></div>'
+         +    '<label>Question (front)</label>'
+         +    '<textarea oninput="fcEditCard(' + i + ',\'q\',this.value)" placeholder="Question…">' + esc(card.q) + '</textarea>'
+         +    '<label>Answer (back) — HTML allowed (&lt;strong&gt;, &lt;br&gt;)</label>'
+         +    '<textarea oninput="fcEditCard(' + i + ',\'a\',this.value)" placeholder="Answer…">' + esc(card.a) + '</textarea>'
+         +    '<label>Citation / reference</label>'
+         +    '<textarea oninput="fcEditCard(' + i + ',\'cite\',this.value)" placeholder="e.g. § 121.533(b)" style="min-height:38px;">' + esc(card.cite) + '</textarea>'
+         +  '</div>';
   });
-  if (!(cat.cards||[]).length) html += '<div class="sm-empty">No cards yet. Click "Add card".</div>';
   body.innerHTML = html;
 }
 
-// ---- editing ops ----
-function fcSlug(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,7); }
-
-function fcAddSection(){
-  const name = prompt('Section name (e.g. "Basic Indoctrination"):'); if(!name) return;
-  const eyebrow = prompt('Section label (e.g. "Section 1"):') || '';
-  const key = fcSlug('sec');
-  fcData[key] = { title:name, eyebrow:eyebrow, modules:{} };
-  fcMarkDirty(); fcRender();
-}
-function fcDeleteSection(sk){
-  if(!confirm('Delete section "'+(fcData[sk].title||sk)+'" and everything in it?')) return;
-  delete fcData[sk]; fcMarkDirty(); fcRender();
-}
-function fcAddModule(){
-  const name = prompt('Module name (e.g. "Module 1"):'); if(!name) return;
-  const key = fcSlug('mod');
-  fcData[fcNav.section].modules[key] = { title:name, categories:{} };
-  fcMarkDirty(); fcRender();
-}
-function fcDeleteModule(mk){
-  if(!confirm('Delete module "'+(fcData[fcNav.section].modules[mk].title||mk)+'" and everything in it?')) return;
-  delete fcData[fcNav.section].modules[mk]; fcMarkDirty(); fcRender();
-}
-function fcAddCategory(){
-  const name = prompt('Category name (e.g. "Definitions"):'); if(!name) return;
-  const key = fcSlug('cat');
-  fcData[fcNav.section].modules[fcNav.module].categories[key] = { title:name, cards:[] };
-  fcMarkDirty(); fcRender();
-}
-function fcDeleteCategory(ck){
-  if(!confirm('Delete category "'+(fcData[fcNav.section].modules[fcNav.module].categories[ck].title||ck)+'" and its cards?')) return;
-  delete fcData[fcNav.section].modules[fcNav.module].categories[ck]; fcMarkDirty(); fcRender();
-}
 function fcAddCard(){
-  fcData[fcNav.section].modules[fcNav.module].categories[fcNav.category].cards.push({front:'',back:''});
-  fcMarkDirty(); fcRenderCards(document.getElementById('fc-editor-body'));
-}
-function fcDeleteCard(i){
-  fcData[fcNav.section].modules[fcNav.module].categories[fcNav.category].cards.splice(i,1);
-  fcMarkDirty(); fcRenderCards(document.getElementById('fc-editor-body'));
-}
-function fcEditCard(i,field,val){
-  fcData[fcNav.section].modules[fcNav.module].categories[fcNav.category].cards[i][field] = val;
-  fcMarkDirty();
+  // insert a new card at the end of the active category group
+  let lastIdx = -1;
+  fcCards.forEach(function(c,i){ if (c.cat === fcActiveCat) lastIdx = i; });
+  const card = { cat: fcActiveCat, q:'', a:'', cite:'' };
+  if (lastIdx === -1) fcCards.push(card);
+  else fcCards.splice(lastIdx+1, 0, card);
+  fcMarkDirty(); fcRender();
 }
 
-// ---- save: flatten nested data to rows ----
+function fcDeleteCard(i){
+  if (!confirm('Delete this card?')) return;
+  fcCards.splice(i,1);
+  fcMarkDirty(); fcRender();
+}
+
+function fcEditCard(i, field, val){
+  if (!fcCards[i]) return;
+  fcCards[i][field] = val;
+  fcDirty = true; updateFcBar();   // don't re-render (would lose textarea focus)
+}
+
 function saveFlashcards(){
-  const rows = [];
-  Object.keys(fcData).forEach(function(sk){
-    const sec = fcData[sk];
-    Object.keys(sec.modules).forEach(function(mk){
-      const mod = sec.modules[mk];
-      Object.keys(mod.categories).forEach(function(ck){
-        const cat = mod.categories[ck];
-        (cat.cards||[]).forEach(function(card,idx){
-          rows.push([sk, sec.title||'', sec.eyebrow||'', mk, mod.title||'', ck, cat.title||'', idx+1, card.front||'', card.back||'']);
-        });
-      });
-    });
-  });
+  const cards = fcCards
+    .filter(function(c){ return c.cat && (c.q.trim() || c.a.trim()); })
+    .map(function(c){ return { cat:c.cat, q:c.q, a:c.a, cite:c.cite }; });
   const btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
-  postData({ action:'saveFlashcards', rows: rows }, function(){
+  postData({ action:'saveFlashcards', cards: cards }, function(){
     btn.disabled = false; btn.textContent = 'Save flashcards';
     fcDirty = false;
     document.getElementById('savebar').classList.remove('show');
     toast('Flashcards saved', 'ok');
   });
 }
-
 
 // ════════════════════════════════════════════════════════════════
 //  AIRPORTS EDITOR
