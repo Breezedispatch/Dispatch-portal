@@ -511,8 +511,10 @@ document.addEventListener('keydown', e => {
 // Same backend as the portal/editor. Falls back to the built-in cards if the
 // sheet is empty or unreachable, and always preserves the secret easter-egg card.
 const FLASH_URL = 'https://script.google.com/macros/s/AKfycbxO1FIbW4oaaHTfOEqbSN4eMDzRXuyxNz7bFLHYBmAkpBpifVkHeQRDQOlfFVXW5qF2/exec';
+// Defensive: drop any malformed/empty entries so a bad paste can't crash the page.
+ALL_CARDS = (Array.isArray(ALL_CARDS) ? ALL_CARDS : []).filter(c => c && typeof c === 'object' && ('cat' in c));
 const BUILTIN_CARDS = ALL_CARDS.slice();
-const SECRET_CARD = BUILTIN_CARDS.find(c => c.cat === 'secret');
+const SECRET_CARD = BUILTIN_CARDS.find(c => c && c.cat === 'secret');
 const FC_CATS_DEFAULT = [
   {key:'regs',label:'Regulations'},{key:'fuel',label:'Fuel & Weights'},{key:'wx',label:'Weather & NOTAMs'},
   {key:'ops',label:'Dispatch Ops'},{key:'atc',label:'ATC & Flow'},{key:'mel',label:'MEL / CDL'},{key:'perf',label:'Aircraft & Perf'}
@@ -558,6 +560,14 @@ function buildCategoryButtons(){
 }
 
 function startApp(){
+  // Safety net: never render empty. If the sheet gave us nothing usable,
+  // fall back to the built-in cards and default categories.
+  if (!Array.isArray(ALL_CARDS) || ALL_CARDS.length === 0) {
+    ALL_CARDS = BUILTIN_CARDS.slice();
+  }
+  if (!Array.isArray(FC_CATS) || FC_CATS.length === 0) {
+    FC_CATS = FC_CATS_DEFAULT.slice();
+  }
   buildCategoryButtons();
   deck = [...ALL_CARDS];
   currentIndex = 0;
