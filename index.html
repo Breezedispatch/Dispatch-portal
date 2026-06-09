@@ -1360,8 +1360,8 @@ function renderPortal() {
         ${hasNotes ? `<button class="qc-feedback-btn" onclick="viewFeedback('${q.id}')">&#128172; View instructor feedback</button>` : ''}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">
           ${typeBadge}
-          <button class="start-btn ${done ? 'retake' : ''}" onclick="startQuiz('${q.id}')">
-            ${done ? '&#8635; Retake' : '&#9654; Start'}
+          <button class="start-btn ${done ? 'retake' : ''}" onclick="startQuiz('${q.id}', ${done ? 'true' : 'false'})">
+            ${done ? '&#8635; Retake missed' : '&#9654; Start'}
           </button>
         </div>
       </div>`;
@@ -1431,8 +1431,8 @@ function renderPractice() {
         ${hasNotes ? `<button class="qc-feedback-btn" onclick="viewFeedback('${q.id}')">&#128172; View instructor feedback</button>` : ''}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">
           <span class="type-badge type-kc">&#9998; Practice</span>
-          <button class="start-btn ${done ? 'retake' : ''}" onclick="startQuiz('${q.id}')">
-            ${done ? '&#8635; Retake' : '&#9654; Start'}
+          <button class="start-btn ${done ? 'retake' : ''}" onclick="startQuiz('${q.id}', ${done ? 'true' : 'false'})">
+            ${done ? '&#8635; Retake missed' : '&#9654; Start'}
           </button>
         </div>
       </div>`;
@@ -1450,14 +1450,41 @@ function setPortalTab(tab) {
 }
 
 // ── Start quiz ────────────────────────────────────────────────────────────────
-function startQuiz(qid) {
+function startQuiz(qid, missedOnly) {
   const quiz = QUIZZES.find(q => q.id === qid);
   if (!quiz) return;
-  currentQuiz  = quiz;
+
+  // Retake-missed mode: build a filtered quiz of just the missed questions.
+  window._retakeMode = null;
+  if (missedOnly) {
+    const missed = getMissedQuestions(currentUser, qid);
+    if (!missed.nums.length) {
+      // Nothing eligible — either all correct, or written still pending grading.
+      alert('No missed questions to retake right now. (Written answers must be graded by an instructor before they can be retaken.)');
+      return;
+    }
+    const subset = quiz.questions.filter(qu => missed.nums.indexOf(qu.n) !== -1);
+    currentQuiz = Object.assign({}, quiz, {
+      questions: subset,
+      totalQuestions: subset.length,
+      _retakeOf: qid,
+    });
+    window._retakeMode = {
+      quizId: qid,
+      priorMcEarned: missed.priorMcEarned,
+      priorWrittenEarned: missed.priorWrittenEarned,
+      gradedWritten: missed.gradedWritten,
+      retakenNums: missed.nums.slice(),
+    };
+  } else {
+    currentQuiz = quiz;
+  }
+
   examSelected = {};
   window._examWritten = {};
   examResults  = null;
-  document.getElementById('exam-topbar-title').textContent = currentQuiz.mod + ' — ' + currentQuiz.name;
+  const titlePrefix = missedOnly ? 'Retake — ' : '';
+  document.getElementById('exam-topbar-title').textContent = titlePrefix + currentQuiz.mod + ' — ' + currentQuiz.name;
   updateExamProgress();
   renderExam();
   showScreen('screen-exam');
@@ -1610,7 +1637,58 @@ async function submitExam() {
   // Persist written answers for instructor grading
   if (writtenCount > 0) saveSAAnswers(currentUser, q.id, writtenAnswers);
 
-  const hasWritten = writtenCount > 0;
+  const RETAKE = window._retakeMode || null;
+  let fullQuiz = q, combinedAnswers = null;
+  if (RETAKE) {
+    // We only tested the missed subset. Rebuild full scoring against the ORIGINAL quiz,
+    // keeping prior credit for everything not retaken.
+    fullQuiz = QUIZZES.find(x => x.id === RETAKE.quizId) || q;
+    const retaken = {}; q.questions.forEach(qu => retaken[qu.n] = true);
+
+    // Recompute totals across the FULL quiz.
+    mcPts = 0; writtenPts = 0; writtenCount = 0;
+    let combinedMcEarned = 0;
+    const priorMC = {};
+    getMCAnswersForAttempt(currentUser, RETAKE.quizId).forEach(a => { priorMC[a.q] = a; });
+
+    combinedAnswers = fullQuiz.questions.map(qu => {
+      if (isWrittenQ(qu)) {
+        writtenPts += (Number(qu.pts) || 0);
+        if (retaken[qu.n]) {
+          // newly answered written → goes back to pending grading
+          writtenCount++;
+          return { q: qu.n, written: true, selected: (written[qu.n] || 'Not answered'),
+                   correct: '(written — pending grading)', isCorrect: '' };
+        }
+        // keep prior written answer as-is (already graded; counted via prior earned)
+        const prevTxt = (getWrittenAnswersFromSheet(currentUser, RETAKE.quizId)[qu.n]) || 'Not answered';
+        return { q: qu.n, written: true, selected: prevTxt,
+                 correct: '(written — previously graded)', isCorrect: '' };
+      }
+      mcPts += (Number(qu.pts) || 0);
+      const opts = Array.isArray(qu.options) ? qu.options : [];
+      if (retaken[qu.n]) {
+        const a = examSelected[qu.n];
+        const correct = a !== undefined && a === qu.correct;
+        if (correct) combinedMcEarned += (Number(qu.pts) || 0);
+        results[qu.n] = { selected: a, correct };
+        return { q: qu.n, selected: a !== undefined ? opts[a] : 'Not answered',
+                 correct: opts[qu.correct], isCorrect: correct };
+      }
+      // not retaken → carry prior MC result
+      const prev = priorMC[qu.n] || {};
+      const wasRight = (prev.isCorrect === true || prev.isCorrect === 'true');
+      if (wasRight) combinedMcEarned += (Number(qu.pts) || 0);
+      results[qu.n] = { selected: undefined, correct: wasRight };
+      return { q: qu.n, selected: prev.selected || 'Not answered',
+               correct: prev.correct || opts[qu.correct], isCorrect: wasRight };
+    });
+
+    mcEarned = combinedMcEarned;
+    // any written still being graded (retaken written) counts as pending
+  }
+
+  const hasWritten = (RETAKE ? writtenCount : writtenCount) > 0;
   const totalPossible = mcPts + writtenPts;
   // MC-only percentage (always shown so students see what they missed)
   const mcPct = mcPts > 0 ? Math.round(mcEarned / mcPts * 100) : 0;
@@ -1624,14 +1702,22 @@ async function submitExam() {
     pct = mcPct;            // provisional MC score for reference
     pass = false;
     status = 'pending';
+  } else if (RETAKE) {
+    // Finalized retake with no pending written: combine MC earned + previously-graded written
+    // over the full quiz's total possible points.
+    const combinedEarned = mcEarned + (RETAKE.priorWrittenEarned || 0);
+    pct = totalPossible > 0 ? Math.round(combinedEarned / totalPossible * 100) : 0;
+    pass = pct >= PASS_THRESHOLD;
+    status = 'finalized';
   } else {
     pct = mcPct;
     pass = pct >= PASS_THRESHOLD;
     status = 'finalized';
   }
 
-  // Save locally with full scoring context
-  setScoreFull(currentUser, q.id, {
+  // Save locally with full scoring context (against the original quiz id in retake mode)
+  const saveQuizId = RETAKE ? RETAKE.quizId : q.id;
+  setScoreFull(currentUser, saveQuizId, {
     score: pct, pass, status,
     mcEarned, mcPts, writtenPts, totalPossible,
     date: new Date().toISOString().slice(0,10)
@@ -1639,19 +1725,7 @@ async function submitExam() {
 
   // Send to Google Sheets
   try {
-    const payload = {
-      action: 'submitResult',
-      first: currentUserFirst, last: currentUserLast, id: currentUser,
-      date: new Date().toISOString().slice(0,10),
-      score: pct, pass: hasWritten ? 'Pending' : (pass ? 'Pass' : 'Fail'),
-      status: status,
-      mcEarned: mcEarned, mcPts: mcPts, writtenPts: writtenPts, totalPossible: totalPossible,
-      correct: q.questions.filter(qu => !isWrittenQ(qu) && results[qu.n].correct).length,
-      total: q.questions.filter(qu => !isWrittenQ(qu)).length,
-      writtenPending: writtenCount,
-      exam: q.mod + ' — ' + q.name,
-      submittedAt: new Date().toISOString(),
-      answers: q.questions.map(qu => {
+    const answersOut = RETAKE ? combinedAnswers : q.questions.map(qu => {
         if (isWrittenQ(qu)) {
           return { q: qu.n, written: true, selected: writtenAnswers[qu.n] || 'Not answered', correct: '(written — pending grading)', isCorrect: '' };
         }
@@ -1662,7 +1736,23 @@ async function submitExam() {
           correct: opts[qu.correct],
           isCorrect: results[qu.n].correct
         };
-      })
+      });
+    const correctCount = answersOut.filter(a => !a.written && (a.isCorrect === true)).length;
+    const mcTotalCount = answersOut.filter(a => !a.written).length;
+    const payload = {
+      action: 'submitResult',
+      first: currentUserFirst, last: currentUserLast, id: currentUser,
+      date: new Date().toISOString().slice(0,10),
+      score: pct, pass: hasWritten ? 'Pending' : (pass ? 'Pass' : 'Fail'),
+      status: status,
+      mcEarned: mcEarned, mcPts: mcPts, writtenPts: writtenPts, totalPossible: totalPossible,
+      correct: correctCount,
+      total: mcTotalCount,
+      writtenPending: writtenCount,
+      exam: fullQuiz.mod + ' — ' + fullQuiz.name,
+      submittedAt: new Date().toISOString(),
+      retake: RETAKE ? true : false,
+      answers: answersOut
     };
     await new Promise(resolve => {
       const form = document.createElement('form');
@@ -1678,6 +1768,7 @@ async function submitExam() {
   } catch(e) {}
 
   showResults(pct, pass, results);
+  window._retakeMode = null;
 }
 
 function showResults(score, pass, results) {
@@ -2276,6 +2367,48 @@ function saveSAAnswers(uid, quizId, answers) {
 
 // Get the multiple-choice answers from a student's sheet attempt for a quiz.
 // Prefer the most recent attempt that actually contains answers (finalize rows have none).
+// Which questions did this student MISS on their last attempt?
+// MC: isCorrect is false. Written: graded below full points (pending/ungraded are NOT included).
+// Returns { nums: [questionNumbers], priorMcEarned, priorWrittenEarned, gradedWritten:{n:pts} }
+function getMissedQuestions(uid, quizId) {
+  const quiz = QUIZZES.find(q => q.id === quizId);
+  if (!quiz) return { nums: [], priorMcEarned: 0, priorWrittenEarned: 0, gradedWritten: {} };
+  const qLookup = {}; quiz.questions.forEach(qq => qLookup[qq.n] = qq);
+
+  const nums = [];
+  let priorMcEarned = 0;
+
+  // MC misses come from the sheet attempt's per-question isCorrect
+  const mc = getMCAnswersForAttempt(uid, quizId);
+  const mcSeen = {};
+  mc.forEach(a => {
+    mcSeen[a.q] = true;
+    const right = (a.isCorrect === true || a.isCorrect === 'true');
+    if (right) priorMcEarned += (Number((qLookup[a.q]||{}).pts) || 0);
+    else nums.push(a.q);
+  });
+
+  // Written: use instructor grade points if present.
+  const grades = getSAGrades(uid);
+  const gp = (grades[quizId] && typeof grades[quizId] === 'object') ? grades[quizId] : {};
+  const gradedWritten = {};
+  let priorWrittenEarned = 0;
+  quiz.questions.forEach(qq => {
+    if (!isWrittenQ(qq)) return;
+    const full = Number(qq.pts) || 0;
+    const awarded = (gp[qq.n] != null) ? Number(gp[qq.n]) : null;
+    if (awarded == null) return;            // not graded yet → can't retake (don't know if wrong)
+    gradedWritten[qq.n] = awarded;
+    priorWrittenEarned += awarded;
+    if (awarded < full) nums.push(qq.n);     // graded below full → retake
+  });
+
+  // keep question order as in the quiz
+  const order = quiz.questions.map(q => q.n);
+  nums.sort((a,b) => order.indexOf(a) - order.indexOf(b));
+  return { nums, priorMcEarned, priorWrittenEarned, gradedWritten };
+}
+
 function getMCAnswersForAttempt(uid, quizId) {
   const quiz = QUIZZES.find(q => q.id === quizId);
   const examName = quiz ? (quiz.mod + ' — ' + quiz.name) : '';
