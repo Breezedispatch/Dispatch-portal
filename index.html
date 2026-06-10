@@ -1169,6 +1169,15 @@ const QUIZZES_FALLBACK = [
   {n:2,pts:50,text:'Placeholder question — replace this in the Question Editor.',options:['Option A','Option B','Option C','Option D'],correct:0,cite:'Placeholder'}]}
 ];;
 
+// The OJT comp check is always available (gated to signed-off students), even when
+// quizzes are loaded from the sheet — unless the sheet defines its own ojt_comp_check.
+const OJT_COMP_CHECK = QUIZZES_FALLBACK.find(q => q.id === 'ojt_comp_check');
+function ensureOJT(list) {
+  if (!Array.isArray(list)) return list;
+  if (!list.some(q => q.id === 'ojt_comp_check') && OJT_COMP_CHECK) list.push(OJT_COMP_CHECK);
+  return list;
+}
+
 // ── Live quiz data: starts as fallback, replaced by sheet on load ──────────────
 let QUIZZES = QUIZZES_FALLBACK;
 
@@ -1256,7 +1265,7 @@ function loadQuestions(done) {
     try {
       if (res && res.status === 'ok' && res.quizzes && res.quizzes.length) {
         const built = buildQuizzesFromSheet(res.quizzes, res.questions || []);
-        if (built.length) QUIZZES = built;
+        if (built.length) QUIZZES = ensureOJT(built);
         finish(true);
       } else { finish(false); }
     } catch(e) { finish(false); }
@@ -1952,7 +1961,7 @@ function startOJTCheck() {
 
 function startQuiz(qid, missedOnly) {
   const quiz = QUIZZES.find(q => q.id === qid);
-  if (!quiz) return;
+  if (!quiz) { alert('This quiz could not be loaded. Try refreshing the page.'); return; }
 
   // Retake-missed mode: build a filtered quiz of just the missed questions.
   window._retakeMode = null;

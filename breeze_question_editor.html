@@ -82,6 +82,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 /* Quiz list sidebar */
 .qlist{position:sticky;top:1rem;background:var(--white);border:1.5px solid var(--gray);border-radius:16px;overflow:hidden;box-shadow:0 12px 30px rgba(4,28,52,.06);}
 .qlist-head{background:var(--navy);padding:.9rem 1rem;font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;display:flex;justify-content:space-between;align-items:center;}
+.btn-seed-ojt{width:100%;border:none;border-bottom:1.5px solid var(--gray);background:var(--gold-lt,#FFF3D6);color:#8a5a00;font-family:var(--font);font-weight:700;font-size:12px;padding:9px 12px;cursor:pointer;text-align:left;transition:background .15s;}
+.btn-seed-ojt:hover{background:#FFE9B8;}
 .qlist-body{max-height:70vh;overflow-y:auto;}
 .qlist-group{font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);padding:.7rem 1rem .3rem;background:var(--surface);}
 .qlist-item{padding:.65rem 1rem;font-size:13px;cursor:pointer;border-bottom:1px solid var(--gray);transition:background .12s;position:relative;}
@@ -149,6 +151,19 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .opt-radio input{accent-color:var(--green);width:15px;height:15px;}
 .row2{display:grid;grid-template-columns:90px 1fr;gap:10px;margin-top:.6rem;}
 
+/* matching & scenario editors */
+.mtch-edit{margin-top:.6rem;}
+.mtch-edit-note,.scn-edit .mtch-edit-note{font-size:12px;color:var(--ink3);margin-bottom:.7rem;line-height:1.5;}
+.mtch-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.mtch-edit-row input{flex:1;padding:8px 11px;border:1.5px solid var(--gray);border-radius:9px;font-size:13px;font-family:var(--font);}
+.mtch-edit-row input:focus{outline:none;border-color:var(--blue);}
+.mtch-edit-arrow{color:var(--ink3);font-size:15px;flex-shrink:0;}
+.scn-edit{margin-top:.6rem;}
+.scn-edit-sub{border:1.5px solid var(--gray);border-radius:11px;padding:.8rem .9rem;margin-bottom:.7rem;background:#FAFBFD;}
+.scn-edit-subtop{display:flex;align-items:center;gap:8px;margin-bottom:.5rem;}
+.scn-edit-letter{font-family:var(--display);font-weight:800;color:var(--blue);font-size:14px;}
+.scn-edit-pts{width:54px;padding:5px 7px;border:1.5px solid var(--gray);border-radius:7px;font-size:12px;font-family:var(--font);}
+
 /* Bottom save bar */
 .bar{position:fixed;bottom:0;left:0;right:0;background:var(--navy);padding:.9rem 2rem;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 16px rgba(0,0,0,.15);z-index:50;}
 .bar.show{display:flex;}
@@ -191,6 +206,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
       <span>Quizzes</span>
       <button class="btn-add" title="New quiz" onclick="newQuiz()">+</button>
     </div>
+    <button class="btn-seed-ojt" onclick="seedOJTQuiz()" title="Load the OJT Mock Comp Check starter into the editor">&#9992; Load OJT Comp Check starter</button>
     <div class="order-bar" id="order-bar">
       <span>Order changed</span>
       <span style="display:flex;gap:6px;">
@@ -460,7 +476,23 @@ function selectQuiz(id) {
   const qs = allQuestions.filter(q => q.quizId === id)
     .sort((a,b)=>(Number(a.n)||0)-(Number(b.n)||0))
     .map(q => {
-      const model = (q.model != null ? String(q.model) : '').trim();
+      const raw = (q.model != null ? String(q.model) : '');
+      // Matching / scenario stored as @@Q@@<json> in the model column.
+      if (raw.indexOf('@@Q@@') === 0) {
+        let payload = {};
+        try { payload = JSON.parse(raw.slice(5)); } catch(e) { payload = {}; }
+        if (payload.qtype === 'matching') {
+          return { n:Number(q.n), pts:Number(q.pts), text:q.text||'', kind:'matching',
+                   pairs: Array.isArray(payload.pairs)&&payload.pairs.length ? payload.pairs : [{left:'',right:''},{left:'',right:''}],
+                   options:['','','',''], correct:0, model:'', cite:q.cite||'' };
+        }
+        if (payload.qtype === 'scenario') {
+          return { n:Number(q.n), pts:Number(q.pts), text:q.text||'', kind:'scenario',
+                   subs: Array.isArray(payload.subs)&&payload.subs.length ? payload.subs : [{label:'',type:'mc',pts:5,options:['','','',''],correct:0,model:''}],
+                   options:['','','',''], correct:0, model:'', cite:q.cite||'' };
+        }
+      }
+      const model = raw.trim();
       const isWritten = model.length > 0;
       return {
         n:Number(q.n), pts:Number(q.pts), text:q.text||'',
@@ -485,6 +517,56 @@ function newQuiz() {
   dirty = true;
   renderEditor();
   updateBar();
+}
+
+// Load the OJT Mock Comp Check starter (MC, written, matching, scenario) into the
+// editor as an unsaved quiz. Trainer reviews then clicks Save to write it to the sheet.
+function seedOJTQuiz() {
+  if (allQuizzes.some(q => q.id === 'ojt_comp_check')) {
+    if (confirm('An OJT Comp Check already exists in the sheet. Open it for editing instead?')) selectQuiz('ojt_comp_check');
+    return;
+  }
+  if (dirty && !confirm('You have unsaved changes. Discard them?')) return;
+  working = {
+    quiz: { id:'ojt_comp_check', type:'test', mod:'OJT', name:'Mock Comp Check', sub:'Check Dispatcher competency check · 90% to pass · Gated to OJT', section:'OJT', passMark:90, order:(allQuizzes.length+1)*10 },
+    questions: [
+      { n:1, pts:8, kind:'mc', text:'What is the dispatcher\u2019s very first step upon arriving at the desk?', options:['Begin reviewing releases for the next departure bank','Read & Sign bulletins, conduct an ops review, check email/Teams, then complete WX and ATC briefs','Call the off-going dispatcher for a verbal passdown','Run RWA on all desk aircraft'], correct:1, cite:'OJT Guide Part 3 / Beginning of Shift Brief' },
+      { n:2, pts:8, kind:'mc', text:'What is the controlling element on a METAR for dispatch purposes?', options:['Ceiling','Visibility / RVR','Wind','Altimeter setting'], correct:1, cite:'OJT Guide Part 5 — IOCM 18.10.3.1' },
+      { n:3, pts:8, kind:'mc', text:'What is the difference between a Ground Stop and a Ground Delay Program (GDP)?', options:['A GS assigns EDCT delay slots; a GDP stops all departures','A GS stops all departures to an airport; a GDP meters arrivals by assigning EDCT delay slots','They are two names for the same program','A GS is airport-based; a GDP is fix-based'], correct:1, cite:'OJT Guide Part 5 — ATC Knowledge' },
+      { n:4, pts:8, kind:'mc', text:'If a flight diverts, does the diversion airport need to be above alternate minimums?', options:['Yes — it must meet alternate minimums until landing','No — the diversion airport becomes the destination airport, so it no longer needs to meet alternate minimums','Yes — unless the captain declares an emergency','Only if a second alternate was not originally filed'], correct:1, cite:'OJT Guide Part 5 / Scenarios — IOCM 14.8.2' },
+      { n:5, pts:8, kind:'mc', text:'Per Breeze policy, what is the company minimum planned landing fuel?', options:['45 minutes (FAR minimum)','60 minutes','70 minutes','90 minutes'], correct:1, cite:'OJT Guide — IOCM 9.4' },
+      { n:6, pts:10, kind:'matching', text:'Match each OpSpec to what it governs.', options:['','','',''], correct:0, pairs:[
+        {left:'C52',right:'Approved approach procedures'},
+        {left:'C55',right:'Alternate minimums (1 Nav / 2 Nav)'},
+        {left:'C51',right:'RVR conversion chart'},
+        {left:'A13',right:'Offshore / eject-off-coast distance limit'},
+        {left:'B46',right:'RVSM airspace'}
+      ], cite:'OJT Guide Part 5 — Ops Specs' },
+      { n:7, pts:10, kind:'matching', text:'Match each ATC / flow concept to its correct description.', options:['','','',''], correct:0, pairs:[
+        {left:'Capping',right:'Blocking a flight at a lower altitude'},
+        {left:'Tunneling',right:'Routing a flight between traffic layers'},
+        {left:'AFP',right:'Area flow program (fix-based)'},
+        {left:'GDP',right:'Airport-based delay program with EDCTs'},
+        {left:'P-Time',right:'Proposed departure time in EDCT management'}
+      ], cite:'OJT Guide Part 5 — ATC Knowledge' },
+      { n:8, pts:8, kind:'written', text:'Explain the difference between a Safety report and an ASAP report, including when each is used and what protections ASAP provides.', model:'A Safety report is internal company reporting under just culture; an ASAP (Aviation Safety Action Program) report is an FAA safety partnership that provides certain protections from enforcement when criteria are met. ASAP is rejected for intentional violations, criminal activity, substance abuse, falsification, or events already under FAA investigation.', cite:'OJT Guide Part 5 — General Knowledge / Module 15' },
+      { n:9, pts:8, kind:'written', text:'Walk through a complete release review. What are you checking, and in what order? Be specific.', model:'Route (filed vs. planned, reroutes/CDRs), fuel (MINTO, contingency, 2,000 lb buffer, tanker/ballast as applicable), alternates (suitability, alt mins, NOTAMs), weather (controlling VIS/RVR, trends, 1-2-3 rule), NOTAMs including FDCs affecting approaches, landing minimums for all airports, restrictive MELs/CDLs and their performance impact, and RWA — rerun immediately before sending.', cite:'OJT Guide Part 5 — N-FP / Flight Planning' },
+      { n:10, pts:12, kind:'scenario', text:'Your flight is holding over a fix on its planned route. The crew sends: "Holding, request bingo." Burn from the holding fix to destination is 800 lbs, alternate fuel is 1,800 lbs, and final reserve is 3,000 lbs.', subs:[
+        {label:'What is the BINGO fuel at this point?', type:'mc', pts:6, options:['4,800 lbs','5,600 lbs','3,000 lbs','6,600 lbs'], correct:1, model:''},
+        {label:'Briefly explain what BINGO fuel represents and what the crew must do when reaching it.', type:'written', pts:6, options:['','','',''], correct:0, model:'BINGO is the minimum fuel for the given point: burn to destination + alternate fuel + 45-min reserve (here 800 + 1,800 + 3,000 = 5,600 lbs). On reaching BINGO the crew must depart holding and proceed.'}
+      ], cite:'OJT Guide Part 5 — Scenarios / Module 20' },
+      { n:11, pts:12, kind:'scenario', text:'Mid-flight, the crew reports a passenger medical emergency and is considering a diversion to an airport on your route.', subs:[
+        {label:'Does the diversion airport need to meet alternate minimums?', type:'mc', pts:6, options:['Yes — until the wheels are down','No — it becomes the destination, so alternate minimums do not apply','Only if no alternate was filed','Yes — medical diversions still require alternate mins'], correct:1, model:''},
+        {label:'Describe your role and notification chain in a medical diversion. Who decides to divert, and who do you coordinate with?', type:'written', pts:6, options:['','','',''], correct:0, model:'The PIC has final authority to divert; the dispatcher supports by identifying the nearest suitable airport, running the fuel check, coordinating MedLink as needed, notifying MOC and the Duty Manager, and amending the release. Coordinate per IOCM Chapter 14.'}
+      ], cite:'OJT Guide Part 5 / Scenarios — IOCM Chapter 14' },
+      { n:12, pts:8, kind:'mc', text:'When can you amend a release versus when must you issue a new release (revision)?', options:['Amend for any change; a new release is never required once filed','Amend per IOCM 5.2 for minor changes within defined limits; issue a new release (revise) per IOCM 5.3.1 when changes exceed those limits','A new release is required for every change','Only supervisors may amend or revise a release'], correct:1, cite:'OJT Guide Part 5 — IOCM 5.2 / 5.3.1' }
+    ]
+  };
+  currentId = 'ojt_comp_check';
+  dirty = true;
+  renderEditor();
+  updateBar();
+  toast('OJT starter loaded — review, then Save to sheet','ok');
 }
 
 // ── Render the editor ──
@@ -519,11 +601,15 @@ function selectField(label,key,val,opts){
     + '</select></div>'; }
 
 function questionCard(q,i){
-  const isWritten = q.kind === 'written';
+  const kind = q.kind || 'mc';
   let body = '';
-  if (isWritten) {
+  if (kind === 'written') {
     body = '<div class="field full"><label>Model answer (used for grading reference)</label>'
       + '<textarea oninput="setModel('+i+',this.value)" placeholder="Enter the model / ideal answer…">'+esc(q.model||'')+'</textarea></div>';
+  } else if (kind === 'matching') {
+    body = matchingEditor(q, i);
+  } else if (kind === 'scenario') {
+    body = scenarioEditor(q, i);
   } else {
     let opts='';
     for (let oi=0; oi<4; oi++){
@@ -539,19 +625,77 @@ function questionCard(q,i){
     + '<div class="qcard-top"><span class="qcard-num">Q'+q.n+'</span>'
     + '<div class="qcard-ctrls">'
     + '<select class="qkind-sel" onchange="setKind('+i+',this.value)" title="Question type">'
-    +   '<option value="mc"'+(!isWritten?' selected':'')+'>Multiple choice</option>'
-    +   '<option value="written"'+(isWritten?' selected':'')+'>Written answer</option>'
+    +   '<option value="mc"'+(kind==='mc'?' selected':'')+'>Multiple choice</option>'
+    +   '<option value="written"'+(kind==='written'?' selected':'')+'>Written answer</option>'
+    +   '<option value="matching"'+(kind==='matching'?' selected':'')+'>Matching</option>'
+    +   '<option value="scenario"'+(kind==='scenario'?' selected':'')+'>Scenario</option>'
     + '</select>'
     + '<button class="btn btn-sm" onclick="moveQ('+i+',-1)" title="Move up">↑</button>'
     + '<button class="btn btn-sm" onclick="moveQ('+i+',1)" title="Move down">↓</button>'
     + '<button class="btn btn-sm btn-danger" onclick="delQ('+i+')">Delete</button>'
     + '</div></div>'
-    + '<div class="field full"><label>Question text</label><textarea oninput="setText('+i+',this.value)">'+esc(q.text)+'</textarea></div>'
+    + '<div class="field full"><label>'+(kind==='scenario'?'Scenario / situation prompt':'Question text')+'</label><textarea oninput="setText('+i+',this.value)">'+esc(q.text)+'</textarea></div>'
     + body
     + '<div class="row2">'
-    + '<div class="field"><label>Points</label><input type="number" value="'+q.pts+'" oninput="setPts('+i+',this.value)"></div>'
+    + '<div class="field"><label>Points'+(kind==='scenario'?' (auto-summed from sub-questions)':'')+'</label><input type="number" value="'+q.pts+'" oninput="setPts('+i+',this.value)"'+(kind==='scenario'?' readonly':'')+'></div>'
     + '<div class="field"><label>Citation / reference</label><input type="text" value="'+esc(q.cite)+'" oninput="setCite('+i+',this.value)"></div>'
     + '</div>'
+    + '</div>';
+}
+
+// Matching editor: list of left→right pairs. The left/right ORDER defines the correct match.
+function matchingEditor(q, i){
+  const pairs = q.pairs || [];
+  let rows = pairs.map((p, pi) =>
+    '<div class="mtch-edit-row">'
+    + '<input type="text" value="'+esc(p.left||'')+'" oninput="setPair('+i+','+pi+',\'left\',this.value)" placeholder="Left item '+(pi+1)+'">'
+    + '<span class="mtch-edit-arrow">→</span>'
+    + '<input type="text" value="'+esc(p.right||'')+'" oninput="setPair('+i+','+pi+',\'right\',this.value)" placeholder="Matches with">'
+    + '<button class="btn btn-sm btn-danger" onclick="delPair('+i+','+pi+')" title="Remove pair">×</button>'
+    + '</div>').join('');
+  return '<div class="mtch-edit">'
+    + '<div class="mtch-edit-note">Each row is a correct pair. Students see the right-hand items shuffled and connect them back.</div>'
+    + rows
+    + '<button class="btn btn-sm" onclick="addPair('+i+')" style="margin-top:.5rem;">+ Add pair</button>'
+    + '</div>';
+}
+
+// Scenario editor: a list of sub-questions, each MC or written.
+function scenarioEditor(q, i){
+  const subs = q.subs || [];
+  let blocks = subs.map((s, si) => {
+    let inner = '';
+    if (s.type === 'written') {
+      inner = '<div class="field full"><label>Model answer</label><textarea oninput="setSub('+i+','+si+',\'model\',this.value)" placeholder="Model / ideal answer…">'+esc(s.model||'')+'</textarea></div>';
+    } else {
+      let opts='';
+      const opt = Array.isArray(s.options)?s.options:['','','',''];
+      for (let oi=0; oi<4; oi++){
+        opts += '<div class="opt-row'+(s.correct===oi?' correct':'')+'">'
+          + '<span class="opt-letter">'+LETTERS[oi]+'</span>'
+          + '<input type="text" value="'+esc(opt[oi]||'')+'" oninput="setSubOpt('+i+','+si+','+oi+',this.value)" placeholder="Option '+LETTERS[oi]+'">'
+          + '<label class="opt-radio"><input type="radio" name="scn'+i+'_'+si+'" '+(s.correct===oi?'checked':'')+' onchange="setSubCorrect('+i+','+si+','+oi+')">correct</label>'
+          + '</div>';
+      }
+      inner = '<div style="margin-top:.5rem;">'+opts+'</div>';
+    }
+    return '<div class="scn-edit-sub">'
+      + '<div class="scn-edit-subtop"><span class="scn-edit-letter">'+String.fromCharCode(97+si)+')</span>'
+      + '<select class="qkind-sel" onchange="setSub('+i+','+si+',\'type\',this.value)">'
+      +   '<option value="mc"'+(s.type!=='written'?' selected':'')+'>Multiple choice</option>'
+      +   '<option value="written"'+(s.type==='written'?' selected':'')+'>Written</option>'
+      + '</select>'
+      + '<input type="number" class="scn-edit-pts" value="'+(s.pts||5)+'" oninput="setSub('+i+','+si+',\'pts\',this.value)" title="Points"> pts'
+      + '<button class="btn btn-sm btn-danger" onclick="delSub('+i+','+si+')" title="Remove">×</button>'
+      + '</div>'
+      + '<div class="field full"><label>Sub-question</label><input type="text" value="'+esc(s.label||'')+'" oninput="setSub('+i+','+si+',\'label\',this.value)" placeholder="Sub-question prompt"></div>'
+      + inner
+      + '</div>';
+  }).join('');
+  return '<div class="scn-edit">'
+    + '<div class="mtch-edit-note">Sub-questions can be multiple choice (auto-scored) or written (instructor-graded). Total points sum automatically.</div>'
+    + blocks
+    + '<button class="btn btn-sm" onclick="addSub('+i+')" style="margin-top:.5rem;">+ Add sub-question</button>'
     + '</div>';
 }
 
@@ -566,15 +710,41 @@ function setCite(i,v){ working.questions[i].cite=v; markDirty(); }
 function setModel(i,v){ working.questions[i].model=v; markDirty(); }
 function setKind(i,v){
   const q = working.questions[i];
-  q.kind = (v === 'written') ? 'written' : 'mc';
-  if (q.kind === 'written') {
+  q.kind = v;
+  if (v === 'written') {
     if (typeof q.model !== 'string') q.model = '';
+  } else if (v === 'matching') {
+    if (!Array.isArray(q.pairs) || !q.pairs.length) q.pairs = [{left:'',right:''},{left:'',right:''}];
+  } else if (v === 'scenario') {
+    if (!Array.isArray(q.subs) || !q.subs.length) q.subs = [{label:'',type:'mc',pts:5,options:['','','',''],correct:0,model:''}];
+    recalcScenarioPts(q);
   } else {
+    q.kind = 'mc';
     if (!Array.isArray(q.options)) q.options = ['','','',''];
     if (typeof q.correct !== 'number') q.correct = 0;
   }
-  markDirty(); refreshCard(i);
+  markDirty(); renderEditor();
 }
+
+// Recompute a scenario's total points from its sub-questions.
+function recalcScenarioPts(q){ q.pts = (q.subs||[]).reduce((a,s)=>a+(Number(s.pts)||0),0); }
+
+// ── Matching pair handlers ──
+function setPair(i,pi,side,v){ working.questions[i].pairs[pi][side]=v; markDirty(); }
+function addPair(i){ working.questions[i].pairs.push({left:'',right:''}); markDirty(); refreshCard(i); }
+function delPair(i,pi){ working.questions[i].pairs.splice(pi,1); markDirty(); refreshCard(i); }
+
+// ── Scenario sub-question handlers ──
+function setSub(i,si,key,v){
+  const s = working.questions[i].subs[si];
+  if (key==='pts'){ s.pts=Number(v)||0; recalcScenarioPts(working.questions[i]); markDirty(); renderEditor(); return; }
+  if (key==='type'){ s.type = (v==='written')?'written':'mc'; if(s.type==='mc' && !Array.isArray(s.options)) s.options=['','','','']; markDirty(); refreshCard(i); return; }
+  s[key]=v; markDirty();
+}
+function setSubOpt(i,si,oi,v){ if(!Array.isArray(working.questions[i].subs[si].options)) working.questions[i].subs[si].options=['','','','']; working.questions[i].subs[si].options[oi]=v; markDirty(); }
+function setSubCorrect(i,si,oi){ working.questions[i].subs[si].correct=oi; markDirty(); refreshCard(i); }
+function addSub(i){ working.questions[i].subs.push({label:'',type:'mc',pts:5,options:['','','',''],correct:0,model:''}); recalcScenarioPts(working.questions[i]); markDirty(); renderEditor(); }
+function delSub(i,si){ working.questions[i].subs.splice(si,1); recalcScenarioPts(working.questions[i]); markDirty(); renderEditor(); }
 
 function refreshCard(i){
   const cards = document.querySelectorAll('#qcards .qcard');
@@ -604,6 +774,16 @@ function saveCurrentQuiz(){
     if(!q.text.trim()){ toast('A question is missing its text','err'); return; }
     if(q.kind === 'written'){
       if(!(q.model||'').trim()){ toast('Q'+q.n+' (written) needs a model answer','err'); return; }
+    } else if(q.kind === 'matching'){
+      const valid = (q.pairs||[]).filter(p=>String(p.left||'').trim() && String(p.right||'').trim());
+      if(valid.length < 2){ toast('Q'+q.n+' (matching) needs at least two complete pairs','err'); return; }
+    } else if(q.kind === 'scenario'){
+      if(!(q.subs||[]).length){ toast('Q'+q.n+' (scenario) needs at least one sub-question','err'); return; }
+      for (const s of q.subs){
+        if(!String(s.label||'').trim()){ toast('Q'+q.n+' has a sub-question missing its prompt','err'); return; }
+        if(s.type==='written'){ if(!String(s.model||'').trim()){ toast('Q'+q.n+' written sub-question needs a model answer','err'); return; } }
+        else { if((s.options||[]).filter(o=>String(o||'').trim()).length<2){ toast('Q'+q.n+' MC sub-question needs two options','err'); return; } }
+      }
     } else {
       const filled = q.options.filter(o=>String(o == null ? '' : o).trim()).length;
       if(filled < 2){ toast('Q'+q.n+' needs at least two options','err'); return; }
@@ -614,17 +794,26 @@ function saveCurrentQuiz(){
     action:'saveQuiz',
     quiz: working.quiz,
     questions: working.questions.map(q=>{
-      const written = q.kind === 'written';
-      return {
-        quizId: working.quiz.id, n:q.n, pts:q.pts, text:q.text,
-        optionA: written ? '' : (q.options[0]||''),
-        optionB: written ? '' : (q.options[1]||''),
-        optionC: written ? '' : (q.options[2]||''),
-        optionD: written ? '' : (q.options[3]||''),
-        correct: written ? '' : (LETTERS[q.correct]||'A'),
-        model: written ? (q.model||'') : '',
-        cite:q.cite
-      };
+      const base = { quizId: working.quiz.id, n:q.n, pts:q.pts, text:q.text, cite:q.cite,
+                     optionA:'', optionB:'', optionC:'', optionD:'', correct:'', model:'' };
+      if (q.kind === 'matching') {
+        const pairs = (q.pairs||[]).filter(p=>String(p.left||'').trim() && String(p.right||'').trim());
+        base.model = '@@Q@@' + JSON.stringify({ qtype:'matching', pairs: pairs });
+      } else if (q.kind === 'scenario') {
+        recalcScenarioPts(q);
+        base.pts = q.pts;
+        const subs = (q.subs||[]).map(s => s.type==='written'
+          ? { label:s.label, type:'written', pts:Number(s.pts)||0, model:s.model||'' }
+          : { label:s.label, type:'mc', pts:Number(s.pts)||0, options:(s.options||[]).slice(0,4), correct:Number(s.correct)||0 });
+        base.model = '@@Q@@' + JSON.stringify({ qtype:'scenario', subs: subs });
+      } else if (q.kind === 'written') {
+        base.model = q.model||'';
+      } else {
+        base.optionA = q.options[0]||''; base.optionB = q.options[1]||'';
+        base.optionC = q.options[2]||''; base.optionD = q.options[3]||'';
+        base.correct = LETTERS[q.correct]||'A';
+      }
+      return base;
     })
   };
   postData(payload, function(){
