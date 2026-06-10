@@ -270,6 +270,20 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 #admin-roster,#admin-analytics{display:none;}
 #admin-roster.active,#admin-analytics.active{display:block;}
 
+/* Roster scope toggle (Active / Signed off) + analytics scope */
+.roster-scope{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
+.roster-scopebtn{font-family:var(--font);font-weight:700;font-size:12.5px;padding:8px 16px;border-radius:10px;border:1.5px solid var(--gray);background:#fff;color:var(--ink3);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;}
+.roster-scopebtn:hover{border-color:var(--blue);color:var(--blue);}
+.roster-scopebtn.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.roster-scopecount{font-size:11px;font-weight:700;background:rgba(255,255,255,.22);color:inherit;border-radius:20px;padding:1px 8px;min-width:18px;text-align:center;}
+.roster-scopebtn:not(.active) .roster-scopecount{background:var(--gray);color:var(--ink3);}
+/* Sign-off buttons in the roster */
+.signoff-btn{font-family:var(--font);font-weight:700;font-size:11px;padding:5px 11px;border-radius:7px;border:1.5px solid var(--green);background:var(--green-lt);color:var(--green);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.signoff-btn:hover{background:var(--green);color:#fff;}
+.signoff-btn.reinstate{border-color:var(--blue);background:var(--blue-lt);color:var(--blue);}
+.signoff-btn.reinstate:hover{background:var(--blue);color:#fff;}
+.signoff-meta{font-size:10px;color:var(--ink3);margin-top:3px;}
+
 /* Analytics — ranked lists */
 .an-card{background:#fff;border:1.5px solid var(--gray);border-radius:16px;padding:1.25rem 1.4rem;margin-bottom:1.5rem;}
 .an-empty{color:var(--ink3);font-size:13px;padding:1rem 0;text-align:center;}
@@ -280,11 +294,11 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .an-row-sub{font-size:11.5px;color:var(--ink3);margin-top:2px;}
 .an-row-stat{text-align:right;white-space:nowrap;}
 .an-row-pct{font-family:var(--display);font-weight:800;font-size:18px;line-height:1;}
-.an-row-pct.hot{color:var(--red);}.an-row-pct.warm{color:var(--amber);}.an-row-pct.ok{color:var(--green);}
+.an-row-pct.hot{color:var(--red);}.an-row-pct.warm{color:#B5821A;}.an-row-pct.ok{color:var(--green);}
 .an-row-n{font-size:10.5px;color:var(--ink3);margin-top:2px;}
 .an-bar{grid-column:1/3;height:6px;background:var(--gray);border-radius:6px;overflow:hidden;margin-top:2px;}
 .an-bar-fill{height:100%;border-radius:6px;}
-.an-bar-fill.hot{background:var(--red);}.an-bar-fill.warm{background:var(--amber);}.an-bar-fill.ok{background:var(--green);}
+.an-bar-fill.hot{background:var(--red);}.an-bar-fill.warm{background:var(--gold);}.an-bar-fill.ok{background:var(--green);}
 .an-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle;}
 .an-tag.written{background:var(--cyan-lt);color:var(--navy);}
 .an-tag.mc{background:var(--blue-lt);color:var(--blue);}
@@ -293,14 +307,39 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .an-risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;}
 .an-risk{background:#fff;border:1.5px solid var(--gray);border-left:5px solid var(--red);border-radius:14px;padding:1rem 1.1rem;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 .an-risk:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(4,28,52,.1);}
-.an-risk.warn{border-left-color:var(--amber);}
+.an-risk.warn{border-left-color:var(--gold);}
 .an-risk-name{font-family:var(--display);font-weight:800;font-size:16px;color:var(--navy);}
 .an-risk-id{font-size:11px;color:var(--ink3);font-family:var(--mono);}
 .an-risk-reasons{margin-top:.7rem;display:flex;flex-direction:column;gap:5px;}
 .an-risk-reason{font-size:12px;color:var(--ink2);display:flex;align-items:flex-start;gap:6px;line-height:1.4;}
 .an-risk-reason-icon{color:var(--red);flex-shrink:0;font-weight:700;}
-.an-risk.warn .an-risk-reason-icon{color:var(--amber);}
+.an-risk.warn .an-risk-reason-icon{color:var(--gold);}
 .an-section-note{font-size:12px;color:var(--ink3);margin:-.5rem 0 1rem 2px;}
+
+/* Drill-down (expandable rows) */
+.an-exrow{border-bottom:1px solid var(--gray);}
+.an-exrow:last-child{border-bottom:none;}
+.an-exrow.nested{border-bottom:1px solid var(--gray);}
+.an-clickable{cursor:pointer;border-bottom:none;transition:background .12s;border-radius:8px;}
+.an-clickable:hover{background:var(--skysoft);}
+.an-caret{display:inline-block;font-size:10px;color:var(--ink3);margin-right:7px;transition:transform .18s;transform:translateY(-1px);}
+.an-clickable.expanded .an-caret{transform:rotate(90deg) translateX(-1px);}
+.an-drill{display:none;padding:0 .25rem .5rem 1.4rem;}
+.an-drill.open{display:block;animation:rise .35s ease forwards;}
+.an-drill-title{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:.5rem 0 .55rem;}
+.an-drill-note{font-size:12px;color:var(--ink2);background:var(--skysoft);border-radius:8px;padding:.6rem .8rem;margin:.5rem 0;line-height:1.45;}
+.an-drill-note.warn{background:var(--gold-lt);color:#8a5a00;}
+/* distractor picks */
+.an-pick{margin-bottom:.6rem;}
+.an-pick-top{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:3px;}
+.an-pick-text{font-size:12.5px;color:var(--ink);line-height:1.35;}
+.an-pick-text b{color:var(--ink2);}
+.an-pick-n{font-size:11px;color:var(--ink3);white-space:nowrap;font-weight:600;}
+.an-pick-correct{font-size:10px;font-weight:700;color:var(--green);margin-left:7px;}
+/* missed-by chips */
+.an-misschips{display:flex;flex-wrap:wrap;gap:6px;}
+.an-misschip{font-size:11.5px;font-weight:600;color:var(--blue);background:var(--blue-lt);border-radius:20px;padding:4px 11px;cursor:pointer;transition:background .12s;}
+.an-misschip:hover{background:var(--blue);color:#fff;}
 
 /* trainee detail modal */
 #trainee-modal,#feedback-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-start;justify-content:center;}
@@ -552,6 +591,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     <div id="admin-roster" class="active">
     <div class="admin-summary" id="admin-summary"></div>
     <div class="admin-section-title">Student completion</div>
+    <div class="roster-scope">
+      <button class="roster-scopebtn active" id="scope-active" onclick="setRosterScope('active')">Active <span class="roster-scopecount" id="scope-active-n"></span></button>
+      <button class="roster-scopebtn" id="scope-signed" onclick="setRosterScope('signed')">Signed off <span class="roster-scopecount" id="scope-signed-n"></span></button>
+    </div>
     <div class="admin-filter-row">
       <input type="text" id="admin-search" placeholder="Search by name or Employee ID…" oninput="renderAdmin()">
       <button onclick="enterAdmin()" style="padding:7px 12px;border:1.5px solid var(--gray);border-radius:8px;background:var(--white);color:var(--ink2);font-size:12px;font-weight:600;cursor:pointer;">↻ Refresh</button>
@@ -583,6 +626,11 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
     <!-- ANALYTICS VIEW (new) -->
     <div id="admin-analytics">
+      <div class="roster-scope" style="margin-bottom:1.25rem;">
+        <span style="font-size:12px;color:var(--ink3);font-weight:600;margin-right:4px;align-self:center;">Include:</span>
+        <button class="roster-scopebtn active" id="anscope-all" onclick="setAnalyticsScope('all')">All students</button>
+        <button class="roster-scopebtn" id="anscope-active" onclick="setAnalyticsScope('active')">Active only</button>
+      </div>
       <div class="admin-summary" id="an-summary"></div>
 
       <div class="admin-section-title">Weakest subjects</div>
@@ -1099,12 +1147,13 @@ function loadQuestions(done) {
 
 // ── Load student results from the sheet (cross-device proficiency data) ────────
 let SHEET_RESULTS = [];           // raw rows from the Results tab
+let SHEET_SIGNOFFS = {};          // { UPPER(id): {date, by} } from the Signoffs tab
 function loadResults(done) {
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
   const cb = 'rcb_' + Math.random().toString(36).slice(2);
   const s = document.createElement('script');
   let finished = false;
-  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); loadSignoffs(function(){ done && done(ok); }); }
   window[cb] = function(res){
     try {
       if (res && res.status === 'ok' && Array.isArray(res.results)) {
@@ -1117,6 +1166,64 @@ function loadResults(done) {
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=results&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
   setTimeout(function(){ finish(false); }, 12000);
+}
+
+// ── Sign-off state (synced via the Signoffs sheet tab, localStorage fallback) ────
+function loadSignoffs(done) {
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'scb_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && res.status === 'ok' && Array.isArray(res.signoffs)) {
+        const map = {};
+        res.signoffs.forEach(r => { if (r && r.id) map[String(r.id).toUpperCase()] = { date: r.date || '', by: r.by || '' }; });
+        SHEET_SIGNOFFS = map;
+        try { localStorage.setItem('bz_signoffs', JSON.stringify(map)); } catch(e){}
+        finish(true);
+      } else { finish(false); }
+    } catch(e) { finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=signoffs&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
+
+// Merge sheet signoffs with any local-only ones not yet synced.
+function getSignoffs() {
+  let local = {};
+  try { local = JSON.parse(localStorage.getItem('bz_signoffs') || '{}'); } catch(e){ local = {}; }
+  return Object.assign({}, local, SHEET_SIGNOFFS);
+}
+function isSignedOff(uid) { return !!getSignoffs()[String(uid).toUpperCase()]; }
+
+// Write a sign-off (or un-sign-off) to the sheet + local mirror.
+function setSignoff(uid, on) {
+  const U = String(uid).toUpperCase();
+  const map = getSignoffs();
+  if (on) {
+    map[U] = { date: new Date().toLocaleDateString(), by: (currentUser || 'admin') };
+  } else {
+    delete map[U];
+  }
+  SHEET_SIGNOFFS = map;
+  try { localStorage.setItem('bz_signoffs', JSON.stringify(map)); } catch(e){}
+  // Sync to sheet via hidden iframe form (same pattern as deleteStudent)
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='sohf'; form.style.display='none';
+    const inp = document.createElement('input');
+    inp.type='hidden'; inp.name='data';
+    inp.value=JSON.stringify({ action:'setSignoff', id: U, signedOff: !!on, date: (map[U] && map[U].date) || '', by: (map[U] && map[U].by) || '' });
+    form.appendChild(inp);
+    let ifr = document.querySelector('iframe[name="sohf"]');
+    if (!ifr) { ifr = document.createElement('iframe'); ifr.name='sohf'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+    setTimeout(function(){ if(form.parentNode) form.parentNode.removeChild(form); }, 4000);
+  } catch(e) {}
 }
 
 // Bring this user's finalized scores + instructor notes (from the sheet) onto their device,
@@ -1304,6 +1411,8 @@ function backToChoice() {
 
 function enterAdmin() {
   showScreen('screen-admin');
+  if (window._rosterScope === undefined) window._rosterScope = 'active';
+  if (window._anScope === undefined) window._anScope = 'all';
   const tbody = document.getElementById('admin-tbody');
   if (tbody) tbody.innerHTML = `<tr><td colspan="99" style="text-align:center;padding:2rem;color:var(--ink3);">Loading trainee results…</td></tr>`;
   try {
@@ -2133,10 +2242,20 @@ function renderAdmin() {
     ${QUIZZES.map(q => `<th>${q.mod}</th>`).join('')}
     <th>Completed</th>
     <th>Overall avg</th>
+    <th>Action</th>
   </tr>`;
 
   // Filter and build rows
   let rows = Object.entries(allStudents);
+
+  // Sign-off scope: split active vs signed-off, update the toggle counts.
+  const scope = window._rosterScope || 'active';
+  const signedCount = rows.filter(([uid]) => isSignedOff(uid)).length;
+  const activeCount = rows.length - signedCount;
+  const an = document.getElementById('scope-active-n'); if (an) an.textContent = activeCount;
+  const sn = document.getElementById('scope-signed-n'); if (sn) sn.textContent = signedCount;
+  rows = rows.filter(([uid]) => scope === 'signed' ? isSignedOff(uid) : !isSignedOff(uid));
+
   if (search) rows = rows.filter(([uid]) => uid.toLowerCase().includes(search) || (getName(uid)||'').toLowerCase().includes(search));
   if (filterQ !== 'all') {
     rows = rows.filter(([, scores]) => {
@@ -2159,7 +2278,10 @@ function renderAdmin() {
   rows.sort((a,b) => a[0].localeCompare(b[0]));
 
   if (!rows.length) {
-    document.getElementById('admin-tbody').innerHTML = `<tr><td colspan="${QUIZZES.length + 3}" style="text-align:center;padding:2rem;color:var(--ink3);">No students found${search ? ' matching "' + search + '"' : '. Students appear here after they log in and complete a quiz on this device.'}.</td></tr>`;
+    const emptyMsg = scope === 'signed'
+      ? 'No signed-off students yet. Sign off a student from the Active tab and they will appear here.'
+      : (search ? 'No students found matching "' + search + '"' : 'No active students. Students appear here after they log in and complete a quiz.');
+    document.getElementById('admin-tbody').innerHTML = `<tr><td colspan="${QUIZZES.length + 4}" style="text-align:center;padding:2rem;color:var(--ink3);">${emptyMsg}</td></tr>`;
   } else {
     document.getElementById('admin-tbody').innerHTML = rows.map(([uid, scores]) => {
       const attempts = Object.values(scores);
@@ -2182,6 +2304,11 @@ function renderAdmin() {
           </div>
         </td>
         <td style="font-weight:600;">${avg !== null ? avg + '%' : '—'}</td>
+        <td>${
+          isSignedOff(uid)
+            ? `<button class="signoff-btn reinstate" onclick="reinstateStudent('${uid}')">↩ Reinstate</button><div class="signoff-meta">${(getSignoffs()[uid.toUpperCase()]||{}).date||''}</div>`
+            : `<button class="signoff-btn" onclick="signOffStudent('${uid}')">✓ Sign off</button>`
+        }</td>
       </tr>`;
     }).join('');
   }
@@ -2204,6 +2331,37 @@ function renderAdmin() {
   }).join('');
 }
 
+// ── Roster scope (Active vs Signed off) + sign-off actions ────────────────────
+function setRosterScope(scope) {
+  window._rosterScope = scope;
+  document.getElementById('scope-active').classList.toggle('active', scope === 'active');
+  document.getElementById('scope-signed').classList.toggle('active', scope === 'signed');
+  renderAdmin();
+}
+
+function signOffStudent(uid) {
+  const nm = getName(uid) || uid;
+  if (!confirm('Sign off ' + nm + '?\n\nThey will move to the “Signed off” list and leave the active roster. Their history is kept and you can reinstate them anytime.')) return;
+  setSignoff(uid, true);
+  renderAdmin();
+  if (window._adminView === 'analytics') renderAnalytics();
+}
+
+function reinstateStudent(uid) {
+  const nm = getName(uid) || uid;
+  if (!confirm('Reinstate ' + nm + ' to the active roster?')) return;
+  setSignoff(uid, false);
+  renderAdmin();
+  if (window._adminView === 'analytics') renderAnalytics();
+}
+
+function setAnalyticsScope(scope) {
+  window._anScope = scope;
+  document.getElementById('anscope-all').classList.toggle('active', scope === 'all');
+  document.getElementById('anscope-active').classList.toggle('active', scope === 'active');
+  renderAnalytics();
+}
+
 // ── Admin view toggle (Roster vs Analytics) ───────────────────────────────────
 function setAdminView(view) {
   window._adminView = view;
@@ -2221,7 +2379,14 @@ function anSeverity(pct) { return pct >= 50 ? 'hot' : pct >= 30 ? 'warm' : 'ok';
 // Walks every recorded attempt's per-question answers, maps each back to its quiz
 // definition, and tallies attempts vs. misses at the question and section level.
 function computeAnalytics() {
-  const allStudents = getAllStudentScores();          // {uid: {quizId: rec}}
+  const allStudentsRaw = getAllStudentScores();          // {uid: {quizId: rec}}
+  // Scope: "active" excludes signed-off students; "all" includes everyone.
+  const anScope = window._anScope || 'all';
+  const allStudents = {};
+  Object.entries(allStudentsRaw).forEach(([uid, v]) => {
+    if (anScope === 'active' && isSignedOff(uid)) return;
+    allStudents[uid] = v;
+  });
   // Index quizzes + their questions for fast lookup.
   const quizById = {};
   QUIZZES.forEach(q => { quizById[q.id] = q; });
@@ -2235,7 +2400,7 @@ function computeAnalytics() {
     if (missed) secStats[section].misses++;
   }
 
-  Object.values(allStudents).forEach(byQuiz => {
+  Object.entries(allStudents).forEach(([_uid, byQuiz]) => {
     Object.entries(byQuiz).forEach(([quizId, rec]) => {
       const quiz = quizById[quizId];
       if (!quiz || !Array.isArray(rec.answers)) return;
@@ -2271,11 +2436,22 @@ function computeAnalytics() {
             text: (def && def.text) ? def.text : ('Question ' + a.q),
             section, written: !!isWritten,
             mod: quiz.mod, name: quiz.name,
-            attempts: 0, misses: 0
+            options: (def && Array.isArray(def.options)) ? def.options : [],
+            correct: (def ? def.correct : null),
+            attempts: 0, misses: 0,
+            picks: {},      // selected-text -> count (MC only)
+            missedBy: []    // [{uid, selected}]
           };
         }
         qStats[key].attempts++;
-        if (missed) qStats[key].misses++;
+        if (!isWritten) {
+          const sel = (a.selected != null && String(a.selected).trim()) ? String(a.selected) : 'Not answered';
+          qStats[key].picks[sel] = (qStats[key].picks[sel] || 0) + 1;
+        }
+        if (missed) {
+          qStats[key].misses++;
+          qStats[key].missedBy.push({ uid: _uid, selected: isWritten ? null : (a.selected != null ? String(a.selected) : 'Not answered') });
+        }
         bumpSection(section, missed);
       });
     });
@@ -2286,6 +2462,7 @@ function computeAnalytics() {
 
 function renderAnalytics() {
   const { qStats, secStats, allStudents } = computeAnalytics();
+  window._AN = { qStats, secStats, allStudents };  // for drill-down handlers
 
   // ---- Summary metrics ----
   const studentCount = Object.keys(allStudents).length;
@@ -2319,18 +2496,22 @@ function renderAnalytics() {
   if (!sections.length) {
     secEl.innerHTML = `<div class="an-empty">No graded answers yet. Subject analysis appears once students complete quizzes with recorded per-question answers.</div>`;
   } else {
-    secEl.innerHTML = sections.map(s => {
+    secEl.innerHTML = sections.map((s,i) => {
       const sev = anSeverity(s.pct);
-      return `<div class="an-row">
-        <div class="an-row-main">
-          <div class="an-row-title">${s.sec}</div>
-          <div class="an-row-sub">${s.misses} missed of ${s.attempts} answers</div>
+      const sid = 'ansec-' + i;
+      return `<div class="an-exrow">
+        <div class="an-row an-clickable" onclick="anToggle('${sid}', this)">
+          <div class="an-row-main">
+            <div class="an-row-title"><span class="an-caret">&#9656;</span>${s.sec}</div>
+            <div class="an-row-sub">${s.misses} missed of ${s.attempts} answers · tap to see questions</div>
+          </div>
+          <div class="an-row-stat">
+            <div class="an-row-pct ${sev}">${s.pct}%</div>
+            <div class="an-row-n">miss rate</div>
+          </div>
+          <div class="an-bar"><div class="an-bar-fill ${sev}" style="width:${s.pct}%"></div></div>
         </div>
-        <div class="an-row-stat">
-          <div class="an-row-pct ${sev}">${s.pct}%</div>
-          <div class="an-row-n">miss rate</div>
-        </div>
-        <div class="an-bar"><div class="an-bar-fill ${sev}" style="width:${s.pct}%"></div></div>
+        <div class="an-drill" id="${sid}" data-section="${encodeURIComponent(s.sec)}"></div>
       </div>`;
     }).join('');
   }
@@ -2346,20 +2527,24 @@ function renderAnalytics() {
   if (!questions.length) {
     qEl.innerHTML = `<div class="an-empty">No missed questions recorded yet — or every answered question is being answered correctly.</div>`;
   } else {
-    qEl.innerHTML = questions.map(q => {
+    qEl.innerHTML = questions.map((q,i) => {
       const sev = anSeverity(q.pct);
       const tag = q.written ? '<span class="an-tag written">Written</span>' : '<span class="an-tag mc">MC</span>';
       const txt = String(q.text).replace(/<[^>]*>/g,'').slice(0,150);
-      return `<div class="an-row">
-        <div class="an-row-main">
-          <div class="an-row-title">${txt}${tag}</div>
-          <div class="an-row-sub">${q.mod} — ${q.name} · Q${q.n}</div>
+      const qid = 'anq-' + i;
+      return `<div class="an-exrow">
+        <div class="an-row an-clickable" onclick="anToggleQ('${qid}','${q.quizId}',${q.n}, this)">
+          <div class="an-row-main">
+            <div class="an-row-title"><span class="an-caret">&#9656;</span>${txt}${tag}</div>
+            <div class="an-row-sub">${q.mod} — ${q.name} · Q${q.n}</div>
+          </div>
+          <div class="an-row-stat">
+            <div class="an-row-pct ${sev}">${q.pct}%</div>
+            <div class="an-row-n">${q.misses}/${q.attempts} missed</div>
+          </div>
+          <div class="an-bar"><div class="an-bar-fill ${sev}" style="width:${q.pct}%"></div></div>
         </div>
-        <div class="an-row-stat">
-          <div class="an-row-pct ${sev}">${q.pct}%</div>
-          <div class="an-row-n">${q.misses}/${q.attempts} missed</div>
-        </div>
-        <div class="an-bar"><div class="an-bar-fill ${sev}" style="width:${q.pct}%"></div></div>
+        <div class="an-drill" id="${qid}"></div>
       </div>`;
     }).join('');
   }
@@ -2400,6 +2585,111 @@ function renderAnalytics() {
           ${r.reasons.map(x => `<div class="an-risk-reason"><span class="an-risk-reason-icon">&#9656;</span>${x}</div>`).join('')}
         </div>
       </div>`).join('') + `</div>`;
+  }
+}
+
+// ── Analytics drill-down ────────────────────────────────────────────────────────
+// Build the inner detail HTML for one question: distractor breakdown + who missed.
+function anQuestionDetail(quizId, n) {
+  const AN = window._AN; if (!AN) return '';
+  const q = AN.qStats[quizId + '#' + n];
+  if (!q) return '<div class="an-empty">No detail available.</div>';
+
+  let html = '';
+
+  if (q.written) {
+    html += `<div class="an-drill-note">Written question — graded below full marks counts as missed. ${q.misses} of ${q.attempts} graded responses fell short.</div>`;
+  } else {
+    // Distractor breakdown: every option, how often picked, with correct flagged.
+    const correctText = (q.options && q.correct != null) ? String(q.options[q.correct]) : null;
+    // Merge option list with any selections recorded (covers "Not answered").
+    const labels = {};
+    (q.options || []).forEach((o, i) => { labels[String(o)] = String.fromCharCode(65 + i); });
+    const rows = Object.entries(q.picks)
+      .map(([sel, count]) => ({ sel, count, pct: q.attempts ? Math.round(count / q.attempts * 100) : 0,
+                                isCorrect: correctText != null && sel === correctText,
+                                letter: labels[sel] || '' }))
+      .sort((a,b) => b.count - a.count);
+    html += `<div class="an-drill-title">How students answered</div>`;
+    html += rows.map(r => {
+      const cls = r.isCorrect ? 'ok' : 'hot';
+      const badge = r.isCorrect ? '<span class="an-pick-correct">&#10003; correct</span>' : '';
+      return `<div class="an-pick">
+        <div class="an-pick-top">
+          <span class="an-pick-text">${r.letter ? '<b>'+r.letter+'.</b> ' : ''}${String(r.sel).replace(/</g,'&lt;')}${badge}</span>
+          <span class="an-pick-n">${r.count} · ${r.pct}%</span>
+        </div>
+        <div class="an-bar"><div class="an-bar-fill ${r.isCorrect?'ok':cls}" style="width:${r.pct}%"></div></div>
+      </div>`;
+    }).join('');
+    // Highlight dominant wrong answer if there is one.
+    const topWrong = rows.filter(r => !r.isCorrect && r.sel !== 'Not answered')[0];
+    if (topWrong && q.misses > 0 && (topWrong.count / q.misses) >= 0.5) {
+      html += `<div class="an-drill-note warn">&#9888; ${Math.round(topWrong.count/q.misses*100)}% of those who missed picked the same wrong answer (${topWrong.letter ? topWrong.letter+'. ' : ''}${String(topWrong.sel).replace(/</g,'&lt;').slice(0,80)}). Worth teaching to directly.</div>`;
+    }
+  }
+
+  // Who missed it
+  if (q.missedBy && q.missedBy.length) {
+    html += `<div class="an-drill-title" style="margin-top:1rem;">Missed by (${q.missedBy.length})</div>`;
+    html += `<div class="an-misschips">` + q.missedBy.map(m => {
+      const nm = getName(m.uid) || m.uid;
+      return `<span class="an-misschip" onclick="event.stopPropagation(); setAdminView('roster'); openTrainee('${m.uid}')">${nm}</span>`;
+    }).join('') + `</div>`;
+  }
+  return html;
+}
+
+// Toggle a question drill-down (used in both the questions list and inside a subject).
+function anToggleQ(domId, quizId, n, rowEl) {
+  const box = document.getElementById(domId);
+  if (!box) return;
+  const open = box.classList.toggle('open');
+  if (rowEl) rowEl.classList.toggle('expanded', open);
+  if (open && !box.dataset.loaded) {
+    box.innerHTML = anQuestionDetail(quizId, n);
+    box.dataset.loaded = '1';
+  }
+}
+
+// Toggle a subject drill-down → list its questions (each itself expandable).
+function anToggle(domId, rowEl) {
+  const box = document.getElementById(domId);
+  if (!box) return;
+  const open = box.classList.toggle('open');
+  if (rowEl) rowEl.classList.toggle('expanded', open);
+  if (open && !box.dataset.loaded) {
+    const AN = window._AN;
+    const section = decodeURIComponent(box.dataset.section || '');
+    const qs = Object.values(AN.qStats)
+      .filter(q => q.section === section && q.attempts > 0)
+      .map(q => Object.assign(q, { pct: Math.round(q.misses / q.attempts * 100) }))
+      .sort((a,b) => b.pct - a.pct || b.misses - a.misses);
+    if (!qs.length) {
+      box.innerHTML = '<div class="an-empty">No per-question data for this subject yet.</div>';
+    } else {
+      box.innerHTML = qs.map((q,i) => {
+        const sev = anSeverity(q.pct);
+        const tag = q.written ? '<span class="an-tag written">Written</span>' : '<span class="an-tag mc">MC</span>';
+        const txt = String(q.text).replace(/<[^>]*>/g,'').slice(0,140);
+        const sub = domId + '-q' + i;
+        return `<div class="an-exrow nested">
+          <div class="an-row an-clickable" onclick="anToggleQ('${sub}','${q.quizId}',${q.n}, this)">
+            <div class="an-row-main">
+              <div class="an-row-title"><span class="an-caret">&#9656;</span>${txt}${tag}</div>
+              <div class="an-row-sub">${q.mod} — ${q.name} · Q${q.n}</div>
+            </div>
+            <div class="an-row-stat">
+              <div class="an-row-pct ${sev}">${q.pct}%</div>
+              <div class="an-row-n">${q.misses}/${q.attempts} missed</div>
+            </div>
+            <div class="an-bar"><div class="an-bar-fill ${sev}" style="width:${q.pct}%"></div></div>
+          </div>
+          <div class="an-drill" id="${sub}"></div>
+        </div>`;
+      }).join('');
+    }
+    box.dataset.loaded = '1';
   }
 }
 
