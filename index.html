@@ -423,6 +423,28 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .note-add-btn.sm{padding:7px 16px;font-size:12px;}
 .note-cancel{background:transparent;border:none;color:var(--ink3);font-size:12px;font-weight:700;cursor:pointer;}
 .note-cancel:hover{color:var(--ink);}
+.rank-pos{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:6px;background:var(--navy);color:#fff;font-family:var(--display);font-weight:800;font-size:11px;margin-right:7px;}
+.res-section-title{font-family:var(--display);font-weight:800;font-size:14px;color:var(--navy);margin-bottom:.75rem;}
+.res-table{width:100%;border-collapse:collapse;font-size:13px;}
+.res-table th{text-align:left;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);font-weight:700;padding:6px 8px;border-bottom:1.5px solid var(--gray);}
+.res-table td{padding:9px 8px;border-bottom:1px solid var(--gray);}
+.res-rank{font-size:16px;width:40px;text-align:center;}
+.res-name{font-weight:700;color:var(--navy);}
+.res-votes{color:var(--ink2);font-size:12px;}
+.res-test{color:var(--ink2);}
+.res-score{font-family:var(--display);font-weight:800;color:var(--blue);font-size:15px;text-align:right;}
+.res-note{font-size:11.5px;color:var(--ink3);margin-top:.7rem;line-height:1.5;}
+.res-trainers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;}
+.res-trainer{background:var(--surface);border:1.5px solid var(--gray);border-radius:12px;padding:.9rem 1rem;}
+.res-trainer-name{font-family:var(--display);font-weight:800;font-size:13px;color:var(--navy);margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:1.5px solid var(--gray);}
+.res-tier{margin-bottom:.7rem;}
+.res-tier-h{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;margin-bottom:.3rem;}
+.res-tier-h.res-top{color:var(--green);}
+.res-tier-h.res-consider{color:var(--blue);}
+.res-tier-h.res-no{color:var(--red);}
+.res-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:3px;}
+.res-list li{font-size:12.5px;color:var(--ink);display:flex;align-items:center;}
+.res-pos{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:5px;background:var(--gray);color:var(--navy);font-weight:800;font-size:10px;margin-right:6px;}
 
 /* Roster scope toggle (Active / Signed off) + analytics scope */
 .roster-scope{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
@@ -836,8 +858,11 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <div class="an-section-note">Click a row to review answers and grade. Drag an applicant into a tier below to rank them.</div>
       <div id="app-list"></div>
 
-      <div class="admin-section-title" style="margin-top:2rem;">Ranking board</div>
-      <div class="an-section-note">Shared across trainers — each placement is tagged with who made it. Drag applicants from the list above into a tier.</div>
+      <div class="app-list-head" style="margin-top:2rem;">
+        <div class="admin-section-title" style="margin:0;">Ranking board</div>
+        <button class="app-refresh" onclick="openResults()">&#128202; Compile results</button>
+      </div>
+      <div class="an-section-note">Shared across trainers — each placement is tagged with who made it. Drag applicants into a tier, and reorder within a tier to set preference (1 = highest).</div>
       <div class="rank-board" id="rank-board"></div>
     </div>
   </div>
@@ -3480,13 +3505,20 @@ function renderApplicants() {
   renderRankBoard(applicants);
 }
 
-// Build the three-tier ranking board from SHEET_RANKINGS.
+// Shared order for an applicant within a tier = min order across trainer rows (0 = unset).
+function sharedOrder(uid, tierKey) {
+  const u = String(uid).toUpperCase();
+  const vals = SHEET_RANKINGS.filter(r => String(r.applicantId).toUpperCase() === u && r.tier === tierKey)
+    .map(r => Number(r.order) || 0).filter(v => v > 0);
+  return vals.length ? Math.min.apply(null, vals) : 9999;
+}
+
+// Build the three-tier ranking board from SHEET_RANKINGS, ordered within each tier.
 function renderRankBoard(applicants) {
   const board = document.getElementById('rank-board');
   if (!board) return;
   if (!applicants) applicants = getAllStudentScores('applicants');
 
-  // Group rankings by applicant for quick lookup of who placed them where.
   const byApplicant = {};
   SHEET_RANKINGS.forEach(r => {
     const k = String(r.applicantId).toUpperCase();
@@ -3494,45 +3526,107 @@ function renderRankBoard(applicants) {
   });
 
   board.innerHTML = RANK_TIERS.map(tier => {
-    // applicants whose ANY trainer placed them in this tier
-    const cards = Object.keys(applicants).filter(uid => {
+    // applicants placed in this tier by ANY trainer, sorted by shared order then name
+    const uids = Object.keys(applicants).filter(uid => {
       const rks = byApplicant[String(uid).toUpperCase()] || [];
       return rks.some(r => r.tier === tier.key);
-    }).map(uid => {
+    }).sort((a,b) => {
+      const oa = sharedOrder(a, tier.key), ob = sharedOrder(b, tier.key);
+      if (oa !== ob) return oa - ob;
+      return (getName(a)||a).localeCompare(getName(b)||b);
+    });
+
+    const cards = uids.map((uid, idx) => {
       const name = getName(uid) || uid.replace(/^APP-/, '');
       const rks = (byApplicant[String(uid).toUpperCase()] || []).filter(r => r.tier === tier.key);
       const tags = rks.map(r => `<span class="rank-by">${esc2(r.trainer)}</span>`).join('');
       const safeUid = String(uid).replace(/'/g,"\\'");
       const nCount = notesFor(uid).length;
-      return `<div class="rank-card" draggable="true" data-uid="${esc2(uid)}" ondragstart="appDragStart(event)">
+      return `<div class="rank-card" draggable="true" data-uid="${esc2(uid)}" data-tier="${tier.key}"
+           ondragstart="appDragStart(event)" ondragover="cardDragOver(event)" ondrop="cardDrop(event,'${tier.key}')">
         <div class="rank-card-top">
-          <span class="rank-card-name">${esc2(name)}</span>
+          <span class="rank-card-name"><span class="rank-pos">${idx+1}</span>${esc2(name)}</span>
           <button class="rank-card-x" title="Remove from this tier" onclick="event.stopPropagation(); rankApplicant('${safeUid}','')">&times;</button>
         </div>
         <div class="rank-card-by">${tags || '<span class="rank-by muted">unranked by you</span>'}</div>
         <button class="rank-notes-btn${nCount?' has':''}" onclick="event.stopPropagation(); openNotes('${safeUid}')">&#128172; Notes${nCount?' ('+nCount+')':''}</button>
       </div>`;
     }).join('');
-    return `<div class="rank-col rank-${tier.key}" ondragover="appDragOver(event)" ondragleave="appDragLeave(event)" ondrop="appDrop(event,'${tier.key}')">
-      <div class="rank-col-head">${tier.label} <span class="rank-col-n">${cards ? '' : ''}</span></div>
+    return `<div class="rank-col rank-${tier.key}" data-tier="${tier.key}" ondragover="appDragOver(event)" ondragleave="appDragLeave(event)" ondrop="appDrop(event,'${tier.key}')">
+      <div class="rank-col-head">${tier.label}</div>
       <div class="rank-col-body">${cards || '<div class="rank-empty">Drag applicants here</div>'}</div>
     </div>`;
   }).join('');
 }
 
 // Drag/drop handlers
+let _dragUid = null;
 function appDragStart(ev){
-  const uid = ev.currentTarget.getAttribute('data-uid');
-  ev.dataTransfer.setData('text/plain', uid);
+  _dragUid = ev.currentTarget.getAttribute('data-uid');
+  ev.dataTransfer.setData('text/plain', _dragUid);
   ev.dataTransfer.effectAllowed = 'move';
 }
 function appDragOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add('rank-over'); }
 function appDragLeave(ev){ ev.currentTarget.classList.remove('rank-over'); }
+// Drop onto a column (append to end of that tier).
 function appDrop(ev, tier){
   ev.preventDefault();
   ev.currentTarget.classList.remove('rank-over');
-  const uid = ev.dataTransfer.getData('text/plain');
-  if (uid) rankApplicant(uid, tier);
+  const uid = ev.dataTransfer.getData('text/plain') || _dragUid;
+  if (uid) placeInTier(uid, tier, null);   // null = end
+}
+// Drop onto a card (insert before/after that card for ordering).
+function cardDragOver(ev){ ev.preventDefault(); ev.stopPropagation(); }
+function cardDrop(ev, tier){
+  ev.preventDefault(); ev.stopPropagation();
+  const uid = ev.dataTransfer.getData('text/plain') || _dragUid;
+  const targetUid = ev.currentTarget.getAttribute('data-uid');
+  if (!uid || uid === targetUid) return;
+  // Insert dragged uid just before the target card.
+  placeInTier(uid, tier, targetUid);
+}
+
+// Place uid into a tier at a position (before beforeUid, or end if null), then persist order.
+function placeInTier(uid, tier, beforeUid){
+  // current ordered list of uids in this tier (excluding the dragged one)
+  const applicants = getAllStudentScores('applicants');
+  const byTier = Object.keys(applicants).filter(u => {
+    if (String(u).toUpperCase() === String(uid).toUpperCase()) return false;
+    return SHEET_RANKINGS.some(r => String(r.applicantId).toUpperCase()===String(u).toUpperCase() && r.tier===tier);
+  }).sort((a,b)=>{ const oa=sharedOrder(a,tier), ob=sharedOrder(b,tier); return oa!==ob?oa-ob:(getName(a)||a).localeCompare(getName(b)||b); });
+
+  let insertAt = byTier.length; // default end
+  if (beforeUid){ const i = byTier.findIndex(u => String(u).toUpperCase()===String(beforeUid).toUpperCase()); if (i>-1) insertAt = i; }
+  byTier.splice(insertAt, 0, uid);
+
+  // Ensure the dragged applicant has a ranking row (by current trainer) in this tier.
+  rankApplicantSilent(uid, tier);
+
+  // Assign sequential order to every applicant in this tier, writing to ALL their rows.
+  byTier.forEach((u, idx) => {
+    const pos = idx + 1;
+    const u2 = String(u).toUpperCase();
+    SHEET_RANKINGS.forEach(r => { if (String(r.applicantId).toUpperCase()===u2 && r.tier===tier) r.order = pos; });
+  });
+  // Persist the order in bulk.
+  const items = [];
+  byTier.forEach((u, idx) => {
+    const u2 = String(u).toUpperCase();
+    SHEET_RANKINGS.filter(r => String(r.applicantId).toUpperCase()===u2 && r.tier===tier)
+      .forEach(r => items.push({ applicantId: r.applicantId, trainer: r.trainer, tier: tier, order: idx+1 }));
+  });
+  postBoardAction({ action:'setRankOrder', items: items });
+  renderApplicants();
+}
+
+// Add the current trainer's ranking for an applicant without re-rendering (used by placeInTier).
+function rankApplicantSilent(uid, tier){
+  const trainer = currentTrainerName();
+  const exists = SHEET_RANKINGS.some(r => String(r.applicantId).toUpperCase()===String(uid).toUpperCase() && r.trainer===trainer && r.tier===tier);
+  // If this trainer had this applicant in a different tier, move it; otherwise add.
+  SHEET_RANKINGS = SHEET_RANKINGS.filter(r => !(String(r.applicantId).toUpperCase()===String(uid).toUpperCase() && r.trainer===trainer));
+  SHEET_RANKINGS.push({ applicantId: uid, trainer, tier, date: new Date().toLocaleDateString(), order: 9999 });
+  if (!exists) postBoardAction({ action:'setRanking', applicantId: uid, trainer, tier, date: new Date().toLocaleDateString(), order: 9999 });
 }
 function rankApplicant(uid, tier){
   setRankingRemote(uid, tier);            // persist (and optimistic local update)
@@ -3687,6 +3781,110 @@ function openApplicant(uid, quizId) {
   }
   if (!quizId) { alert('Could not find this applicant\u2019s test.'); return; }
   openGrading(uid, quizId);
+}
+
+// ── Compiled results (per-trainer sections + consensus table) ───────────────────
+const TIER_BASE = { top:3, consider:2, no:1 };
+function tierLabel(key){ const t = RANK_TIERS.find(x=>x.key===key); return t?t.label:key; }
+
+function openResults(){
+  document.getElementById('modal-results').style.display = 'flex';
+  renderResultsBody();
+  // refresh data, then re-render
+  let pending = 2;
+  function step(){ if(--pending<=0) renderResultsBody(); }
+  loadRankings(step); loadResults(step);
+}
+function closeResults(){ document.getElementById('modal-results').style.display = 'none'; }
+
+function renderResultsBody(){
+  const body = document.getElementById('results-body');
+  if (!body) return;
+  const applicants = getAllStudentScores('applicants');
+  const nameOf = uid => getName(uid) || String(uid).replace(/^APP-/, '');
+
+  // Group rankings by trainer.
+  const byTrainer = {};
+  SHEET_RANKINGS.forEach(r => { if(!r.tier) return; (byTrainer[r.trainer] = byTrainer[r.trainer] || []).push(r); });
+
+  // Per-trainer sections.
+  let trainerHtml = '';
+  const trainers = Object.keys(byTrainer).sort();
+  if (!trainers.length) {
+    trainerHtml = '<div class="notes-empty">No rankings yet. Place applicants on the board first.</div>';
+  } else {
+    trainers.forEach(tr => {
+      const rks = byTrainer[tr];
+      const perTier = RANK_TIERS.map(tier => {
+        const inTier = rks.filter(r => r.tier === tier.key)
+          .sort((a,b)=> (Number(a.order)||9999) - (Number(b.order)||9999));
+        if (!inTier.length) return '';
+        const items = inTier.map((r,i)=>`<li><span class="res-pos">${i+1}</span> ${esc2(nameOf(r.applicantId))}</li>`).join('');
+        return `<div class="res-tier"><div class="res-tier-h res-${tier.key}">${tier.label}</div><ol class="res-list">${items}</ol></div>`;
+      }).join('');
+      trainerHtml += `<div class="res-trainer"><div class="res-trainer-name">${esc2(tr)}</div><div class="res-tiers">${perTier||'<span class="rank-by muted">no placements</span>'}</div></div>`;
+    });
+  }
+
+  // Consensus scoring: for each applicant, sum each trainer's (tier base + position bonus).
+  // Position bonus: being #1 in a tier adds up to +0.9, decreasing with position.
+  const scores = {};   // uid -> { total, votes:{top,consider,no}, count }
+  Object.keys(applicants).forEach(uid => { scores[uid] = { total:0, votes:{top:0,consider:0,no:0}, count:0 }; });
+  // Determine tier sizes per trainer for position bonus scaling.
+  trainers.forEach(tr => {
+    RANK_TIERS.forEach(tier => {
+      const inTier = byTrainer[tr].filter(r => r.tier === tier.key)
+        .sort((a,b)=> (Number(a.order)||9999) - (Number(b.order)||9999));
+      const n = inTier.length;
+      inTier.forEach((r, idx) => {
+        const uid = Object.keys(scores).find(u => String(u).toUpperCase() === String(r.applicantId).toUpperCase());
+        if (!uid) return;
+        const base = TIER_BASE[tier.key] || 0;
+        const posBonus = n > 1 ? (0.9 * (n - 1 - idx) / (n - 1)) : 0.45; // top of tier gets the most
+        scores[uid].total += base + posBonus;
+        scores[uid].votes[tier.key] = (scores[uid].votes[tier.key]||0) + 1;
+        scores[uid].count += 1;
+      });
+    });
+  });
+
+  const ranked = Object.keys(scores).filter(uid => scores[uid].count > 0)
+    .sort((a,b) => scores[b].total - scores[a].total || (getName(a)||a).localeCompare(getName(b)||b));
+
+  let consensusHtml;
+  if (!ranked.length) {
+    consensusHtml = '<div class="notes-empty">No votes to compile yet.</div>';
+  } else {
+    const rows = ranked.map((uid, i) => {
+      const s = scores[uid];
+      const sc = applicants[uid] ? Object.values(applicants[uid])[0] : null;
+      const testScore = sc && sc.status !== 'pending' && sc.score != null ? sc.score + '%' : '—';
+      const voteSummary = [
+        s.votes.top ? `${s.votes.top}× Top` : '',
+        s.votes.consider ? `${s.votes.consider}× Consider` : '',
+        s.votes.no ? `${s.votes.no}× No` : ''
+      ].filter(Boolean).join(' · ');
+      const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+      return `<tr>
+        <td class="res-rank">${medal}</td>
+        <td class="res-name">${esc2(getName(uid)||uid.replace(/^APP-/,''))}</td>
+        <td class="res-votes">${voteSummary||'—'}</td>
+        <td class="res-test">${testScore}</td>
+        <td class="res-score">${s.total.toFixed(1)}</td>
+      </tr>`;
+    }).join('');
+    consensusHtml = `<table class="res-table">
+      <thead><tr><th></th><th>Applicant</th><th>Votes</th><th>Test</th><th>Score</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="res-note">Composite score = each trainer's tier vote (Top 3 · Consider 2 · No 1) plus a bonus for higher placement within their tier. Higher is stronger consensus.</div>`;
+  }
+
+  body.innerHTML = `
+    <div class="res-section-title">Recommended ranking — everyone's votes combined</div>
+    ${consensusHtml}
+    <div class="res-section-title" style="margin-top:1.75rem;">By trainer</div>
+    <div class="res-trainers">${trainerHtml}</div>`;
 }
 
 function renderAnalytics() {
@@ -4695,6 +4893,20 @@ loadQuestions(function(ok){
       <button onclick="closeNotes()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">Close</button>
     </div>
     <div id="notes-body" style="padding:1.5rem;"></div>
+  </div>
+</div>
+
+<!-- ══ COMPILED RESULTS MODAL ══════════════════════════════════════ -->
+<div id="modal-results" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:660;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:760px;box-shadow:0 24px 60px rgba(0,0,0,.4);margin:auto;">
+    <div style="background:var(--navy);border-radius:16px 16px 0 0;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan);margin-bottom:4px;">Hiring Committee</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;">Compiled results</div>
+      </div>
+      <button onclick="closeResults()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">Close</button>
+    </div>
+    <div id="results-body" style="padding:1.5rem;"></div>
   </div>
 </div>
 </body>
