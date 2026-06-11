@@ -48,6 +48,19 @@ body{font-family:var(--font);color:var(--ink);background:var(--surface);line-hei
 .exam-timer.warn{background:var(--gold-lt);border-color:var(--gold);color:#8a5a00;}
 .exam-timer.crit{background:var(--red-lt);border-color:var(--red);color:var(--red);animation:tpulse 1s ease-in-out infinite;}
 @keyframes tpulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+.q-top-right{display:inline-flex;align-items:center;gap:10px;}
+.flag-btn{background:transparent;border:1.5px solid var(--gray);border-radius:9px;width:30px;height:28px;cursor:pointer;color:var(--ink3);font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;padding:0;}
+.flag-btn:hover{border-color:var(--gold);color:var(--gold);}
+.flag-btn.on{background:var(--gold-lt);border-color:var(--gold);color:#B5821A;}
+.q-card.flagged{border-color:var(--gold);}
+.q-card.flag-pulse{animation:flagpulse 1.2s ease;}
+@keyframes flagpulse{0%{box-shadow:0 0 0 0 rgba(255,194,77,.5);}100%{box-shadow:0 0 0 14px rgba(255,194,77,0);}}
+.flag-jump{display:inline-flex;align-items:center;gap:5px;background:var(--gold-lt);border:1.5px solid var(--gold);border-radius:20px;padding:4px 13px;font-family:var(--display);font-weight:800;font-size:13px;color:#B5821A;cursor:pointer;margin-right:10px;}
+.flag-jump:hover{background:#FFE9B8;}
+.exam-banner{position:fixed;top:0;left:0;right:0;z-index:50;transform:translateY(-120%);transition:transform .35s cubic-bezier(.2,.8,.2,1);background:linear-gradient(120deg,#041C34,#0B2F5E);color:#fff;text-align:center;padding:13px 1rem;font-family:var(--display);font-weight:700;font-size:14.5px;box-shadow:0 4px 18px rgba(4,28,52,.25);}
+.exam-banner.show{transform:translateY(0);}
+.exam-banner.warn{background:linear-gradient(120deg,#B5821A,#E0A52E);}
+.exam-banner.crit{background:linear-gradient(120deg,#A3203F,#D8345B);}
 .exam-prog{height:7px;background:var(--gray);border-radius:99px;overflow:hidden;}
 .exam-prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));width:0;transition:width .3s;}
 
@@ -122,6 +135,7 @@ body{font-family:var(--font);color:var(--ink);background:var(--surface);line-hei
     <div class="app-tag">Dispatch Applicant Assessment</div>
   </div>
 </div>
+<div class="exam-banner" id="exam-banner"></div>
 
 <!-- ENTRY SCREEN -->
 <div id="entry-screen" class="wrap">
@@ -148,6 +162,7 @@ body{font-family:var(--font);color:var(--ink);background:var(--surface);line-hei
     <div class="exam-head-row">
       <div class="exam-title" id="exam-title">Assessment</div>
       <span class="exam-timer" id="exam-timer" style="display:none;"><span>&#9201;</span><span id="exam-timer-val">--:--</span></span>
+      <button class="flag-jump" id="flag-jump" style="display:none;" onclick="jumpNextFlagged()" title="Jump to next flagged question"><span class="flag-ico">&#9873;</span> <span id="flag-jump-count">0</span></button>
       <div class="exam-prog-count" id="exam-prog-count">0 / 0</div>
     </div>
     <div class="exam-prog"><div class="exam-prog-fill" id="exam-prog-fill"></div></div>
@@ -216,6 +231,7 @@ function beginApplicant() {
       return;
     }
     currentQuiz = quiz;
+    window._examFlags = {}; window._flagCursor = null;
     renderExam();
     document.getElementById('exam-area').style.display = 'block';
     window.scrollTo(0,0);
@@ -305,6 +321,52 @@ function qExamType(qu) {
   return isWrittenQ(qu) ? 'written' : 'mc';
 }
 
+// ── Flagging (no scoring impact) ───────────────────────────────────────────────
+function flagBtn(n){
+  return `<button type="button" class="flag-btn" id="flagbtn-${n}" onclick="toggleFlag('${n}')" title="Flag this question to revisit" aria-label="Flag question ${n}"><span class="flag-ico">&#9873;</span></button>`;
+}
+function toggleFlag(n){
+  if (!window._examFlags) window._examFlags = {};
+  n = String(n);
+  if (window._examFlags[n]) delete window._examFlags[n]; else window._examFlags[n] = true;
+  const card = document.getElementById('qcard-' + n);
+  const btn = document.getElementById('flagbtn-' + n);
+  const on = !!window._examFlags[n];
+  if (card) card.classList.toggle('flagged', on);
+  if (btn) btn.classList.toggle('on', on);
+  updateFlagBar();
+}
+function flaggedList(){ return Object.keys(window._examFlags || {}); }
+function updateFlagBar(){
+  const bar = document.getElementById('flag-jump');
+  if (!bar) return;
+  const list = flaggedList();
+  if (!list.length){ bar.style.display = 'none'; return; }
+  bar.style.display = 'inline-flex';
+  const cnt = document.getElementById('flag-jump-count');
+  if (cnt) cnt.textContent = list.length;
+}
+function jumpNextFlagged(){
+  const list = flaggedList().map(Number).sort((a,b)=>a-b);
+  if (!list.length) return;
+  const cur = window._flagCursor == null ? -1 : window._flagCursor;
+  let next = list.find(n => n > cur);
+  if (next == null) next = list[0];
+  window._flagCursor = next;
+  const card = document.getElementById('qcard-' + next);
+  if (card){ card.scrollIntoView({ behavior:'smooth', block:'center' }); card.classList.add('flag-pulse'); setTimeout(()=>card.classList.remove('flag-pulse'),1200); }
+}
+
+// Slim Breeze-style banner (replaces browser alerts).
+function showBanner(msg, level){
+  const el = document.getElementById('exam-banner');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'exam-banner show ' + (level||'');
+  clearTimeout(window._bannerTimer);
+  window._bannerTimer = setTimeout(()=>{ el.classList.remove('show'); }, 4500);
+}
+
 function shuffledIndices(n, seed) {
   const arr = Array.from({length:n}, (_,i)=>i);
   let s = seed || 1;
@@ -327,7 +389,7 @@ function renderExam() {
     if (t === 'written') {
       const prior = (window._examWritten && window._examWritten[qu.n]) || '';
       html += `<div class="q-card" id="qcard-${qu.n}">
-        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts · Written</span></div>
+        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-top-right"><span class="q-pts">${qu.pts} pts · Written</span>${flagBtn(qu.n)}</span></div>
         <div class="q-text">${qu.text}</div>
         ${renderQuestionImage(qu.img)}
         <textarea class="written-input" id="written-${qu.n}" placeholder="Type your answer…" oninput="setWritten(${qu.n}, this.value)">${prior}</textarea>
@@ -335,7 +397,7 @@ function renderExam() {
     } else {
       const opts = Array.isArray(qu.options) ? qu.options : [];
       html += `<div class="q-card" id="qcard-${qu.n}">
-        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts</span></div>
+        <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-top-right"><span class="q-pts">${qu.pts} pts</span>${flagBtn(qu.n)}</span></div>
         <div class="q-text">${qu.text}</div>
         ${renderQuestionImage(qu.img)}
         <div class="options">
@@ -349,6 +411,7 @@ function renderExam() {
   document.getElementById('exam-content').innerHTML = html;
   setTimeout(initMatchingQuestions, 0);
   updateExamProgress();
+  updateFlagBar();
   startExamTimer(currentQuiz ? currentQuiz.timeLimit : 0);
 }
 
@@ -375,9 +438,9 @@ function tickExamTimer(){
   valEl.textContent=m+':'+String(s).padStart(2,'0');
   badge.classList.toggle('warn', remain<=300 && remain>60);
   badge.classList.toggle('crit', remain<=60);
-  if(remain<=300 && !_examTimer.warned5 && remain>60){ _examTimer.warned5=true; try{ alert('5 minutes remaining.'); }catch(e){} }
-  if(remain<=60 && !_examTimer.warned1){ _examTimer.warned1=true; try{ alert('1 minute remaining — your assessment will submit automatically when time runs out.'); }catch(e){} }
-  if(remain<=0){ stopExamTimer(); valEl.textContent='0:00'; window._timeExpired=true; try{ alert("Time's up — your assessment is being submitted."); }catch(e){} submitApplicant(); }
+  if(remain<=300 && !_examTimer.warned5 && remain>60){ _examTimer.warned5=true; showBanner('5 minutes remaining','warn'); }
+  if(remain<=60 && !_examTimer.warned1){ _examTimer.warned1=true; showBanner('1 minute remaining — your assessment will submit automatically when time runs out','crit'); }
+  if(remain<=0){ stopExamTimer(); valEl.textContent='0:00'; window._timeExpired=true; showBanner("Time's up — submitting your assessment",'crit'); setTimeout(submitApplicant,700); }
 }
 
 function renderMatchingQ(qu) {
@@ -394,7 +457,7 @@ function renderMatchingQ(qu) {
        <div class="mtch-right-label">${pairs[ri].right}</div>
      </div>`).join('');
   return `<div class="q-card" id="qcard-${qu.n}">
-    <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts · Matching</span></div>
+    <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-top-right"><span class="q-pts">${qu.pts} pts · Matching</span>${flagBtn(qu.n)}</span></div>
     <div class="q-text">${qu.text || 'Drag each item on the left onto its match on the right.'}</div>
     ${renderQuestionImage(qu.img)}
     <div class="mtch-hint">Drag a box from the left onto its match on the right. Drag a docked box back to the bank to undo.</div>
@@ -529,7 +592,7 @@ function renderScenarioQ(qu) {
     </div>`;
   }).join('');
   return `<div class="q-card scn-card" id="qcard-${qu.n}">
-    <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-pts">${qu.pts} pts · Scenario</span></div>
+    <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-top-right"><span class="q-pts">${qu.pts} pts · Scenario</span>${flagBtn(qu.n)}</span></div>
     <div class="scn-prompt">${qu.text}</div>
     ${renderQuestionImage(qu.img)}
     <div class="scn-subs">${subHtml}</div>
