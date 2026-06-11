@@ -365,6 +365,33 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .app-share-copy.copied{background:var(--green);}
 .app-share-note{font-size:11.5px;color:var(--ink3);margin-top:.6rem;line-height:1.5;}
 .app-share-note code{background:#fff;border:1px solid var(--gray);border-radius:5px;padding:1px 5px;font-size:11px;}
+.app-list-head{display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 .25rem;}
+.app-refresh{background:#fff;border:1.5px solid var(--gray);border-radius:9px;padding:7px 14px;font-weight:700;font-size:12.5px;color:var(--navy);cursor:pointer;font-family:var(--font);transition:all .15s;}
+.app-refresh:hover{border-color:var(--blue);color:var(--blue);}
+.app-refresh:disabled{opacity:.6;cursor:default;}
+.app-row{cursor:default;}
+.app-drag-grip{color:var(--ink3);font-size:11px;letter-spacing:-2px;margin-right:7px;cursor:grab;}
+.app-row-main{cursor:pointer;}
+.app-del{background:transparent;border:none;cursor:pointer;color:var(--ink3);font-size:15px;padding:2px 6px;border-radius:7px;transition:all .15s;}
+.app-del:hover{color:var(--red);background:var(--red-lt);}
+.rank-board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:1rem;}
+.rank-col{background:var(--surface);border:1.5px solid var(--gray);border-radius:14px;padding:.8rem;min-height:140px;transition:border-color .15s,background .15s;}
+.rank-col.rank-over{border-color:var(--blue);background:var(--skysoft);border-style:dashed;}
+.rank-col-head{font-family:var(--display);font-weight:800;font-size:13px;color:var(--navy);margin-bottom:.7rem;padding-bottom:.5rem;border-bottom:1.5px solid var(--gray);}
+.rank-top .rank-col-head{color:var(--green);}
+.rank-no .rank-col-head{color:var(--red);}
+.rank-col-body{display:flex;flex-direction:column;gap:.5rem;min-height:60px;}
+.rank-empty{font-size:12px;color:var(--ink3);text-align:center;padding:1.5rem .5rem;border:1.5px dashed var(--gray);border-radius:10px;}
+.rank-card{background:#fff;border:1.5px solid var(--gray);border-radius:10px;padding:.55rem .65rem;cursor:grab;}
+.rank-card:hover{border-color:var(--sky);}
+.rank-card-top{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+.rank-card-name{font-weight:700;font-size:13px;color:var(--navy);}
+.rank-card-x{background:transparent;border:none;color:var(--ink3);font-size:16px;cursor:pointer;line-height:1;padding:0 2px;}
+.rank-card-x:hover{color:var(--red);}
+.rank-card-by{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.rank-by{font-size:10.5px;font-weight:700;background:var(--skysoft);color:var(--blue);border-radius:20px;padding:2px 8px;}
+.rank-by.muted{background:transparent;color:var(--ink3);font-weight:600;font-style:italic;}
+@media(max-width:680px){.rank-board{grid-template-columns:1fr;}}
 
 /* Roster scope toggle (Active / Signed off) + analytics scope */
 .roster-scope{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
@@ -771,9 +798,16 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     <div id="admin-applicants">
       <div class="app-share" id="app-share"></div>
       <div class="admin-summary" id="app-summary"></div>
-      <div class="admin-section-title">Applicant submissions</div>
-      <div class="an-section-note">Candidates who completed the applicant assessment. Click a row to review answers and grade written/scenario responses.</div>
+      <div class="app-list-head">
+        <div class="admin-section-title" style="margin:0;">Applicant submissions</div>
+        <button class="app-refresh" id="app-refresh" onclick="refreshApplicants()">&#8635; Refresh</button>
+      </div>
+      <div class="an-section-note">Click a row to review answers and grade. Drag an applicant into a tier below to rank them.</div>
       <div id="app-list"></div>
+
+      <div class="admin-section-title" style="margin-top:2rem;">Ranking board</div>
+      <div class="an-section-note">Shared across trainers — each placement is tagged with who made it. Drag applicants from the list above into a tier.</div>
+      <div class="rank-board" id="rank-board"></div>
     </div>
   </div>
 </div>
@@ -1392,6 +1426,56 @@ function loadResults(done) {
 }
 
 // ── Sign-off state (synced via the Signoffs sheet tab, localStorage fallback) ────
+// ── Applicant rankings (shared, attributed) ─────────────────────────────────────
+// SHEET_RANKINGS = [{applicantId, trainer, tier, date}]. tier: 'top'|'consider'|'no'.
+var SHEET_RANKINGS = [];
+const RANK_TIERS = [
+  { key:'top',      label:'Top Choice' },
+  { key:'consider', label:'Consider' },
+  { key:'no',       label:'No' }
+];
+function loadRankings(done) {
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'rkb_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && res.status === 'ok' && Array.isArray(res.rankings)) {
+        SHEET_RANKINGS = res.rankings.filter(r => r && r.applicantId && r.tier);
+        finish(true);
+      } else { finish(false); }
+    } catch(e) { finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=rankings&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
+function currentTrainerName(){
+  const n = ((currentUserFirst||'') + ' ' + (currentUserLast||'')).trim();
+  return n || (currentUser || 'Trainer');
+}
+// Persist one ranking to the sheet (hidden-iframe POST, same as sign-off).
+function setRankingRemote(applicantId, tier) {
+  const trainer = currentTrainerName();
+  // optimistic local update
+  SHEET_RANKINGS = SHEET_RANKINGS.filter(r => !(r.applicantId === applicantId && r.trainer === trainer));
+  if (tier) SHEET_RANKINGS.push({ applicantId, trainer, tier, date: new Date().toLocaleDateString() });
+  const payload = { action:'setRanking', applicantId, trainer, tier: tier || '', date: new Date().toLocaleDateString() };
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='rkhf'; form.style.display='none';
+    const inp = document.createElement('input'); inp.type='hidden'; inp.name='data'; inp.value=JSON.stringify(payload);
+    form.appendChild(inp);
+    let ifr = document.getElementById('rkhf-frame');
+    if (!ifr) { ifr = document.createElement('iframe'); ifr.name='rkhf'; ifr.id='rkhf-frame'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+    setTimeout(()=>{ if(form.parentNode) form.parentNode.removeChild(form); }, 5000);
+  } catch(e){}
+}
+
 function loadSignoffs(done) {
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
   const cb = 'scb_' + Math.random().toString(36).slice(2);
@@ -3129,7 +3213,7 @@ function setAdminView(view) {
   var appTab = document.getElementById('viewtab-applicants');
   if (appTab) appTab.classList.toggle('active', view === 'applicants');
   if (view === 'analytics') renderAnalytics();
-  if (view === 'applicants') renderApplicants();
+  if (view === 'applicants') { renderApplicants(); loadRankings(function(){ renderApplicants(); }); }
 }
 
 // Bucket a miss-rate into a severity class for color coding.
@@ -3303,6 +3387,10 @@ function renderApplicants() {
     return;
   }
 
+  // applicants already placed in a tier shouldn't clutter the top list
+  const placed = {};
+  SHEET_RANKINGS.forEach(r => { placed[String(r.applicantId).toUpperCase()] = true; });
+
   const rows = entries.map(([uid, scoresObj]) => {
     const name = getName(uid) || uid.replace(/^APP-/, '');
     const email = emailFromId(uid);
@@ -3313,20 +3401,112 @@ function renderApplicants() {
       : (a.pass ? '<span class="app-chip pass">Pass</span>' : '<span class="app-chip fail">Review</span>');
     const scoreTxt = a.status === 'pending' ? '—' : (a.score != null ? a.score + '%' : '—');
     const when = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : (a.date || '');
-    return `<div class="app-row" onclick="openApplicant('${String(uid).replace(/'/g,"\\'")}','${String(quizId).replace(/'/g,"\\'")}')">
-      <div class="app-row-main">
-        <div class="app-row-name">${esc2(name)}</div>
+    const safeUid = String(uid).replace(/'/g,"\\'");
+    return `<div class="app-row" draggable="true" data-uid="${esc2(uid)}" data-quiz="${esc2(quizId)}" ondragstart="appDragStart(event)">
+      <div class="app-row-main" onclick="openApplicant('${safeUid}','${String(quizId).replace(/'/g,"\\'")}')">
+        <div class="app-row-name"><span class="app-drag-grip">&#8942;&#8942;</span>${esc2(name)}</div>
         <div class="app-row-email">${esc2(email)}</div>
       </div>
       <div class="app-row-meta">
         <span class="app-row-date">${when}</span>
         <span class="app-row-score">${scoreTxt}</span>
         ${statusChip}
-        <span class="app-row-cta">${a.status === 'pending' ? 'Grade →' : 'Review →'}</span>
+        <span class="app-row-cta" onclick="openApplicant('${safeUid}','${String(quizId).replace(/'/g,"\\'")}')">${a.status === 'pending' ? 'Grade →' : 'Review →'}</span>
+        <button class="app-del" title="Delete applicant" onclick="event.stopPropagation(); deleteApplicant('${safeUid}')">&#128465;</button>
       </div>
     </div>`;
   }).join('');
   listEl.innerHTML = `<div class="app-rows">${rows}</div>`;
+
+  renderRankBoard(applicants);
+}
+
+// Build the three-tier ranking board from SHEET_RANKINGS.
+function renderRankBoard(applicants) {
+  const board = document.getElementById('rank-board');
+  if (!board) return;
+  if (!applicants) applicants = getAllStudentScores('applicants');
+
+  // Group rankings by applicant for quick lookup of who placed them where.
+  const byApplicant = {};
+  SHEET_RANKINGS.forEach(r => {
+    const k = String(r.applicantId).toUpperCase();
+    (byApplicant[k] = byApplicant[k] || []).push(r);
+  });
+
+  board.innerHTML = RANK_TIERS.map(tier => {
+    // applicants whose ANY trainer placed them in this tier
+    const cards = Object.keys(applicants).filter(uid => {
+      const rks = byApplicant[String(uid).toUpperCase()] || [];
+      return rks.some(r => r.tier === tier.key);
+    }).map(uid => {
+      const name = getName(uid) || uid.replace(/^APP-/, '');
+      const rks = (byApplicant[String(uid).toUpperCase()] || []).filter(r => r.tier === tier.key);
+      const tags = rks.map(r => `<span class="rank-by">${esc2(r.trainer)}</span>`).join('');
+      const safeUid = String(uid).replace(/'/g,"\\'");
+      return `<div class="rank-card" draggable="true" data-uid="${esc2(uid)}" ondragstart="appDragStart(event)">
+        <div class="rank-card-top">
+          <span class="rank-card-name">${esc2(name)}</span>
+          <button class="rank-card-x" title="Remove from this tier" onclick="event.stopPropagation(); rankApplicant('${safeUid}','')">&times;</button>
+        </div>
+        <div class="rank-card-by">${tags || '<span class="rank-by muted">unranked by you</span>'}</div>
+      </div>`;
+    }).join('');
+    return `<div class="rank-col rank-${tier.key}" ondragover="appDragOver(event)" ondragleave="appDragLeave(event)" ondrop="appDrop(event,'${tier.key}')">
+      <div class="rank-col-head">${tier.label} <span class="rank-col-n">${cards ? '' : ''}</span></div>
+      <div class="rank-col-body">${cards || '<div class="rank-empty">Drag applicants here</div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+// Drag/drop handlers
+function appDragStart(ev){
+  const uid = ev.currentTarget.getAttribute('data-uid');
+  ev.dataTransfer.setData('text/plain', uid);
+  ev.dataTransfer.effectAllowed = 'move';
+}
+function appDragOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add('rank-over'); }
+function appDragLeave(ev){ ev.currentTarget.classList.remove('rank-over'); }
+function appDrop(ev, tier){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('rank-over');
+  const uid = ev.dataTransfer.getData('text/plain');
+  if (uid) rankApplicant(uid, tier);
+}
+function rankApplicant(uid, tier){
+  setRankingRemote(uid, tier);            // persist (and optimistic local update)
+  renderApplicants();                     // re-render board + list
+}
+
+function deleteApplicant(uid){
+  const name = getName(uid) || uid.replace(/^APP-/, '');
+  if (!confirm('Delete applicant "' + name + '" and their test submission? This cannot be undone.')) return;
+  // Remove from sheet (results + rankings) and local mirror.
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='delhf'; form.style.display='none';
+    const inp = document.createElement('input'); inp.type='hidden'; inp.name='data';
+    inp.value = JSON.stringify({ action:'deleteStudent', id: uid });
+    form.appendChild(inp);
+    let ifr = document.getElementById('delhf-frame');
+    if (!ifr){ ifr = document.createElement('iframe'); ifr.name='delhf'; ifr.id='delhf-frame'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+    setTimeout(()=>{ if(form.parentNode) form.parentNode.removeChild(form); }, 5000);
+  } catch(e){}
+  try { localStorage.removeItem('bz_scores_' + uid); localStorage.removeItem('bz_name_' + uid); } catch(e){}
+  SHEET_RANKINGS = SHEET_RANKINGS.filter(r => String(r.applicantId).toUpperCase() !== String(uid).toUpperCase());
+  // Give the sheet a moment, then refresh from source.
+  setTimeout(refreshApplicants, 1200);
+}
+
+// Refresh applicant data + rankings from the sheet.
+function refreshApplicants(){
+  const btn = document.getElementById('app-refresh');
+  if (btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
+  let pending = 2;
+  function step(){ if (--pending <= 0){ if (btn){ btn.disabled=false; btn.innerHTML='&#8635; Refresh'; } renderApplicants(); } }
+  loadResults(step);
+  loadRankings(step);
 }
 
 // Open an applicant's submission directly in the grading modal (their one test only),
