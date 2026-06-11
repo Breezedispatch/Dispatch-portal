@@ -354,6 +354,17 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .app-chip.pass{background:var(--green-lt);color:var(--green);}
 .app-chip.fail{background:var(--gold-lt);color:#8a5a00;}
 .app-row-cta{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap;}
+.app-share{background:var(--skysoft);border:1.5px solid var(--sky);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.5rem;}
+.app-share-title{font-family:var(--display);font-weight:800;font-size:14px;color:var(--navy);margin-bottom:.75rem;}
+.app-share-row{display:flex;align-items:center;gap:10px;margin-bottom:.55rem;}
+.app-share-lbl{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);width:88px;flex-shrink:0;}
+.app-share-val{flex:1;background:#fff;border:1.5px solid var(--gray);border-radius:9px;padding:8px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--navy);overflow:auto;white-space:nowrap;}
+.app-share-val.code{font-family:var(--display);font-weight:800;letter-spacing:.08em;font-size:15px;}
+.app-share-copy{flex-shrink:0;background:var(--navy);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);transition:background .15s;}
+.app-share-copy:hover{background:#0B2F5E;}
+.app-share-copy.copied{background:var(--green);}
+.app-share-note{font-size:11.5px;color:var(--ink3);margin-top:.6rem;line-height:1.5;}
+.app-share-note code{background:#fff;border:1px solid var(--gray);border-radius:5px;padding:1px 5px;font-size:11px;}
 
 /* Roster scope toggle (Active / Signed off) + analytics scope */
 .roster-scope{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
@@ -758,6 +769,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     </div>
 
     <div id="admin-applicants">
+      <div class="app-share" id="app-share"></div>
       <div class="admin-summary" id="app-summary"></div>
       <div class="admin-section-title">Applicant submissions</div>
       <div class="an-section-note">Candidates who completed the applicant assessment. Click a row to review answers and grade written/scenario responses.</div>
@@ -803,6 +815,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 <script>
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxO1FIbW4oaaHTfOEqbSN4eMDzRXuyxNz7bFLHYBmAkpBpifVkHeQRDQOlfFVXW5qF2/exec';
 const PASS_THRESHOLD = 80;
+
+// ── Applicant test sharing (shown in the admin Applicants tab) ──────────────────
+// Set this to match the ACCESS_CODE in applicant_test.html so the admin panel can
+// display it. The link is derived automatically from this page's location, but you
+// can hard-code it here instead if you prefer.
+const APPLICANT_ACCESS_CODE = 'BREEZE2026';
+const APPLICANT_TEST_URL = ''; // leave '' to auto-derive (…/applicant_test.html), or paste a full URL
 
 // Per-quiz pass mark: use the quiz's own passMark if set, else the global default.
 function passMarkFor(quiz) {
@@ -3217,11 +3236,56 @@ function computeAnalytics() {
 function esc2(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function emailFromId(uid){ const m = String(uid).match(/^APP-(.+)$/); return m ? m[1] : ''; }
 
+function applicantTestLink() {
+  if (APPLICANT_TEST_URL) return APPLICANT_TEST_URL;
+  // Derive from this page's location: replace the current filename with applicant_test.html
+  try {
+    const u = new URL(window.location.href);
+    u.search = ''; u.hash = '';
+    u.pathname = u.pathname.replace(/[^/]*$/, 'applicant_test.html');
+    return u.toString();
+  } catch(e) { return 'applicant_test.html'; }
+}
+
+function copyShare(kind, btn) {
+  const text = kind === 'link' ? applicantTestLink() : APPLICANT_ACCESS_CODE;
+  function ok(){ if (btn){ const o = btn.textContent; btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(()=>{ btn.textContent = o; btn.classList.remove('copied'); }, 1400); } }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok).catch(()=>fallbackCopy(text, ok));
+  } else { fallbackCopy(text, ok); }
+}
+function fallbackCopy(text, ok) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok && ok(); } catch(e){}
+  document.body.removeChild(ta);
+}
+
 function renderApplicants() {
   const applicants = getAllStudentScores('applicants');
   const listEl = document.getElementById('app-list');
   const sumEl = document.getElementById('app-summary');
   const entries = Object.entries(applicants);
+
+  // Share panel: link + access code, each copyable.
+  const shareEl = document.getElementById('app-share');
+  if (shareEl) {
+    const link = applicantTestLink();
+    shareEl.innerHTML = `
+      <div class="app-share-title">Share with applicants</div>
+      <div class="app-share-row">
+        <span class="app-share-lbl">Test link</span>
+        <code class="app-share-val">${esc2(link)}</code>
+        <button class="app-share-copy" onclick="copyShare('link', this)">Copy</button>
+      </div>
+      <div class="app-share-row">
+        <span class="app-share-lbl">Access code</span>
+        <code class="app-share-val code">${esc2(APPLICANT_ACCESS_CODE)}</code>
+        <button class="app-share-copy" onclick="copyShare('code', this)">Copy</button>
+      </div>
+      <div class="app-share-note">Send both to candidates. Change the code in <code>applicant_test.html</code> (and the matching line in this file) to rotate it.</div>`;
+  }
 
   const total = entries.length;
   let pendingCount = 0, gradedCount = 0;
