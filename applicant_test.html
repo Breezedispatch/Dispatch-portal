@@ -155,11 +155,10 @@ body{font-family:var(--font);color:var(--ink);background:var(--surface);line-hei
 <div id="entry-screen" class="wrap">
   <div class="entry">
     <h1>Welcome</h1>
-    <div class="entry-sub">Thank you for your interest in a dispatch position at Breeze Airways. This assessment is part of our interview process. Please enter your details and the access code provided to you, then complete the assessment in one sitting.</div>
+    <div class="entry-sub">Thank you for your interest in a dispatch position at Breeze Airways. This assessment is part of our interview process. Please enter your details, then complete the assessment in one sitting. You may take it only once.</div>
     <div class="entry-err" id="entry-err"></div>
     <div class="fld"><label>Full name</label><input type="text" id="ent-name" placeholder="First and last name" autocomplete="name"></div>
     <div class="fld"><label>Email address</label><input type="email" id="ent-email" placeholder="you@example.com" autocomplete="email"></div>
-    <div class="fld"><label>Access code</label><input type="text" id="ent-code" placeholder="Provided by your recruiter" autocomplete="off"></div>
     <button class="btn-go" id="ent-go" onclick="beginApplicant()">Begin assessment</button>
     <div class="entry-note">Your responses are submitted to the Breeze hiring team for review. You will not receive a score on screen.</div>
   </div>
@@ -202,9 +201,8 @@ const SHEET_URL     = 'https://script.google.com/macros/s/AKfycbxO1FIbW4oaaHTfOE
 const QUESTIONS_URL = SHEET_URL;
 const LETTERS = ['A','B','C','D'];
 
-// ▼▼▼ CHANGE THIS to rotate the applicant access code each hiring round ▼▼▼
-const ACCESS_CODE = 'BREEZE2026';
-// ▲▲▲
+// Applicants reach this page via one shared link (no access code). Each person may take
+// the assessment once — a prior submission under their email blocks any retake.
 
 // ════════════════════════════════════════════════════════════════════════════
 //  STATE
@@ -220,14 +218,11 @@ let applicant = { name:'', email:'', first:'', last:'' };
 function beginApplicant() {
   const name = document.getElementById('ent-name').value.trim();
   const email = document.getElementById('ent-email').value.trim();
-  const code = document.getElementById('ent-code').value.trim();
   const err = document.getElementById('entry-err');
   function fail(msg){ err.textContent = msg; err.style.display='block'; }
 
   if (!name) return fail('Please enter your full name.');
   if (!email || email.indexOf('@') < 1) return fail('Please enter a valid email address.');
-  if (!code) return fail('Please enter the access code provided to you.');
-  if (code.toUpperCase() !== ACCESS_CODE.toUpperCase()) return fail('That access code is not correct. Please check with your recruiter.');
 
   err.style.display = 'none';
   const parts = name.split(/\s+/);
@@ -236,6 +231,42 @@ function beginApplicant() {
   document.getElementById('entry-screen').style.display = 'none';
   document.getElementById('loading-screen').style.display = 'block';
 
+  // Block retakes: if this email already submitted, don't let them start again.
+  checkAlreadySubmitted(email, function(already){
+    if (already){
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('entry-screen').style.display = 'block';
+      fail('Our records show this email has already completed the assessment. Each applicant may take it once. Please contact your recruiter if you believe this is an error.');
+      return;
+    }
+    startTestLoad(fail);
+  });
+}
+
+// Look up existing results for APP-<email>; calls done(true) if a submission exists.
+function checkAlreadySubmitted(email, done){
+  const targetId = ('APP-' + String(email).toLowerCase()).toUpperCase();
+  const cb = 'chk_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(v){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done(v); }
+  window[cb] = function(res){
+    try {
+      const rows = (res && (res.results || res.scores)) || [];
+      const hit = Array.isArray(rows) && rows.some(r => {
+        const id = String(r.id || r.studentId || '').trim().toUpperCase();
+        return id === targetId;
+      });
+      finish(!!hit);
+    } catch(e){ finish(false); }
+  };
+  s.onerror = function(){ finish(false); };   // if the check fails, don't hard-block — fail open
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=results&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 10000);
+}
+
+function startTestLoad(fail){
   loadQuestions(function(ok){
     document.getElementById('loading-screen').style.display = 'none';
     const quiz = QUIZZES.find(q => q.section === 'Applicant');

@@ -3593,7 +3593,7 @@ function renderApplicants() {
   const sumEl = document.getElementById('app-summary');
   const entries = Object.entries(applicants);
 
-  // Share panel: link + access code, each copyable.
+  // Share panel: one shared test link (no access code).
   const shareEl = document.getElementById('app-share');
   if (shareEl) {
     const link = applicantTestLink();
@@ -3607,12 +3607,7 @@ function renderApplicants() {
         <code class="app-share-val">${esc2(link)}</code>
         <button class="app-share-copy" onclick="copyShare('link', this)">Copy</button>
       </div>
-      <div class="app-share-row">
-        <span class="app-share-lbl">Access code</span>
-        <code class="app-share-val code">${esc2(APPLICANT_ACCESS_CODE)}</code>
-        <button class="app-share-copy" onclick="copyShare('code', this)">Copy</button>
-      </div>
-      <div class="app-share-note">Send both to candidates. Change the code in <code>applicant_test.html</code> (and the matching line in this file) to rotate it.</div>`;
+      <div class="app-share-note">Send this one link to candidates — no access code needed. Each applicant may take the assessment once; a second attempt from the same email is blocked automatically.</div>`;
   }
 
   const total = entries.length;
