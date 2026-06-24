@@ -304,7 +304,13 @@ function checkAlreadySubmitted(email, done){
 function startTestLoad(fail){
   loadQuestions(function(ok){
     document.getElementById('loading-screen').style.display = 'none';
-    const quiz = QUIZZES.find(q => q.section === 'Applicant');
+    // Match the applicant quiz tolerantly (case/whitespace), and only require that it has questions.
+    const quiz = QUIZZES.find(q => String(q.section||'').trim().toLowerCase() === 'applicant');
+    if (!ok) {
+      document.getElementById('entry-screen').style.display = 'block';
+      fail('Could not reach the assessment server. Please check your connection and try again.');
+      return;
+    }
     if (!quiz || !quiz.questions || !quiz.questions.length) {
       document.getElementById('entry-screen').style.display = 'block';
       fail('The assessment is not available right now. Please contact your recruiter.');
@@ -337,6 +343,7 @@ function buildQuizzesFromSheet(quizRows, questionRows) {
     byId[qz.id] = quiz; list.push(quiz);
   });
   (questionRows||[]).forEach(function(q){
+   try {
     const quiz = byId[q.quizId];
     if (!quiz) return;
     const rawModel = (q.model != null ? String(q.model) : '');
@@ -362,16 +369,23 @@ function buildQuizzesFromSheet(quizRows, questionRows) {
       correct: Math.max(0, LETTERS.indexOf(String(q.correct||'A').trim().toUpperCase())),
       model: model, written: model.length>0, cite:citeText, img:imgObj
     });
+   } catch(rowErr){ /* skip a malformed question rather than breaking the whole test */ }
   });
   list.forEach(function(q){ q.totalQuestions = q.questions.length; });
   return list;
 }
 
-function loadQuestions(done) {
-  const cb = 'appq_' + Date.now();
+function loadQuestions(done, _attempt) {
+  const attempt = _attempt || 1;
+  const cb = 'appq_' + Date.now() + '_' + attempt;
   const s = document.createElement('script');
   let finished = false;
-  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  function finish(ok){
+    if(finished) return; finished = true;
+    delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s);
+    if (!ok && attempt < 3) { setTimeout(function(){ loadQuestions(done, attempt+1); }, 800); return; }
+    done && done(ok);
+  }
   window[cb] = function(res){
     try {
       if (res && res.status === 'ok' && res.quizzes && res.quizzes.length) {
@@ -384,7 +398,7 @@ function loadQuestions(done) {
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 18000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
