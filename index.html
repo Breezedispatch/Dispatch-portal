@@ -380,6 +380,15 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .app-share-note{font-size:11.5px;color:var(--ink3);margin-top:.6rem;line-height:1.5;}
 .app-share-note code{background:#fff;border:1px solid var(--gray);border-radius:5px;padding:1px 5px;font-size:11px;}
 .app-backend-warn{background:var(--gold-lt);border:1.5px solid var(--gold);border-radius:10px;padding:.7rem .9rem;font-size:12.5px;color:#8a5a00;line-height:1.5;margin-bottom:1rem;}
+.app-lock-row{display:flex;align-items:center;gap:12px;padding:.6rem .8rem;border:1.5px solid var(--gray);border-radius:11px;margin-bottom:.8rem;background:#fff;}
+.app-lock-status{font-weight:800;font-size:12.5px;font-family:var(--display);}
+.app-lock-status.open{color:var(--green);}
+.app-lock-status.closed{color:var(--red);}
+.app-lock-btn{margin-left:auto;border:none;border-radius:9px;padding:8px 16px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);color:#fff;}
+.app-lock-btn.close{background:var(--red);}
+.app-lock-btn.close:hover{background:#a51f40;}
+.app-lock-btn.reopen{background:var(--green);}
+.app-lock-btn.reopen:hover{background:#147a2e;}
 .rank-asline{font-size:12px;color:var(--ink3);margin-left:auto;margin-right:12px;}
 .rank-asline strong{color:var(--navy);}
 .app-list-head{display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 .25rem;}
@@ -1509,6 +1518,33 @@ const RANK_TIERS = [
   { key:'consider', label:'Consider' },
   { key:'no',       label:'No' }
 ];
+
+// ── App settings (shared key/value, e.g. applicant test open/closed) ────────────
+var APP_SETTINGS = {};
+function loadSettings(done){
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'lset_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){ try { if (res && res.settings) { APP_SETTINGS = res.settings; finish(true); } else finish(false); } catch(e){ finish(false); } };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=settings&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
+function isTestClosed(){ return APP_SETTINGS.applicantTestClosed === 'true' || APP_SETTINGS.applicantTestClosed === '1'; }
+function toggleTestOpen(){
+  const nowClosed = !isTestClosed();
+  const verb = nowClosed ? 'CLOSE' : 'RE-OPEN';
+  if (!confirm(verb + ' the applicant assessment?\n\n' + (nowClosed
+      ? 'Applicants opening the link will be told it is no longer accepting responses.'
+      : 'Applicants will be able to take the assessment again via the link.'))) return;
+  APP_SETTINGS.applicantTestClosed = nowClosed ? 'true' : 'false';
+  postBoardAction({ action:'setSetting', key:'applicantTestClosed', value: nowClosed ? 'true' : 'false' });
+  renderApplicants();
+}
+
 function loadRankings(done) {
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
   const cb = 'rkb_' + Math.random().toString(36).slice(2);
@@ -3451,7 +3487,7 @@ function setAdminView(view) {
     // current rankings/notes (not just whatever was in memory from a prior view).
     loadResults(function(){
       loadRankings(function(){
-        loadNotes(function(){ renderApplicants(); });
+        loadNotes(function(){ loadSettings(function(){ renderApplicants(); }); });
       });
     });
   }
@@ -3600,14 +3636,19 @@ function renderApplicants() {
     const backendWarn = (window._rankingsBackendOk === false)
       ? `<div class="app-backend-warn">⚠ Rankings &amp; notes aren't loading from the server. The Apps Script backend needs to be redeployed as a <strong>new version</strong> (it's missing the rankings update). Until then, you'll only see your own placements on this device.</div>`
       : '';
+    const closed = isTestClosed();
     shareEl.innerHTML = backendWarn + `
       <div class="app-share-title">Share with applicants</div>
+      <div class="app-lock-row">
+        <span class="app-lock-status ${closed?'closed':'open'}">${closed?'● Assessment CLOSED':'● Assessment OPEN'}</span>
+        <button class="app-lock-btn ${closed?'reopen':'close'}" onclick="toggleTestOpen()">${closed?'Re-open assessment':'Close assessment'}</button>
+      </div>
       <div class="app-share-row">
         <span class="app-share-lbl">Test link</span>
         <code class="app-share-val">${esc2(link)}</code>
         <button class="app-share-copy" onclick="copyShare('link', this)">Copy</button>
       </div>
-      <div class="app-share-note">Send this one link to candidates — no access code needed. Each applicant may take the assessment once; a second attempt from the same email is blocked automatically.</div>`;
+      <div class="app-share-note">Send this one link to candidates — no access code needed. Each applicant may take the assessment once; a second attempt from the same email is blocked automatically. ${closed?'<strong>The assessment is currently closed</strong> — the link shows a "no longer accepting responses" message.':'Close the assessment when hiring is done to lock out the link.'}</div>`;
   }
 
   const total = entries.length;

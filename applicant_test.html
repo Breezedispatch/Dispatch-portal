@@ -231,16 +231,51 @@ function beginApplicant() {
   document.getElementById('entry-screen').style.display = 'none';
   document.getElementById('loading-screen').style.display = 'block';
 
-  // Block retakes: if this email already submitted, don't let them start again.
-  checkAlreadySubmitted(email, function(already){
-    if (already){
+  // First: is the assessment open at all? Then: has this email already submitted?
+  checkTestOpen(function(open){
+    if (!open){
       document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('entry-screen').style.display = 'block';
-      fail('Our records show this email has already completed the assessment. Each applicant may take it once. Please contact your recruiter if you believe this is an error.');
+      showClosedScreen();
       return;
     }
-    startTestLoad(fail);
+    checkAlreadySubmitted(email, function(already){
+      if (already){
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('entry-screen').style.display = 'block';
+        fail('Our records show this email has already completed the assessment. Each applicant may take it once. Please contact your recruiter if you believe this is an error.');
+        return;
+      }
+      startTestLoad(fail);
+    });
   });
+}
+
+// Read the shared "applicant test open/closed" flag. Calls done(true) if open.
+// Fails OPEN (returns true) on error so a network hiccup never wrongly locks people out
+// while hiring is active — the admin's explicit "closed" is what blocks.
+function checkTestOpen(done){
+  const cb = 'set_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(v){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done(v); }
+  window[cb] = function(res){
+    try {
+      const st = res && res.settings;
+      if (st && (st.applicantTestClosed === 'true' || st.applicantTestClosed === '1')) finish(false);
+      else finish(true);
+    } catch(e){ finish(true); }
+  };
+  s.onerror = function(){ finish(true); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=settings&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(true); }, 10000);
+}
+
+function showClosedScreen(){
+  const wrap = document.getElementById('entry-screen');
+  wrap.innerHTML = '<div class="entry"><h1>Assessment closed</h1>'
+    + '<div class="entry-sub">This assessment is no longer accepting responses. Thank you for your interest in a dispatch position at Breeze Airways.</div></div>';
+  wrap.style.display = 'block';
 }
 
 // Look up existing results for APP-<email>; calls done(true) if a submission exists.
