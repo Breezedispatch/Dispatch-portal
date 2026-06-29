@@ -4471,7 +4471,16 @@ function deleteTrainee(uid) {
       const k = localStorage.key(i);
       if (k && (k.indexOf('bz_sa_answers_' + uid) === 0 || k.indexOf('bz_sa_grades_' + uid) === 0)) localStorage.removeItem(k);
     }
+    // Clear their sign-off from the local mirror so the OJT comp check won't show
+    // if a student with this ID reappears.
+    const U = String(uid).toUpperCase();
+    const soMap = getSignoffs(); delete soMap[U];
+    SHEET_SIGNOFFS = soMap;
+    localStorage.setItem('bz_signoffs', JSON.stringify(soMap));
   } catch(e) {}
+
+  // Tell the sheet to remove their sign-off too (backend also clears it on deleteStudent).
+  try { setSignoff(uid, false); } catch(e){}
 
   // 2) Tell the sheet to delete their Results rows
   try {
