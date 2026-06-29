@@ -686,13 +686,17 @@ function scoreMatching(qu) {
   return { earned: Math.round(frac * possible), possible, right, total: pairs.length, allCorrect: right === pairs.length };
 }
 
-// Hotspot: correct (full points) if the tap is within ANY target's radius; else 0.
+// Hotspot: full points if the tap is within ANY target (circle by radius, or rect by bounds); else 0.
 function scoreHotspot(qu){
   const possible = Number(qu.pts) || 0;
   const tap = (window._examHotspot && window._examHotspot[qu.n]) || null;
   const targets = Array.isArray(qu.targets) ? qu.targets : [];
   if (!tap || !targets.length) return { earned:0, possible, correct:false };
   const correct = targets.some(t => {
+    if (t.shape === 'rect') {
+      const halfW = (Number(t.w)||0)/2, halfH = (Number(t.h)||0)/2;
+      return Math.abs(tap.x - Number(t.x)) <= halfW && Math.abs(tap.y - Number(t.y)) <= halfH;
+    }
     const dx = tap.x - Number(t.x), dy = tap.y - Number(t.y);
     return Math.sqrt(dx*dx + dy*dy) <= (Number(t.r) || 0);
   });

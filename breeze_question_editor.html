@@ -174,7 +174,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .hs-edit-wrap{margin-top:.3rem;}
 .hs-edit-box{position:relative;display:block;width:100%;max-width:760px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;cursor:crosshair;line-height:0;}
 .hs-edit-box img{display:block;width:100%;height:auto;-webkit-user-drag:none;}
-.hs-edit-marker{position:absolute;transform:translate(-50%,-50%);border:2.5px solid #C8284F;background:rgba(200,40,79,.15);border-radius:50%;height:0;pointer-events:none;box-sizing:border-box;}
+.hs-edit-marker{position:absolute;transform:translate(-50%,-50%);border:2.5px solid #C8284F;background:rgba(200,40,79,.15);border-radius:50%;height:0;pointer-events:auto;box-sizing:border-box;cursor:move;}
+.hs-edit-marker.hs-edit-rect{border-radius:4px;height:auto;padding-bottom:0;}
+.hs-edit-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:#fff;border:2.5px solid #C8284F;border-radius:50%;cursor:nwse-resize;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.hs-edit-marker.hs-edit-rect .hs-edit-handle{bottom:-7px;}
+.hs-shape-row{display:flex;align-items:center;gap:14px;margin:.2rem 0 .5rem;}
+.hs-shape-lbl{font-size:12px;font-weight:700;color:var(--ink2);}
+.hs-shape-opt{font-size:12.5px;color:var(--ink);display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
 .hs-edit-ctrls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:.55rem;}
 .hs-edit-rlabel{font-size:12px;color:var(--ink2);}
 .hs-edit-ctrls input[type=range]{flex:1;min-width:120px;max-width:240px;}
@@ -790,12 +796,36 @@ function hotspotEditor(q, i){
   }
   const targets = Array.isArray(q.targets) && q.targets.length ? q.targets : [];
   const t = targets[0] || null;
-  const r = t ? Number(t.r) : 8;
+  const shape = (t && t.shape === 'rect') ? 'rect' : 'circle';
+  const r = t ? (Number(t.r)||8) : 8;
+  const w = t ? (Number(t.w)||16) : 16;
+  const h = t ? (Number(t.h)||12) : 12;
   const url = esc(img.url);
-  const markerHtml = t
-    ? '<div class="hs-edit-marker" style="left:'+t.x+'%;top:'+t.y+'%;width:'+(r*2)+'%;padding-bottom:'+(r*2)+'%;"></div>'
-    : '';
+  let markerHtml = '';
+  if (t) {
+    if (shape === 'rect') {
+      markerHtml = '<div class="hs-edit-marker hs-edit-rect" id="hsmk-'+i+'" style="left:'+t.x+'%;top:'+t.y+'%;width:'+w+'%;height:'+h+'%;" onmousedown="hsDragStart(event,'+i+',\'move\')" ontouchstart="hsDragStart(event,'+i+',\'move\')"><span class="hs-edit-handle" onmousedown="hsDragStart(event,'+i+',\'size\')" ontouchstart="hsDragStart(event,'+i+',\'size\')"></span></div>';
+    } else {
+      markerHtml = '<div class="hs-edit-marker" id="hsmk-'+i+'" style="left:'+t.x+'%;top:'+t.y+'%;width:'+(r*2)+'%;padding-bottom:'+(r*2)+'%;" onmousedown="hsDragStart(event,'+i+',\'move\')" ontouchstart="hsDragStart(event,'+i+',\'move\')"><span class="hs-edit-handle" onmousedown="hsDragStart(event,'+i+',\'size\')" ontouchstart="hsDragStart(event,'+i+',\'size\')"></span></div>';
+    }
+  }
+  // Size controls depend on the chosen shape.
+  let sizeCtrls;
+  if (shape === 'rect') {
+    sizeCtrls = '<label class="hs-edit-rlabel">Width: <strong id="hswval-'+i+'">'+w+'%</strong></label>'
+      + '<input type="range" min="4" max="60" value="'+w+'" oninput="hsSetWH('+i+',\'w\',this.value)">'
+      + '<label class="hs-edit-rlabel">Height: <strong id="hshval-'+i+'">'+h+'%</strong></label>'
+      + '<input type="range" min="4" max="60" value="'+h+'" oninput="hsSetWH('+i+',\'h\',this.value)">';
+  } else {
+    sizeCtrls = '<label class="hs-edit-rlabel">Tolerance radius: <strong id="hsrval-'+i+'">'+r+'%</strong></label>'
+      + '<input type="range" min="3" max="25" value="'+r+'" oninput="hsSetRadius('+i+',this.value)">';
+  }
   return '<div class="field full"><label>Tap target — click the image to set the correct spot</label>'
+    + '<div class="hs-shape-row">'
+    +   '<span class="hs-shape-lbl">Shape:</span>'
+    +   '<label class="hs-shape-opt"><input type="radio" name="hsshape'+i+'" '+(shape==='circle'?'checked':'')+' onchange="hsSetShape('+i+',\'circle\')"> Circle</label>'
+    +   '<label class="hs-shape-opt"><input type="radio" name="hsshape'+i+'" '+(shape==='rect'?'checked':'')+' onchange="hsSetShape('+i+',\'rect\')"> Rectangle</label>'
+    + '</div>'
     + '<div class="hs-edit-wrap">'
     +   '<div class="hs-edit-box" id="hsedit-'+i+'" onclick="hsSetTarget('+i+',event)">'
     +     '<img src="'+url+'" alt="target" draggable="false">'
@@ -803,15 +833,15 @@ function hotspotEditor(q, i){
     +   '</div>'
     + '</div>'
     + '<div class="hs-edit-ctrls">'
-    +   '<label class="hs-edit-rlabel">Tolerance radius: <strong id="hsrval-'+i+'">'+r+'%</strong></label>'
-    +   '<input type="range" min="3" max="25" value="'+r+'" oninput="hsSetRadius('+i+',this.value)">'
+    +   sizeCtrls
     +   '<button class="btn btn-sm" onclick="document.getElementById(\'hsfile-'+i+'\').click()">Replace image</button>'
     +   '<input type="file" id="hsfile-'+i+'" accept="image/*" style="display:none;" onchange="uploadImg('+i+',this)">'
     + '</div>'
-    + (t ? '' : '<div class="img-edit-hint" style="margin-top:.4rem;">Click the image above to place the target.</div>')
+    + (t ? '' : '<div class="img-edit-hint" style="margin-top:.4rem;">Click the image above to place the target center.</div>')
     + '</div>';
 }
 function hsSetTarget(i, ev){
+  if (window._hsDragJustEnded){ window._hsDragJustEnded = false; return; } // ignore the click that ends a drag
   const box = document.getElementById('hsedit-'+i);
   if (!box) return;
   const rect = box.getBoundingClientRect();
@@ -820,8 +850,71 @@ function hsSetTarget(i, ev){
   if (x<0||x>100||y<0||y>100) return;
   const q = working.questions[i];
   const prev = (Array.isArray(q.targets) && q.targets[0]) ? q.targets[0] : null;
-  const r = prev ? Number(prev.r) : 8;
-  q.targets = [{ x:Math.round(x*10)/10, y:Math.round(y*10)/10, r:r }];
+  const nt = { x:Math.round(x*10)/10, y:Math.round(y*10)/10 };
+  nt.shape = (prev && prev.shape === 'rect') ? 'rect' : 'circle';
+  nt.r = prev && prev.r ? Number(prev.r) : 8;
+  nt.w = prev && prev.w ? Number(prev.w) : 16;
+  nt.h = prev && prev.h ? Number(prev.h) : 12;
+  q.targets = [nt];
+  markDirty(); refreshCard(i);
+}
+
+// Drag the target to move it (mode 'move') or resize it from the handle (mode 'size').
+var _hsDrag = null;
+function hsDragStart(ev, i, mode){
+  ev.preventDefault(); ev.stopPropagation();
+  const box = document.getElementById('hsedit-'+i);
+  const q = working.questions[i];
+  if (!box || !q || !Array.isArray(q.targets) || !q.targets[0]) return;
+  _hsDrag = { i:i, mode:mode, box:box, t:q.targets[0] };
+  window.addEventListener('mousemove', hsDragMove); window.addEventListener('mouseup', hsDragEnd);
+  window.addEventListener('touchmove', hsDragMove, {passive:false}); window.addEventListener('touchend', hsDragEnd);
+}
+function hsDragMove(ev){
+  if (!_hsDrag) return;
+  ev.preventDefault();
+  const pt = ev.touches ? ev.touches[0] : ev;
+  const rect = _hsDrag.box.getBoundingClientRect();
+  const px = ((pt.clientX - rect.left)/rect.width)*100;
+  const py = ((pt.clientY - rect.top)/rect.height)*100;
+  const t = _hsDrag.t;
+  const mk = document.getElementById('hsmk-'+_hsDrag.i);
+  if (_hsDrag.mode === 'move'){
+    t.x = Math.max(0, Math.min(100, Math.round(px*10)/10));
+    t.y = Math.max(0, Math.min(100, Math.round(py*10)/10));
+    if (mk){ mk.style.left = t.x+'%'; mk.style.top = t.y+'%'; }
+  } else { // size: distance from center sets radius (circle) or half-extents (rect)
+    const dx = Math.abs(px - t.x), dy = Math.abs(py - t.y);
+    if (t.shape === 'rect'){
+      t.w = Math.max(4, Math.min(80, Math.round(dx*2*10)/10));
+      t.h = Math.max(4, Math.min(80, Math.round(dy*2*10)/10));
+      if (mk){ mk.style.width = t.w+'%'; mk.style.height = t.h+'%'; }
+    } else {
+      t.r = Math.max(2, Math.min(40, Math.round(Math.sqrt(dx*dx+dy*dy)*10)/10));
+      if (mk){ mk.style.width = (t.r*2)+'%'; mk.style.paddingBottom = (t.r*2)+'%'; }
+    }
+  }
+}
+function hsDragEnd(){
+  if (!_hsDrag) return;
+  const i = _hsDrag.i;
+  window.removeEventListener('mousemove', hsDragMove); window.removeEventListener('mouseup', hsDragEnd);
+  window.removeEventListener('touchmove', hsDragMove); window.removeEventListener('touchend', hsDragEnd);
+  _hsDrag = null;
+  window._hsDragJustEnded = true;            // so the trailing click doesn't re-place the target
+  markDirty(); refreshCard(i);               // re-render to sync sliders with new values
+}
+function hsSetShape(i, shape){
+  const q = working.questions[i];
+  if (!Array.isArray(q.targets) || !q.targets[0]) {
+    // No target yet — remember the shape choice for when they click.
+    q.targets = [{ shape:shape, r:8, w:16, h:12 }];
+  } else {
+    q.targets[0].shape = shape;
+    if (q.targets[0].r == null) q.targets[0].r = 8;
+    if (q.targets[0].w == null) q.targets[0].w = 16;
+    if (q.targets[0].h == null) q.targets[0].h = 12;
+  }
   markDirty(); refreshCard(i);
 }
 function hsSetRadius(i, val){
@@ -832,6 +925,16 @@ function hsSetRadius(i, val){
   const box = document.getElementById('hsedit-'+i);
   const mk = box ? box.querySelector('.hs-edit-marker') : null;
   if (mk){ mk.style.width = (val*2)+'%'; mk.style.paddingBottom = (val*2)+'%'; }
+  markDirty();
+}
+function hsSetWH(i, dim, val){
+  const q = working.questions[i];
+  if (!Array.isArray(q.targets) || !q.targets[0]) { return; }
+  q.targets[0][dim] = Number(val);
+  const lbl = document.getElementById('hs'+dim+'val-'+i); if (lbl) lbl.textContent = val + '%';
+  const box = document.getElementById('hsedit-'+i);
+  const mk = box ? box.querySelector('.hs-edit-marker') : null;
+  if (mk){ if(dim==='w') mk.style.width = val+'%'; else mk.style.height = val+'%'; }
   markDirty();
 }
 
@@ -979,6 +1082,10 @@ function saveCurrentQuiz(){
         if(s.type==='written'){ if(!String(s.model||'').trim()){ toast('Q'+q.n+' written sub-question needs a model answer','err'); return; } }
         else { if((s.options||[]).filter(o=>String(o||'').trim()).length<2){ toast('Q'+q.n+' MC sub-question needs two options','err'); return; } }
       }
+    } else if(q.kind === 'hotspot'){
+      if(!(q.img && q.img.url)){ toast('Q'+q.n+' (tap the spot) needs an image','err'); return; }
+      const tg = (q.targets||[]).filter(t=>t && isFinite(t.x) && isFinite(t.y));
+      if(!tg.length){ toast('Q'+q.n+' (tap the spot) — click the image to place the target','err'); return; }
     } else {
       const filled = q.options.filter(o=>String(o == null ? '' : o).trim()).length;
       if(filled < 2){ toast('Q'+q.n+' needs at least two options','err'); return; }
@@ -1016,7 +1123,12 @@ function saveCurrentQuiz(){
         base.model = '@@Q@@' + JSON.stringify({ qtype:'scenario', subs: subs });
       } else if (q.kind === 'hotspot') {
         const targets = (Array.isArray(q.targets)?q.targets:[]).filter(t=>t && isFinite(t.x) && isFinite(t.y));
-        base.model = '@@Q@@' + JSON.stringify({ qtype:'hotspot', targets: targets.map(t=>({x:Number(t.x),y:Number(t.y),r:Number(t.r)||8})) });
+        base.model = '@@Q@@' + JSON.stringify({ qtype:'hotspot', targets: targets.map(t=>{
+          const o = { x:Number(t.x), y:Number(t.y), shape:(t.shape==='rect'?'rect':'circle') };
+          if (o.shape === 'rect') { o.w = Number(t.w)||16; o.h = Number(t.h)||12; }
+          else { o.r = Number(t.r)||8; }
+          return o;
+        }) });
       } else if (q.kind === 'written') {
         base.model = q.model||'';
       } else {

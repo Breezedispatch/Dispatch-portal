@@ -258,6 +258,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .hsr-box{position:relative;display:inline-block;max-width:360px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;line-height:0;}
 .hsr-box img{display:block;max-width:100%;height:auto;}
 .hsr-target{position:absolute;transform:translate(-50%,-50%);border:2.5px solid var(--green);background:rgba(26,158,60,.15);border-radius:50%;height:0;box-sizing:border-box;pointer-events:none;}
+.hsr-target.hsr-rect{border-radius:4px;height:auto;padding-bottom:0;}
 .hsr-tap{position:absolute;width:20px;height:20px;border:3px solid #C8284F;border-radius:50%;background:rgba(200,40,79,.2);transform:translate(-50%,-50%);box-shadow:0 0 0 2px #fff;pointer-events:none;}
 .hsr-legend{font-size:11px;color:var(--ink3);margin-top:.4rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .hsr-k{display:inline-block;width:11px;height:11px;border-radius:50%;margin-left:6px;}
@@ -2798,13 +2799,17 @@ function hsTap(ev, qn){
   if (m){ m.style.display = 'block'; m.style.left = x + '%'; m.style.top = y + '%'; }
   if (typeof updateExamProgress === 'function') updateExamProgress();
 }
-// Hotspot: full points if tap is within ANY target's radius; else 0.
+// Hotspot: full points if tap is within ANY target (circle by radius, or rect by bounds); else 0.
 function scoreHotspot(qu){
   const possible = Number(qu.pts) || 0;
   const tap = (window._examHotspot && window._examHotspot[qu.n]) || null;
   const targets = Array.isArray(qu.targets) ? qu.targets : [];
   if (!tap || !targets.length) return { earned:0, possible, correct:false };
   const correct = targets.some(t => {
+    if (t.shape === 'rect') {
+      const halfW = (Number(t.w)||0)/2, halfH = (Number(t.h)||0)/2;
+      return Math.abs(tap.x - Number(t.x)) <= halfW && Math.abs(tap.y - Number(t.y)) <= halfH;
+    }
     const dx = tap.x - Number(t.x), dy = tap.y - Number(t.y);
     return Math.sqrt(dx*dx + dy*dy) <= (Number(t.r) || 0);
   });
@@ -2815,9 +2820,12 @@ function renderHotspotReview(a){
   const url = String(a.imgUrl||'').replace(/"/g, '&quot;');
   const tap = a.tap || null;
   const targets = Array.isArray(a.targets) ? a.targets : [];
-  const tgtMarks = targets.map(t =>
-    `<div class="hsr-target" style="left:${Number(t.x)}%;top:${Number(t.y)}%;width:${Number(t.r)*2}%;padding-bottom:${Number(t.r)*2}%;"></div>`
-  ).join('');
+  const tgtMarks = targets.map(t => {
+    if (t.shape === 'rect') {
+      return `<div class="hsr-target hsr-rect" style="left:${Number(t.x)}%;top:${Number(t.y)}%;width:${Number(t.w)}%;height:${Number(t.h)}%;"></div>`;
+    }
+    return `<div class="hsr-target" style="left:${Number(t.x)}%;top:${Number(t.y)}%;width:${Number(t.r)*2}%;padding-bottom:${Number(t.r)*2}%;"></div>`;
+  }).join('');
   const tapMark = tap ? `<div class="hsr-tap" style="left:${Number(tap.x)}%;top:${Number(tap.y)}%;"></div>` : '';
   return `<div class="hsr-wrap">
     <div class="hsr-box"><img src="${url}" alt="answer" draggable="false">${tgtMarks}${tapMark}</div>
