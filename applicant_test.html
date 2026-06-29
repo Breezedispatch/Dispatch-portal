@@ -279,6 +279,10 @@ function showClosedScreen(){
 }
 
 // Look up existing results for APP-<email>; calls done(true) if a submission exists.
+// A past submission only blocks a retake for this many days. After that, the same
+// email may take the assessment again (handles legitimate re-applicants).
+var RETAKE_BLOCK_DAYS = 90;
+
 function checkAlreadySubmitted(email, done){
   const targetId = ('APP-' + String(email).toLowerCase()).toUpperCase();
   const cb = 'chk_' + Math.random().toString(36).slice(2);
@@ -288,11 +292,20 @@ function checkAlreadySubmitted(email, done){
   window[cb] = function(res){
     try {
       const rows = (res && (res.results || res.scores)) || [];
-      const hit = Array.isArray(rows) && rows.some(r => {
+      if (!Array.isArray(rows)) { finish(false); return; }
+      // Find the most recent submission for this email.
+      let newest = 0;
+      rows.forEach(r => {
         const id = String(r.id || r.studentId || '').trim().toUpperCase();
-        return id === targetId;
+        if (id !== targetId) return;
+        const when = Date.parse(r.submittedAt || r.date || '') || 0;
+        if (when > newest) newest = when;
+        // If a row has no usable date, treat it as "recent" so it still blocks.
+        if (!when) newest = Math.max(newest, Date.now());
       });
-      finish(!!hit);
+      if (!newest) { finish(false); return; }              // no prior submission
+      const ageDays = (Date.now() - newest) / (1000*60*60*24);
+      finish(ageDays < RETAKE_BLOCK_DAYS);                  // block only if within the window
     } catch(e){ finish(false); }
   };
   s.onerror = function(){ finish(false); };   // if the check fails, don't hard-block — fail open
