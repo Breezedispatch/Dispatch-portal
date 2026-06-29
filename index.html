@@ -205,7 +205,14 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .start-btn.retake:hover{border-color:var(--blue);background:var(--skysoft);}
 .study-coming-soon{color:var(--ink3);font-size:13px;}
 
-/* practice launcher (home-card-practice reused as a banner if needed) */
+/* practice launcher — call-to-action button */
+.practice-cta-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 1.5rem;}
+.practice-cta-btn{display:inline-flex;align-items:center;gap:9px;background:var(--navy);color:#fff;border:none;border-radius:12px;padding:12px 20px;font-family:var(--font);font-weight:700;font-size:14px;cursor:pointer;transition:all .18s;box-shadow:0 6px 18px rgba(11,31,58,.18);}
+.practice-cta-btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(11,31,58,.26);}
+.practice-cta-ic{font-size:17px;}
+.practice-cta-count{background:rgba(255,255,255,.22);border-radius:20px;padding:1px 9px;font-size:12px;font-weight:700;}
+.practice-cta-note{font-size:12.5px;color:var(--ink3);}
+@media(max-width:560px){.practice-cta-note{flex-basis:100%;}}
 
 /* ───────── EXAM ───────── */
 #screen-exam{background:var(--surface);}
@@ -2159,13 +2166,13 @@ function renderPortal() {
   // Practice Knowledge Checks launcher — shown within the Knowledge Checks tab
   if (activeTab === 'kc') {
     const practiceCount = QUIZZES.filter(q => q.type === 'practice').length;
-    html += `<div class="practice-launch" onclick="showPortalSection('practice')">
-      <div class="practice-launch-icon">&#9998;</div>
-      <div class="practice-launch-text">
-        <div class="practice-launch-title">Practice Knowledge Checks <span class="tab-count">${practiceCount}</span></div>
-        <div class="practice-launch-sub">Practice scenario sheets — Sheet 1, Sheet 2, and more. Scored and tracked like any knowledge check.</div>
-      </div>
-      <div class="practice-launch-arrow">&#8594;</div>
+    html += `<div class="practice-cta-row">
+      <button type="button" class="practice-cta-btn" onclick="showPortalSection('practice')">
+        <span class="practice-cta-ic">&#9998;</span>
+        <span>Open Practice Knowledge Checks</span>
+        <span class="practice-cta-count">${practiceCount}</span>
+      </button>
+      <span class="practice-cta-note">Practice scenario sheets — scored and tracked like any knowledge check.</span>
     </div>`;
   }
 
