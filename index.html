@@ -4904,7 +4904,7 @@ function openGrading(uid, quizId) {
     <strong>Written questions:</strong> ${testInfo.questions.length} &nbsp;·&nbsp;
     <strong>Total possible:</strong> ${scTotalPossible || '—'} pts<br>
     <em>${hasWritten
-      ? 'Award written points and add notes below. Saving finalizes the combined score (MC + written) and the student can then see it with your notes.'
+      ? 'Award written points and add grading notes below. Saving finalizes the combined score (MC + written). Grading notes are internal — visible to trainers and supervisors, not to applicants.'
       : 'This quiz is multiple-choice only — answers shown below for review. It was scored automatically.'}</em>
   </div>`;
 
@@ -4963,8 +4963,8 @@ function openGrading(uid, quizId) {
         <span class="grade-max">/ ${q.pts} pts</span>
       </div>
       <div style="margin-top:.6rem;">
-        <label style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px;">Feedback / notes to student:</label>
-        <textarea class="grade-note-input" id="grade-note-${q.n}" placeholder="Optional feedback the student will see…">${note}</textarea>
+        <label style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px;">Grading notes <span style="text-transform:none;font-weight:600;color:var(--ink3);">(visible to trainers &amp; supervisors, not the applicant)</span>:</label>
+        <textarea class="grade-note-input" id="grade-note-${q.n}" placeholder="Notes for other trainers on this answer…">${note}</textarea>
       </div>
     </div>`;
   });
