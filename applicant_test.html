@@ -75,9 +75,14 @@ body{font-family:var(--font);color:var(--ink);background:var(--surface);line-hei
 .q-image{display:block;width:100%;}
 .q-image-err{padding:1.5rem;text-align:center;color:var(--ink3);font-size:13px;}
 .q-image-box{position:relative;}
+.hs-pan{position:relative;transform-origin:top left;will-change:transform;}
+.hs-toolbar{display:flex;gap:6px;margin-bottom:.5rem;}
+.hs-zbtn{width:34px;height:30px;border:1.5px solid var(--gray);background:#fff;border-radius:7px;font-size:16px;font-weight:700;cursor:pointer;color:var(--ink2);line-height:1;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font);}
+.hs-zbtn:hover{border-color:var(--blue);color:var(--blue);}
+.hs-zbtn.hs-zreset{width:auto;padding:0 12px;font-size:12px;font-weight:700;}
 .hs-instruct{font-size:12.5px;color:var(--ink3);margin:0 0 .6rem;font-weight:600;}
 .hs-wrap{display:flex;justify-content:center;}
-.hs-box{position:relative;display:block;width:100%;border:1.5px solid var(--gray);border-radius:12px;overflow:hidden;cursor:crosshair;line-height:0;}
+.hs-box{position:relative;display:block;width:100%;border:1.5px solid var(--gray);border-radius:12px;overflow:hidden;cursor:crosshair;line-height:0;touch-action:none;}
 .hs-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
 .hs-marker{position:absolute;width:26px;height:26px;border:3px solid #C8284F;border-radius:50%;background:rgba(200,40,79,.18);transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 0 2px #fff;}
 .hs-marker::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:4px;background:#C8284F;border-radius:50%;transform:translate(-50%,-50%);}
@@ -740,19 +745,102 @@ function renderHotspotQ(qu) {
   return `<div class="q-card" id="qcard-${qu.n}">
     <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-top-right"><span class="q-pts">${qu.pts} pts · Tap the spot</span>${flagBtn(qu.n)}</span></div>
     <div class="q-text">${qu.text}</div>
-    <div class="hs-instruct">Tap the image where it belongs. Tap again to move your marker.</div>
+    <div class="hs-instruct">Tap the image where it belongs. Pinch or use + / − to zoom in for a closer look; drag to move around when zoomed. Tap again to move your marker.</div>
+    <div class="hs-toolbar">
+      <button type="button" class="hs-zbtn" onclick="hsqZoom(${qu.n},1)">+</button>
+      <button type="button" class="hs-zbtn" onclick="hsqZoom(${qu.n},-1)">−</button>
+      <button type="button" class="hs-zbtn hs-zreset" onclick="hsqZoomReset(${qu.n})">Reset</button>
+    </div>
     <div class="hs-wrap">
-      <div class="hs-box" id="hsbox-${qu.n}" onclick="hsTap(event, ${qu.n})">
-        <img src="${url}" alt="Question image" class="hs-img" draggable="false">
-        <div class="hs-marker" id="hsmark-${qu.n}" style="display:none;"></div>
+      <div class="hs-box" id="hsbox-${qu.n}" onwheel="hsqWheel(event,${qu.n})" onmousedown="hsqPanStart(event,${qu.n})" ontouchstart="hsqTouchStart(event,${qu.n})" ontouchmove="hsqTouchMove(event,${qu.n})" ontouchend="hsqTouchEnd(event,${qu.n})" onclick="hsTap(event, ${qu.n})">
+        <div class="hs-pan" id="hspan-${qu.n}">
+          <img src="${url}" alt="Question image" class="hs-img" draggable="false">
+          <div class="hs-marker" id="hsmark-${qu.n}" style="display:none;"></div>
+        </div>
       </div>
     </div>
   </div>`;
 }
+// Zoom/pan state per question for the student image.
+var _hsqView = {};
+function hsqGet(qn){ if(!_hsqView[qn]) _hsqView[qn] = {scale:1, tx:0, ty:0}; return _hsqView[qn]; }
+function hsqApply(qn){
+  const pan = document.getElementById('hspan-'+qn); if(!pan) return;
+  const v = hsqGet(qn);
+  pan.style.transform = 'translate('+v.tx+'px,'+v.ty+'px) scale('+v.scale+')';
+}
+function hsqZoom(qn, dir){
+  const v = hsqGet(qn);
+  v.scale = Math.max(1, Math.min(6, v.scale * (dir>0 ? 1.3 : 0.77)));
+  if (v.scale === 1){ v.tx=0; v.ty=0; }
+  hsqApply(qn);
+}
+function hsqZoomReset(qn){ const v = hsqGet(qn); v.scale=1; v.tx=0; v.ty=0; hsqApply(qn); }
+function hsqWheel(ev, qn){
+  ev.preventDefault();
+  const v = hsqGet(qn);
+  v.scale = Math.max(1, Math.min(6, v.scale * (ev.deltaY<0 ? 1.15 : 0.87)));
+  if (v.scale === 1){ v.tx=0; v.ty=0; }
+  hsqApply(qn);
+}
+// Mouse pan (drag empty space when zoomed).
+var _hsqPan = null;
+function hsqPanStart(ev, qn){
+  if (ev.target && ev.target.closest && ev.target.closest('.hs-marker')) return;
+  const v = hsqGet(qn);
+  if (v.scale <= 1) return;
+  ev.preventDefault();
+  _hsqPan = { qn:qn, sx:ev.clientX - v.tx, sy:ev.clientY - v.ty, moved:false };
+  window.addEventListener('mousemove', hsqPanMove); window.addEventListener('mouseup', hsqPanEnd);
+}
+function hsqPanMove(ev){
+  if(!_hsqPan) return;
+  const v = hsqGet(_hsqPan.qn);
+  v.tx = ev.clientX - _hsqPan.sx; v.ty = ev.clientY - _hsqPan.sy; _hsqPan.moved = true;
+  hsqApply(_hsqPan.qn);
+}
+function hsqPanEnd(){
+  window.removeEventListener('mousemove', hsqPanMove); window.removeEventListener('mouseup', hsqPanEnd);
+  if(_hsqPan && _hsqPan.moved) window._hsTapGuard = true;
+  _hsqPan = null;
+}
+// Touch: one finger pans (when zoomed), two fingers pinch-zoom.
+var _hsqTouch = null;
+function hsqDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+function hsqTouchStart(ev, qn){
+  const v = hsqGet(qn);
+  if (ev.touches.length === 2){
+    ev.preventDefault();
+    _hsqTouch = { qn:qn, mode:'pinch', d0:hsqDist(ev.touches), s0:v.scale };
+  } else if (ev.touches.length === 1 && v.scale > 1){
+    if (ev.target && ev.target.closest && ev.target.closest('.hs-marker')) return;
+    _hsqTouch = { qn:qn, mode:'pan', sx:ev.touches[0].clientX - v.tx, sy:ev.touches[0].clientY - v.ty, moved:false };
+  }
+}
+function hsqTouchMove(ev, qn){
+  if(!_hsqTouch) return;
+  const v = hsqGet(qn);
+  if (_hsqTouch.mode === 'pinch' && ev.touches.length === 2){
+    ev.preventDefault();
+    const d = hsqDist(ev.touches);
+    v.scale = Math.max(1, Math.min(6, _hsqTouch.s0 * (d/_hsqTouch.d0)));
+    if (v.scale === 1){ v.tx=0; v.ty=0; }
+    hsqApply(qn);
+  } else if (_hsqTouch.mode === 'pan' && ev.touches.length === 1){
+    ev.preventDefault();
+    v.tx = ev.touches[0].clientX - _hsqTouch.sx; v.ty = ev.touches[0].clientY - _hsqTouch.sy; _hsqTouch.moved = true;
+    hsqApply(qn);
+  }
+}
+function hsqTouchEnd(ev, qn){
+  if(_hsqTouch && _hsqTouch.moved) window._hsTapGuard = true;
+  _hsqTouch = null;
+}
 function hsTap(ev, qn){
-  const box = document.getElementById('hsbox-' + qn);
-  if (!box) return;
-  const rect = box.getBoundingClientRect();
+  if (window._hsTapGuard){ window._hsTapGuard = false; return; } // ignore the click that ends a pan
+  const pan = document.getElementById('hspan-' + qn);
+  if (!pan) return;
+  const rect = pan.getBoundingClientRect();
   const x = ((ev.clientX - rect.left) / rect.width) * 100;
   const y = ((ev.clientY - rect.top) / rect.height) * 100;
   if (x < 0 || x > 100 || y < 0 || y > 100) return;
@@ -760,7 +848,7 @@ function hsTap(ev, qn){
   window._examHotspot[qn] = { x: x, y: y };
   const m = document.getElementById('hsmark-' + qn);
   if (m){ m.style.display = 'block'; m.style.left = x + '%'; m.style.top = y + '%'; }
-  updateExamProgress();
+  if (typeof updateExamProgress === 'function') updateExamProgress();
 }
 
 function renderQuestionImage(img) {
