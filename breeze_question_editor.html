@@ -172,7 +172,9 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .img-edit-preview{margin-bottom:.6rem;max-width:280px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;background:#FAFBFD;}
 .img-edit-preview img{display:block;width:100%;height:auto;}
 .hs-edit-wrap{margin-top:.3rem;}
-.hs-edit-box{position:relative;display:block;width:100%;max-width:760px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;cursor:crosshair;line-height:0;}
+.hs-edit-box{position:relative;display:block;width:100%;max-width:1100px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;cursor:crosshair;line-height:0;}
+.hs-edit-pan{position:relative;transform-origin:top left;will-change:transform;}
+.hs-zoom-hint{font-size:11px;color:var(--ink3);margin-left:auto;}
 .hs-edit-box img{display:block;width:100%;height:auto;-webkit-user-drag:none;}
 .hs-edit-marker{position:absolute;transform:translate(-50%,-50%);border:2.5px solid #C8284F;background:rgba(200,40,79,.15);border-radius:50%;height:0;pointer-events:auto;box-sizing:border-box;cursor:move;}
 .hs-edit-marker.hs-edit-rect{border-radius:4px;height:auto;padding-bottom:0;}
@@ -825,26 +827,75 @@ function hotspotEditor(q, i){
     +   '<span class="hs-shape-lbl">Shape:</span>'
     +   '<label class="hs-shape-opt"><input type="radio" name="hsshape'+i+'" '+(shape==='circle'?'checked':'')+' onchange="hsSetShape('+i+',\'circle\')"> Circle</label>'
     +   '<label class="hs-shape-opt"><input type="radio" name="hsshape'+i+'" '+(shape==='rect'?'checked':'')+' onchange="hsSetShape('+i+',\'rect\')"> Rectangle</label>'
+    +   '<span class="hs-zoom-hint">Scroll to zoom · drag empty space to pan</span>'
     + '</div>'
     + '<div class="hs-edit-wrap">'
-    +   '<div class="hs-edit-box" id="hsedit-'+i+'" onclick="hsSetTarget('+i+',event)">'
-    +     '<img src="'+url+'" alt="target" draggable="false">'
-    +     markerHtml
+    +   '<div class="hs-edit-box" id="hsedit-'+i+'" onwheel="hsWheel(event,'+i+')" onmousedown="hsPanStart(event,'+i+')" onclick="hsSetTarget('+i+',event)">'
+    +     '<div class="hs-edit-pan" id="hspan-'+i+'">'
+    +       '<img src="'+url+'" alt="target" draggable="false">'
+    +       markerHtml
+    +     '</div>'
     +   '</div>'
     + '</div>'
     + '<div class="hs-edit-ctrls">'
     +   sizeCtrls
+    +   '<button class="btn btn-sm" onclick="hsZoomReset('+i+')">Reset zoom</button>'
     +   '<button class="btn btn-sm" onclick="document.getElementById(\'hsfile-'+i+'\').click()">Replace image</button>'
     +   '<input type="file" id="hsfile-'+i+'" accept="image/*" style="display:none;" onchange="uploadImg('+i+',this)">'
+    +   (t ? '<button class="btn btn-sm btn-danger" onclick="hsClearTarget('+i+')">Clear target</button>' : '')
     + '</div>'
     + (t ? '' : '<div class="img-edit-hint" style="margin-top:.4rem;">Click the image above to place the target center.</div>')
     + '</div>';
 }
+// Per-question zoom/pan state for the editor target image.
+var _hsView = {};   // i -> {scale, tx, ty}
+function hsGetView(i){ if(!_hsView[i]) _hsView[i] = {scale:1, tx:0, ty:0}; return _hsView[i]; }
+function hsApplyView(i){
+  const pan = document.getElementById('hspan-'+i); if(!pan) return;
+  const v = hsGetView(i);
+  pan.style.transform = 'translate('+v.tx+'px,'+v.ty+'px) scale('+v.scale+')';
+}
+function hsWheel(ev, i){
+  ev.preventDefault();
+  const v = hsGetView(i);
+  const old = v.scale;
+  v.scale = Math.max(1, Math.min(6, v.scale * (ev.deltaY < 0 ? 1.15 : 0.87)));
+  if (v.scale === 1){ v.tx = 0; v.ty = 0; }  // snap back to fit when fully zoomed out
+  hsApplyView(i);
+}
+function hsZoomReset(i){ const v = hsGetView(i); v.scale=1; v.tx=0; v.ty=0; hsApplyView(i); }
+// Pan by dragging empty space (not the target marker — that has its own mousedown).
+var _hsPan = null;
+function hsPanStart(ev, i){
+  if (ev.target && ev.target.closest && ev.target.closest('.hs-edit-marker')) return; // marker handles its own drag
+  const v = hsGetView(i);
+  if (v.scale <= 1) return;  // nothing to pan when not zoomed
+  ev.preventDefault();
+  _hsPan = { i:i, sx:ev.clientX - v.tx, sy:ev.clientY - v.ty, moved:false };
+  window.addEventListener('mousemove', hsPanMove); window.addEventListener('mouseup', hsPanEnd);
+}
+function hsPanMove(ev){
+  if(!_hsPan) return;
+  const v = hsGetView(_hsPan.i);
+  v.tx = ev.clientX - _hsPan.sx; v.ty = ev.clientY - _hsPan.sy; _hsPan.moved = true;
+  hsApplyView(_hsPan.i);
+}
+function hsPanEnd(){
+  window.removeEventListener('mousemove', hsPanMove); window.removeEventListener('mouseup', hsPanEnd);
+  if(_hsPan && _hsPan.moved) window._hsDragJustEnded = true;  // don't place target on the click that ends a pan
+  _hsPan = null;
+}
+function hsClearTarget(i){
+  const q = working.questions[i];
+  if (!q) return;
+  q.targets = [];
+  markDirty(); refreshCard(i);
+}
 function hsSetTarget(i, ev){
-  if (window._hsDragJustEnded){ window._hsDragJustEnded = false; return; } // ignore the click that ends a drag
-  const box = document.getElementById('hsedit-'+i);
-  if (!box) return;
-  const rect = box.getBoundingClientRect();
+  if (window._hsDragJustEnded){ window._hsDragJustEnded = false; return; } // ignore the click that ends a drag/pan
+  const pan = document.getElementById('hspan-'+i);
+  if (!pan) return;
+  const rect = pan.getBoundingClientRect();   // reflects current zoom/pan transform
   const x = ((ev.clientX - rect.left)/rect.width)*100;
   const y = ((ev.clientY - rect.top)/rect.height)*100;
   if (x<0||x>100||y<0||y>100) return;
@@ -863,10 +914,10 @@ function hsSetTarget(i, ev){
 var _hsDrag = null;
 function hsDragStart(ev, i, mode){
   ev.preventDefault(); ev.stopPropagation();
-  const box = document.getElementById('hsedit-'+i);
+  const pan = document.getElementById('hspan-'+i);
   const q = working.questions[i];
-  if (!box || !q || !Array.isArray(q.targets) || !q.targets[0]) return;
-  _hsDrag = { i:i, mode:mode, box:box, t:q.targets[0] };
+  if (!pan || !q || !Array.isArray(q.targets) || !q.targets[0]) return;
+  _hsDrag = { i:i, mode:mode, box:pan, t:q.targets[0] };
   window.addEventListener('mousemove', hsDragMove); window.addEventListener('mouseup', hsDragEnd);
   window.addEventListener('touchmove', hsDragMove, {passive:false}); window.addEventListener('touchend', hsDragEnd);
 }
@@ -1047,6 +1098,8 @@ function delSub(i,si){ working.questions[i].subs.splice(si,1); recalcScenarioPts
 function refreshCard(i){
   const cards = document.querySelectorAll('#qcards .qcard');
   if (cards[i]) cards[i].outerHTML = questionCard(working.questions[i], i);
+  // Re-apply any zoom/pan on a hotspot target image (DOM was just rebuilt).
+  if (typeof _hsView !== 'undefined' && _hsView[i]) { try { hsApplyView(i); } catch(e){} }
 }
 
 function addQuestion(){
