@@ -171,6 +171,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .img-edit-hint{font-size:11.5px;color:var(--ink3);}
 .img-edit-preview{margin-bottom:.6rem;max-width:280px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;background:#FAFBFD;}
 .img-edit-preview img{display:block;width:100%;height:auto;}
+.hs-edit-wrap{margin-top:.3rem;}
+.hs-edit-box{position:relative;display:inline-block;max-width:340px;border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;cursor:crosshair;line-height:0;}
+.hs-edit-box img{display:block;max-width:100%;height:auto;-webkit-user-drag:none;}
+.hs-edit-marker{position:absolute;transform:translate(-50%,-50%);border:2.5px solid #C8284F;background:rgba(200,40,79,.15);border-radius:50%;height:0;pointer-events:none;box-sizing:border-box;}
+.hs-edit-ctrls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:.55rem;}
+.hs-edit-rlabel{font-size:12px;color:var(--ink2);}
+.hs-edit-ctrls input[type=range]{flex:1;min-width:120px;max-width:240px;}
 #img-zoom{position:fixed;inset:0;z-index:900;background:rgba(8,15,28,.92);display:none;flex-direction:column;}
 #img-zoom.open{display:flex;}
 .iz-bar{display:flex;align-items:center;gap:10px;padding:.8rem 1rem;background:rgba(0,0,0,.35);}
@@ -521,6 +528,11 @@ function selectQuiz(id) {
                    subs: Array.isArray(payload.subs)&&payload.subs.length ? payload.subs : [{label:'',type:'mc',pts:5,options:['','','',''],correct:0,model:''}],
                    options:['','','',''], correct:0, model:'', cite:citeText, img:img };
         }
+        if (payload.qtype === 'hotspot') {
+          return { n:Number(q.n), pts:Number(q.pts), text:q.text||'', kind:'hotspot',
+                   targets: Array.isArray(payload.targets) ? payload.targets : [],
+                   options:['','','',''], correct:0, model:'', cite:citeText, img:img };
+        }
       }
       const model = raw.trim();
       const isWritten = model.length > 0;
@@ -655,6 +667,8 @@ function questionCard(q,i){
     body = matchingEditor(q, i);
   } else if (kind === 'scenario') {
     body = scenarioEditor(q, i);
+  } else if (kind === 'hotspot') {
+    body = hotspotEditor(q, i);
   } else {
     let opts='';
     for (let oi=0; oi<4; oi++){
@@ -674,13 +688,14 @@ function questionCard(q,i){
     +   '<option value="written"'+(kind==='written'?' selected':'')+'>Written answer</option>'
     +   '<option value="matching"'+(kind==='matching'?' selected':'')+'>Matching</option>'
     +   '<option value="scenario"'+(kind==='scenario'?' selected':'')+'>Scenario</option>'
+    +   '<option value="hotspot"'+(kind==='hotspot'?' selected':'')+'>Tap the spot (image)</option>'
     + '</select>'
     + '<button class="btn btn-sm" onclick="moveQ('+i+',-1)" title="Move up">↑</button>'
     + '<button class="btn btn-sm" onclick="moveQ('+i+',1)" title="Move down">↓</button>'
     + '<button class="btn btn-sm btn-danger" onclick="delQ('+i+')">Delete</button>'
     + '</div></div>'
     + '<div class="field full"><label>'+(kind==='scenario'?'Scenario / situation prompt':'Question text')+'</label><textarea oninput="setText('+i+',this.value)">'+esc(q.text)+'</textarea></div>'
-    + (kind==='matching' ? '' : imageEditor(q, i))
+    + (kind==='matching' || kind==='hotspot' ? '' : imageEditor(q, i))
     + body
     + '<div class="row2">'
     + '<div class="field"><label>Points'+(kind==='scenario'?' (auto-summed from sub-questions)':'')+'</label><input type="number" value="'+q.pts+'" oninput="setPts('+i+',this.value)"'+(kind==='scenario'?' readonly':'')+'></div>'
@@ -761,6 +776,65 @@ function uploadImg(i, input){
   reader.readAsDataURL(file);
 }
 
+// Hotspot editor: upload an image, click it to drop the target, set the radius.
+// Stores q.targets = [{x,y,r}] as percentages of image dimensions.
+function hotspotEditor(q, i){
+  const img = q.img || null;
+  if (!img || !img.url){
+    return '<div class="field full"><label>Image</label>'
+      + '<div class="img-edit-empty">'
+      + '<button class="btn btn-sm" onclick="document.getElementById(\'hsfile-'+i+'\').click()">\uD83D\uDCF7 Upload image</button>'
+      + '<input type="file" id="hsfile-'+i+'" accept="image/*" style="display:none;" onchange="uploadImg('+i+',this)">'
+      + '<span class="img-edit-hint">Upload the image, then click on it to mark where the correct spot is.</span>'
+      + '</div></div>';
+  }
+  const targets = Array.isArray(q.targets) && q.targets.length ? q.targets : [];
+  const t = targets[0] || null;
+  const r = t ? Number(t.r) : 8;
+  const url = esc(img.url);
+  const markerHtml = t
+    ? '<div class="hs-edit-marker" style="left:'+t.x+'%;top:'+t.y+'%;width:'+(r*2)+'%;padding-bottom:'+(r*2)+'%;"></div>'
+    : '';
+  return '<div class="field full"><label>Tap target — click the image to set the correct spot</label>'
+    + '<div class="hs-edit-wrap">'
+    +   '<div class="hs-edit-box" id="hsedit-'+i+'" onclick="hsSetTarget('+i+',event)">'
+    +     '<img src="'+url+'" alt="target" draggable="false">'
+    +     markerHtml
+    +   '</div>'
+    + '</div>'
+    + '<div class="hs-edit-ctrls">'
+    +   '<label class="hs-edit-rlabel">Tolerance radius: <strong id="hsrval-'+i+'">'+r+'%</strong></label>'
+    +   '<input type="range" min="3" max="25" value="'+r+'" oninput="hsSetRadius('+i+',this.value)">'
+    +   '<button class="btn btn-sm" onclick="document.getElementById(\'hsfile-'+i+'\').click()">Replace image</button>'
+    +   '<input type="file" id="hsfile-'+i+'" accept="image/*" style="display:none;" onchange="uploadImg('+i+',this)">'
+    + '</div>'
+    + (t ? '' : '<div class="img-edit-hint" style="margin-top:.4rem;">Click the image above to place the target.</div>')
+    + '</div>';
+}
+function hsSetTarget(i, ev){
+  const box = document.getElementById('hsedit-'+i);
+  if (!box) return;
+  const rect = box.getBoundingClientRect();
+  const x = ((ev.clientX - rect.left)/rect.width)*100;
+  const y = ((ev.clientY - rect.top)/rect.height)*100;
+  if (x<0||x>100||y<0||y>100) return;
+  const q = working.questions[i];
+  const prev = (Array.isArray(q.targets) && q.targets[0]) ? q.targets[0] : null;
+  const r = prev ? Number(prev.r) : 8;
+  q.targets = [{ x:Math.round(x*10)/10, y:Math.round(y*10)/10, r:r }];
+  markDirty(); refreshCard(i);
+}
+function hsSetRadius(i, val){
+  const q = working.questions[i];
+  if (!Array.isArray(q.targets) || !q.targets[0]) { return; }
+  q.targets[0].r = Number(val);
+  const lbl = document.getElementById('hsrval-'+i); if (lbl) lbl.textContent = val + '%';
+  const box = document.getElementById('hsedit-'+i);
+  const mk = box ? box.querySelector('.hs-edit-marker') : null;
+  if (mk){ mk.style.width = (val*2)+'%'; mk.style.paddingBottom = (val*2)+'%'; }
+  markDirty();
+}
+
 // Matching editor: list of left→right pairs. The left/right ORDER defines the correct match.
 function matchingEditor(q, i){
   const pairs = q.pairs || [];
@@ -836,6 +910,9 @@ function setKind(i,v){
   } else if (v === 'scenario') {
     if (!Array.isArray(q.subs) || !q.subs.length) q.subs = [{label:'',type:'mc',pts:5,options:['','','',''],correct:0,model:''}];
     recalcScenarioPts(q);
+  } else if (v === 'hotspot') {
+    if (!Array.isArray(q.targets)) q.targets = [];
+    if (typeof q.pts !== 'number' || !q.pts) q.pts = 10;
   } else {
     q.kind = 'mc';
     if (!Array.isArray(q.options)) q.options = ['','','',''];
@@ -937,6 +1014,9 @@ function saveCurrentQuiz(){
           ? { label:s.label, type:'written', pts:Number(s.pts)||0, model:s.model||'' }
           : { label:s.label, type:'mc', pts:Number(s.pts)||0, options:(s.options||[]).slice(0,4), correct:Number(s.correct)||0 });
         base.model = '@@Q@@' + JSON.stringify({ qtype:'scenario', subs: subs });
+      } else if (q.kind === 'hotspot') {
+        const targets = (Array.isArray(q.targets)?q.targets:[]).filter(t=>t && isFinite(t.x) && isFinite(t.y));
+        base.model = '@@Q@@' + JSON.stringify({ qtype:'hotspot', targets: targets.map(t=>({x:Number(t.x),y:Number(t.y),r:Number(t.r)||8})) });
       } else if (q.kind === 'written') {
         base.model = q.model||'';
       } else {

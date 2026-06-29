@@ -75,6 +75,12 @@ body{font-family:var(--font);color:var(--ink);background:var(--surface);line-hei
 .q-image{display:block;width:100%;}
 .q-image-err{padding:1.5rem;text-align:center;color:var(--ink3);font-size:13px;}
 .q-image-box{position:relative;}
+.hs-instruct{font-size:12.5px;color:var(--ink3);margin:0 0 .6rem;font-weight:600;}
+.hs-wrap{display:flex;justify-content:center;}
+.hs-box{position:relative;display:inline-block;max-width:100%;border:1.5px solid var(--gray);border-radius:12px;overflow:hidden;cursor:crosshair;line-height:0;}
+.hs-img{display:block;max-width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
+.hs-marker{position:absolute;width:26px;height:26px;border:3px solid #C8284F;border-radius:50%;background:rgba(200,40,79,.18);transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 0 2px #fff;}
+.hs-marker::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:4px;background:#C8284F;border-radius:50%;transform:translate(-50%,-50%);}
 .q-image-hint{position:absolute;bottom:8px;right:8px;background:rgba(4,28,52,.78);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;cursor:zoom-in;user-select:none;}
 .q-image-hint:hover{background:rgba(4,28,52,.95);}
 #img-zoom{position:fixed;inset:0;z-index:900;background:rgba(8,15,28,.92);display:none;flex-direction:column;}
@@ -372,6 +378,7 @@ function buildQuizzesFromSheet(quizRows, questionRows) {
       const base = { n:Number(q.n)||(quiz.questions.length+1), pts:Number(q.pts)||10, text:q.text||'', cite:citeText, img:imgObj, qtype:payload.qtype };
       if (payload.qtype === 'matching') base.pairs = Array.isArray(payload.pairs) ? payload.pairs : [];
       else if (payload.qtype === 'scenario') base.subs = Array.isArray(payload.subs) ? payload.subs : [];
+      else if (payload.qtype === 'hotspot') base.targets = Array.isArray(payload.targets) ? payload.targets : [];
       quiz.questions.push(base);
       return;
     }
@@ -422,6 +429,7 @@ function qExamType(qu) {
     const t = String(qu.qtype).toLowerCase();
     if (t === 'matching' && Array.isArray(qu.pairs) && qu.pairs.length) return 'matching';
     if (t === 'scenario' && Array.isArray(qu.subs) && qu.subs.length) return 'scenario';
+    if (t === 'hotspot' && Array.isArray(qu.targets) && qu.targets.length && qu.img && qu.img.url) return 'hotspot';
     if (t === 'written') return 'written';
     if (t === 'mc') return 'mc';
   }
@@ -493,6 +501,7 @@ function renderExam() {
     const t = qExamType(qu);
     if (t === 'matching') { html += renderMatchingQ(qu); return; }
     if (t === 'scenario') { html += renderScenarioQ(qu); return; }
+    if (t === 'hotspot') { html += renderHotspotQ(qu); return; }
     if (t === 'written') {
       const prior = (window._examWritten && window._examWritten[qu.n]) || '';
       html += `<div class="q-card" id="qcard-${qu.n}">
@@ -677,6 +686,19 @@ function scoreMatching(qu) {
   return { earned: Math.round(frac * possible), possible, right, total: pairs.length, allCorrect: right === pairs.length };
 }
 
+// Hotspot: correct (full points) if the tap is within ANY target's radius; else 0.
+function scoreHotspot(qu){
+  const possible = Number(qu.pts) || 0;
+  const tap = (window._examHotspot && window._examHotspot[qu.n]) || null;
+  const targets = Array.isArray(qu.targets) ? qu.targets : [];
+  if (!tap || !targets.length) return { earned:0, possible, correct:false };
+  const correct = targets.some(t => {
+    const dx = tap.x - Number(t.x), dy = tap.y - Number(t.y);
+    return Math.sqrt(dx*dx + dy*dy) <= (Number(t.r) || 0);
+  });
+  return { earned: correct ? possible : 0, possible, correct };
+}
+
 function renderScenarioQ(qu) {
   const subs = qu.subs || [];
   let subHtml = subs.map((s, si) => {
@@ -704,6 +726,37 @@ function renderScenarioQ(qu) {
     ${renderQuestionImage(qu.img)}
     <div class="scn-subs">${subHtml}</div>
   </div>`;
+}
+
+// ── Hotspot question: tap the spot on the image ─────────────────────────────────
+// Answer stored in window._examHotspot[qu.n] = {x,y} as % of image (0-100).
+function renderHotspotQ(qu) {
+  if (!window._examHotspot) window._examHotspot = {};
+  const url = String(qu.img.url).replace(/"/g, '&quot;');
+  return `<div class="q-card" id="qcard-${qu.n}">
+    <div class="q-top"><span class="q-num">Q${qu.n}</span><span class="q-top-right"><span class="q-pts">${qu.pts} pts · Tap the spot</span>${flagBtn(qu.n)}</span></div>
+    <div class="q-text">${qu.text}</div>
+    <div class="hs-instruct">Tap the image where it belongs. Tap again to move your marker.</div>
+    <div class="hs-wrap">
+      <div class="hs-box" id="hsbox-${qu.n}" onclick="hsTap(event, ${qu.n})">
+        <img src="${url}" alt="Question image" class="hs-img" draggable="false">
+        <div class="hs-marker" id="hsmark-${qu.n}" style="display:none;"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function hsTap(ev, qn){
+  const box = document.getElementById('hsbox-' + qn);
+  if (!box) return;
+  const rect = box.getBoundingClientRect();
+  const x = ((ev.clientX - rect.left) / rect.width) * 100;
+  const y = ((ev.clientY - rect.top) / rect.height) * 100;
+  if (x < 0 || x > 100 || y < 0 || y > 100) return;
+  if (!window._examHotspot) window._examHotspot = {};
+  window._examHotspot[qn] = { x: x, y: y };
+  const m = document.getElementById('hsmark-' + qn);
+  if (m){ m.style.display = 'block'; m.style.left = x + '%'; m.style.top = y + '%'; }
+  updateExamProgress();
 }
 
 function renderQuestionImage(img) {
@@ -817,6 +870,9 @@ function updateExamProgress() {
       total++;
       const need = (qu.pairs||[]).length;
       if (need > 0 && Object.keys(m[qu.n]||{}).length >= need) done++;
+    } else if (t === 'hotspot') {
+      total++;
+      if (window._examHotspot && window._examHotspot[qu.n]) done++;
     } else if (t === 'scenario') {
       (qu.subs||[]).forEach((s, si) => {
         total++;
@@ -854,6 +910,9 @@ async function submitApplicant() {
       totalItems++;
       const done = Object.keys(match[qu.n] || {}).length;
       if (done >= (qu.pairs||[]).length && (qu.pairs||[]).length>0) answeredCount++;
+    } else if (t === 'hotspot') {
+      totalItems++;
+      if (window._examHotspot && window._examHotspot[qu.n]) answeredCount++;
     } else if (t === 'scenario') {
       (qu.subs||[]).forEach((s,si) => {
         totalItems++;
@@ -882,6 +941,9 @@ async function submitApplicant() {
     if (t === 'matching') {
       const sc = scoreMatching(qu); mcPts += sc.possible; mcEarned += sc.earned;
       results[qu.n] = { matching:true, earned:sc.earned, possible:sc.possible };
+    } else if (t === 'hotspot') {
+      const sc = scoreHotspot(qu); mcPts += sc.possible; mcEarned += sc.earned;
+      results[qu.n] = { hotspot:true, earned:sc.earned, possible:sc.possible, correct:sc.correct };
     } else if (t === 'scenario') {
       (qu.subs||[]).forEach((s, si) => {
         const subN = qu.n + '_' + si;
@@ -917,6 +979,10 @@ async function submitApplicant() {
         return { left:p.left, chosen:chosen, correct:p.right, ok:Number(chosenRi)===li };
       });
       answersOut.push({ q:qu.n, matching:true, selected:sc.right+'/'+sc.total+' correct', correct:'See breakdown', isCorrect:sc.allCorrect, earned:sc.earned, possible:sc.possible, matchDetail:detail });
+    } else if (t === 'hotspot') {
+      const sc = scoreHotspot(qu);
+      const tap = (window._examHotspot && window._examHotspot[qu.n]) || null;
+      answersOut.push({ q:qu.n, hotspot:true, selected: tap ? ('Tapped ('+Math.round(tap.x)+'%, '+Math.round(tap.y)+'%)') : 'Not answered', correct:'Target area', isCorrect:sc.correct, earned:sc.earned, possible:sc.possible, tap:tap, targets:qu.targets, imgUrl:(qu.img&&qu.img.url)||'' });
     } else if (t === 'scenario') {
       (qu.subs||[]).forEach((s, si) => {
         const subN = qu.n + '_' + si;
