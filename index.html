@@ -781,7 +781,6 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
     <!-- Practice Scenarios & Worksheets (hidden until card clicked) -->
     <div id="portal-practice" style="display:none;">
-      <button class="back-home-btn" onclick="showPortalSection('kc')">&#8592; Back to Knowledge Checks</button>
       <div id="practice-section-container"></div>
     </div>
 
@@ -2296,7 +2295,11 @@ function renderPractice() {
   const scores = getScores(currentUser);
   const items = QUIZZES.filter(q => q.type === 'practice');
 
-  let html = `<div class="quiz-section-group">
+  let html = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.1rem;">
+      <button class="back-home-btn" style="margin-bottom:0;" onclick="showPortalHome()">&#8592; Back to home</button>
+      <button class="back-home-btn" style="margin-bottom:0;" onclick="showPortalSection('kc')">&#8592; Back to Knowledge Checks</button>
+    </div>
+    <div class="quiz-section-group">
     <div class="module-section-label">Practice Knowledge Checks</div>
     <div class="quiz-grid">`;
 
