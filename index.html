@@ -436,8 +436,32 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .admin-viewtabs{display:inline-flex;gap:4px;background:var(--gray);border-radius:12px;padding:4px;margin-bottom:1.5rem;}
 .admin-viewtab{font-family:var(--font);font-weight:700;font-size:12px;letter-spacing:.03em;padding:9px 18px;border-radius:9px;border:none;background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
 .admin-viewtab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(4,28,52,.08);}
-#admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets{display:none;}
-#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active{display:block;}
+#admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets,#admin-prepcheck{display:none;}
+#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active,#admin-prepcheck.active{display:block;}
+.pc-reset-btn{border:1.5px solid var(--gray);background:#fff;color:var(--ink2);border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);}
+.pc-reset-btn:hover{border-color:var(--gold);color:#8a5a00;}
+.pc-progress{display:flex;align-items:center;gap:12px;margin:0 0 1rem;}
+.pc-prog-bar{flex:1;max-width:340px;height:9px;background:var(--skysoft);border-radius:20px;overflow:hidden;}
+.pc-prog-fill{height:100%;background:var(--green);border-radius:20px;transition:width .25s;}
+.pc-prog-text{font-size:12px;font-weight:700;color:var(--ink2);}
+.pc-item{display:flex;gap:11px;align-items:flex-start;background:#fff;border:1.5px solid var(--gray);border-radius:13px;padding:.85rem;margin-bottom:.65rem;transition:all .15s;}
+.pc-item.pc-done{background:#f3fbf5;border-color:#bfe6cb;}
+.pc-handle{cursor:grab;color:var(--ink3);font-size:18px;padding:6px 2px;user-select:none;}
+.pc-check{flex-shrink:0;width:26px;height:26px;border:2px solid var(--gray);background:#fff;border-radius:7px;cursor:pointer;font-size:15px;font-weight:800;color:#fff;display:inline-flex;align-items:center;justify-content:center;margin-top:4px;}
+.pc-check.on{background:var(--green);border-color:var(--green);}
+.pc-fields{flex:1;display:flex;flex-direction:column;gap:5px;}
+.pc-title{border:1.5px solid transparent;border-radius:8px;padding:6px 9px;font-size:14px;font-weight:600;font-family:var(--font);color:var(--ink);background:var(--surface);}
+.pc-item.pc-done .pc-title{text-decoration:line-through;color:var(--ink3);}
+.pc-title:focus{outline:none;border-color:var(--blue);background:#fff;}
+.pc-notes{border:1.5px solid transparent;border-radius:8px;padding:6px 9px;font-size:12.5px;font-family:var(--font);color:var(--ink2);background:var(--surface);resize:none;overflow:hidden;line-height:1.45;}
+.pc-notes:focus{outline:none;border-color:var(--blue);background:#fff;}
+.pc-actions{display:flex;flex-direction:column;gap:4px;}
+.pc-mini{width:28px;height:24px;border:1px solid var(--gray);background:#f7fafd;border-radius:6px;cursor:pointer;font-size:10px;color:var(--ink3);}
+.pc-mini:hover{border-color:var(--blue);color:var(--blue);}
+.pc-del{color:var(--red);}
+.pc-del:hover{border-color:var(--red);color:var(--red);}
+.pc-add-btn{margin-top:.5rem;border:1.5px dashed var(--sky);background:var(--skysoft);color:var(--blue);border-radius:11px;padding:11px 18px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:var(--font);width:100%;}
+.pc-add-btn:hover{background:#dcebff;border-color:var(--blue);}
 .ws-resp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
 .ws-resp-card{background:#fff;border:1.5px solid var(--gray);border-radius:14px;padding:1.1rem 1.2rem;cursor:pointer;transition:all .18s;}
 .ws-resp-card:hover{border-color:var(--sky);transform:translateY(-3px);box-shadow:0 14px 30px rgba(37,102,204,.13);}
@@ -929,6 +953,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <button class="admin-viewtab" id="viewtab-analytics" onclick="setAdminView('analytics')">&#128200; Analytics</button>
       <button class="admin-viewtab" id="viewtab-applicants" onclick="setAdminView('applicants')">&#128188; Applicants</button>
       <button class="admin-viewtab" id="viewtab-worksheets" onclick="setAdminView('worksheets')">&#9998; New Hire Worksheets</button>
+      <button class="admin-viewtab" id="viewtab-prepcheck" onclick="setAdminView('prepcheck')">&#9745; Class Prep Checklist</button>
     </div>
 
     <!-- ROSTER VIEW (existing) -->
@@ -1017,6 +1042,21 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       </div>
       <div class="an-section-note">Responses from the new-hire intake worksheet. Click a person to view their full answers and print or email a clean summary.</div>
       <div id="ws-admin-list"></div>
+    </div>
+
+    <!-- CLASS PREP CHECKLIST VIEW -->
+    <div id="admin-prepcheck">
+      <div class="app-list-head">
+        <div class="admin-section-title" style="margin:0;">New Hire Class — Trainer Prep Checklist</div>
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button class="app-refresh" onclick="refreshPrepCheck()">&#8635; Refresh</button>
+          <button class="pc-reset-btn" onclick="prepCheckResetAll()">&#8635; Reset all checkmarks</button>
+        </div>
+      </div>
+      <div class="an-section-note">Shared checklist of things to prepare before a new hire class. Everyone sees the same list and check-offs. Add, edit, reorder, or delete items below; changes save for all trainers.</div>
+      <div id="pc-progress" class="pc-progress"></div>
+      <div id="pc-list"></div>
+      <button class="pc-add-btn" onclick="prepCheckAdd()">&#43; Add checklist item</button>
     </div>
   </div>
 </div>
@@ -4101,13 +4141,22 @@ function setAdminView(view) {
   if (appEl) appEl.classList.toggle('active', view === 'applicants');
   var wsEl = document.getElementById('admin-worksheets');
   if (wsEl) wsEl.classList.toggle('active', view === 'worksheets');
+  var pcEl = document.getElementById('admin-prepcheck');
+  if (pcEl) pcEl.classList.toggle('active', view === 'prepcheck');
   document.getElementById('viewtab-roster').classList.toggle('active', view === 'roster');
   document.getElementById('viewtab-analytics').classList.toggle('active', view === 'analytics');
   var appTab = document.getElementById('viewtab-applicants');
   if (appTab) appTab.classList.toggle('active', view === 'applicants');
   var wsTab = document.getElementById('viewtab-worksheets');
   if (wsTab) wsTab.classList.toggle('active', view === 'worksheets');
+  var pcTab = document.getElementById('viewtab-prepcheck');
+  if (pcTab) pcTab.classList.toggle('active', view === 'prepcheck');
   if (view === 'analytics') renderAnalytics();
+  if (view === 'prepcheck') {
+    const list = document.getElementById('pc-list');
+    if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading checklist…</div>';
+    loadPrepCheck(function(){ renderPrepCheck(); });
+  }
   if (view === 'worksheets') {
     const list = document.getElementById('ws-admin-list');
     if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading worksheet responses…</div>';
@@ -4254,6 +4303,124 @@ function fallbackCopy(text, ok) {
   try { document.execCommand('copy'); ok && ok(); } catch(e){}
   document.body.removeChild(ta);
 }
+
+
+// ── Trainer Class Prep Checklist (shared master list) ──────────────────────────
+var PREPCHECK_DATA = [];
+var _pcLoaded = false, _pcSaveTimer = null;
+function loadPrepCheck(done){
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'lpc_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished=true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); _pcLoaded = true; done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && Array.isArray(res.prepcheck)) { PREPCHECK_DATA = res.prepcheck; finish(true); }
+      else finish(false);
+    } catch(e){ finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=prepcheck&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
+function refreshPrepCheck(){
+  const list = document.getElementById('pc-list');
+  if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading\u2026</div>';
+  loadPrepCheck(function(){ renderPrepCheck(); });
+}
+function renderPrepCheck(){
+  const list = document.getElementById('pc-list');
+  if (!list) return;
+  PREPCHECK_DATA.sort((a,b)=>(a.order||0)-(b.order||0));
+  const prog = document.getElementById('pc-progress');
+  if (prog){
+    const total = PREPCHECK_DATA.length, done = PREPCHECK_DATA.filter(i=>i.done).length;
+    prog.innerHTML = total ? `<div class="pc-prog-bar"><div class="pc-prog-fill" style="width:${Math.round(done/total*100)}%"></div></div><span class="pc-prog-text">${done} of ${total} done</span>` : '';
+  }
+  if (!PREPCHECK_DATA.length){
+    list.innerHTML = '<div class="qc-sub" style="padding:1.2rem;">No checklist items yet. Click \u201C+ Add checklist item\u201D to start building your prep list.</div>';
+    return;
+  }
+  let html = '';
+  PREPCHECK_DATA.forEach(function(it, i){
+    html += `<div class="pc-item ${it.done?'pc-done':''}" draggable="true" ondragstart="pcDragStart(${i})" ondragover="event.preventDefault()" ondrop="pcDrop(${i})">
+      <div class="pc-handle" title="Drag to reorder">&#8597;</div>
+      <button class="pc-check ${it.done?'on':''}" onclick="pcToggle('${pcEsc(it.id)}')" title="Mark done">${it.done?'&#10003;':''}</button>
+      <div class="pc-fields">
+        <input class="pc-title" placeholder="What needs doing?" value="${pcEsc(it.title)}" oninput="pcSet('${pcEsc(it.id)}','title',this.value)">
+        <textarea class="pc-notes" rows="1" placeholder="Notes / details (optional)" oninput="pcSet('${pcEsc(it.id)}','notes',this.value); pcAutoGrow(this)">${pcEsc(it.notes)}</textarea>
+      </div>
+      <div class="pc-actions">
+        <button class="pc-mini" onclick="pcMove('${pcEsc(it.id)}',-1)" title="Move up">&#9650;</button>
+        <button class="pc-mini" onclick="pcMove('${pcEsc(it.id)}',1)" title="Move down">&#9660;</button>
+        <button class="pc-mini pc-del" onclick="pcDelete('${pcEsc(it.id)}')" title="Delete">&times;</button>
+      </div>
+    </div>`;
+  });
+  list.innerHTML = html;
+  // auto-grow notes to fit
+  list.querySelectorAll('.pc-notes').forEach(pcAutoGrow);
+}
+function pcAutoGrow(el){ if(!el) return; el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; }
+function pcFind(id){ return PREPCHECK_DATA.find(i=>i.id===id); }
+function pcSet(id, key, val){ const it=pcFind(id); if(it){ it[key]=val; pcSaveSoon(); } }
+function pcToggle(id){ const it=pcFind(id); if(it){ it.done=!it.done; renderPrepCheck(); pcSaveSoon(); } }
+function pcAdd(){
+  PREPCHECK_DATA.push({ id:'ck_'+Date.now(), title:'', notes:'', done:false, order:PREPCHECK_DATA.length });
+  pcReindex(); renderPrepCheck(); pcSaveSoon();
+  const list=document.getElementById('pc-list');
+  if(list){ const inputs=list.querySelectorAll('.pc-title'); if(inputs.length) inputs[inputs.length-1].focus(); }
+}
+function prepCheckAdd(){ pcAdd(); }
+function pcDelete(id){
+  const it=pcFind(id); if(!it) return;
+  if (!confirm('Delete this checklist item?')) return;
+  PREPCHECK_DATA = PREPCHECK_DATA.filter(x=>x.id!==id);
+  pcReindex(); renderPrepCheck(); pcSaveSoon();
+}
+function pcMove(id, dir){
+  const i = PREPCHECK_DATA.findIndex(x=>x.id===id);
+  const j = i + dir;
+  if (i<0 || j<0 || j>=PREPCHECK_DATA.length) return;
+  const t=PREPCHECK_DATA[i]; PREPCHECK_DATA[i]=PREPCHECK_DATA[j]; PREPCHECK_DATA[j]=t;
+  pcReindex(); renderPrepCheck(); pcSaveSoon();
+}
+var _pcDragFrom=null;
+function pcDragStart(i){ _pcDragFrom=i; }
+function pcDrop(i){
+  if(_pcDragFrom==null||_pcDragFrom===i) return;
+  const moved=PREPCHECK_DATA.splice(_pcDragFrom,1)[0];
+  PREPCHECK_DATA.splice(i,0,moved);
+  _pcDragFrom=null; pcReindex(); renderPrepCheck(); pcSaveSoon();
+}
+function pcReindex(){ PREPCHECK_DATA.forEach((it,i)=>it.order=i); }
+function prepCheckResetAll(){
+  if (!PREPCHECK_DATA.length) return;
+  if (!confirm('Uncheck every item for a fresh class? (The items themselves stay; only the checkmarks reset.)')) return;
+  PREPCHECK_DATA.forEach(it=>it.done=false);
+  renderPrepCheck(); pcSaveNow();
+}
+// Debounced save so rapid typing/checks don't spam the backend.
+function pcSaveSoon(){ if(_pcSaveTimer) clearTimeout(_pcSaveTimer); _pcSaveTimer=setTimeout(pcSaveNow, 900);
+  const prog=document.getElementById('pc-progress'); }
+function pcSaveNow(){
+  if(_pcSaveTimer){ clearTimeout(_pcSaveTimer); _pcSaveTimer=null; }
+  const clean = PREPCHECK_DATA.filter(it => (it.title||'').trim() || (it.notes||'').trim());
+  clean.forEach((it,i)=>it.order=i);
+  try {
+    const form=document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='pchf'; form.style.display='none';
+    const inp=document.createElement('input'); inp.type='hidden'; inp.name='data';
+    inp.value=JSON.stringify({ action:'savePrepCheck', items: clean });
+    form.appendChild(inp);
+    let ifr=document.getElementById('pchf');
+    if(!ifr){ ifr=document.createElement('iframe'); ifr.name='pchf'; ifr.id='pchf'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+  } catch(e){}
+}
+function pcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── New Hire Worksheets (trainer side) ─────────────────────────────────────────
 function refreshWorksheets(){
