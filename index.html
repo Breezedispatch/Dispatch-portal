@@ -214,6 +214,32 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .practice-cta-note{font-size:12.5px;color:var(--ink3);}
 @media(max-width:560px){.practice-cta-note{flex-basis:100%;}}
 
+/* ───────── NEW HIRE WORKSHEET ───────── */
+#worksheet-screen{background:var(--surface);min-height:100vh;}
+.ws-topbar{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.5rem;background:var(--navy);color:#fff;position:sticky;top:0;z-index:10;}
+.ws-wrap{max-width:760px;margin:0 auto;padding:1.5rem 1.25rem 4rem;}
+.ws-head{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;border-radius:18px;padding:1.4rem 1.5rem;margin-bottom:1rem;}
+.ws-head-emoji{font-size:34px;}
+.ws-head-title{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.01em;}
+.ws-head-sub{font-size:14px;opacity:.9;font-style:italic;margin-top:2px;}
+.ws-intro{font-size:13.5px;color:var(--ink2);background:var(--skysoft);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.5rem;line-height:1.5;}
+.ws-section{margin-bottom:1.5rem;}
+.ws-section-title{font-family:var(--display);font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--blue);border-bottom:2px solid var(--skysoft);padding-bottom:.4rem;margin-bottom:.9rem;}
+.ws-field{margin-bottom:1rem;}
+.ws-label{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:.4rem;line-height:1.35;}
+.ws-input{width:100%;border:1.5px solid var(--gray);border-radius:10px;padding:10px 13px;font-size:14px;font-family:var(--font);color:var(--ink);box-sizing:border-box;}
+.ws-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,102,204,.12);}
+.ws-textarea{resize:vertical;min-height:70px;line-height:1.5;}
+.ws-choices{display:flex;gap:8px;flex-wrap:wrap;}
+.ws-choice{border:1.5px solid var(--gray);background:#fff;border-radius:9px;padding:8px 16px;font-size:13.5px;font-weight:600;color:var(--ink2);cursor:pointer;font-family:var(--font);transition:all .15s;}
+.ws-choice:hover{border-color:var(--sky);}
+.ws-choice.sel{background:var(--navy);color:#fff;border-color:var(--navy);}
+.ws-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:1.5rem;}
+.ws-cancel{border:1.5px solid var(--gray);background:#fff;color:var(--ink2);border-radius:10px;padding:11px 22px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font);}
+.ws-submit{border:none;background:var(--navy);color:#fff;border-radius:10px;padding:11px 26px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font);box-shadow:0 6px 16px rgba(11,31,58,.2);}
+.ws-submit:hover{transform:translateY(-1px);}
+.dash-next-icon-ws{background:var(--gold-lt)!important;color:var(--gold)!important;}
+
 /* ───────── EXAM ───────── */
 #screen-exam{background:var(--surface);}
 .exam-topbar{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.5rem;background:var(--navy);color:#fff;position:sticky;top:0;z-index:10;}
@@ -381,8 +407,26 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .admin-viewtabs{display:inline-flex;gap:4px;background:var(--gray);border-radius:12px;padding:4px;margin-bottom:1.5rem;}
 .admin-viewtab{font-family:var(--font);font-weight:700;font-size:12px;letter-spacing:.03em;padding:9px 18px;border-radius:9px;border:none;background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
 .admin-viewtab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(4,28,52,.08);}
-#admin-roster,#admin-analytics,#admin-applicants{display:none;}
-#admin-roster.active,#admin-analytics.active,#admin-applicants.active{display:block;}
+#admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets{display:none;}
+#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active{display:block;}
+.ws-resp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+.ws-resp-card{background:#fff;border:1.5px solid var(--gray);border-radius:14px;padding:1.1rem 1.2rem;cursor:pointer;transition:all .18s;}
+.ws-resp-card:hover{border-color:var(--sky);transform:translateY(-3px);box-shadow:0 14px 30px rgba(37,102,204,.13);}
+.ws-resp-name{font-family:var(--display);font-weight:800;font-size:16px;color:var(--ink);}
+.ws-resp-meta{font-size:12px;color:var(--ink3);margin-top:3px;}
+.ws-resp-date{font-size:11.5px;color:var(--ink3);margin-top:8px;}
+.ws-resp-open{font-size:12.5px;font-weight:700;color:var(--blue);margin-top:10px;}
+.ws-resp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;border-bottom:2px solid var(--skysoft);padding-bottom:1rem;margin-bottom:1rem;flex-wrap:wrap;}
+.ws-resp-h-title{font-family:var(--display);font-weight:800;font-size:21px;color:var(--ink);}
+.ws-resp-h-sub{font-size:12.5px;color:var(--ink3);margin-top:3px;}
+.ws-print-btn{border:none;background:var(--navy);color:#fff;border-radius:9px;padding:9px 16px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);white-space:nowrap;}
+.ws-print-btn:hover{transform:translateY(-1px);}
+.ws-resp-section{margin-bottom:1.3rem;}
+.ws-resp-section-title{font-family:var(--display);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--blue);margin-bottom:.6rem;}
+.ws-resp-qa{margin-bottom:.7rem;}
+.ws-resp-q{font-size:13px;font-weight:700;color:var(--ink2);}
+.ws-resp-ans{font-size:13.5px;color:var(--ink);margin-top:2px;white-space:pre-wrap;background:var(--surface);border-radius:8px;padding:7px 11px;}
+.ws-resp-blank{color:var(--ink3);font-style:italic;}
 .app-rows{display:flex;flex-direction:column;gap:.5rem;}
 .app-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;background:var(--surface);border:1.5px solid var(--gray);border-radius:12px;padding:.85rem 1.1rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
 .app-row:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(11,31,58,.06);}
@@ -841,6 +885,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <button class="admin-viewtab active" id="viewtab-roster" onclick="setAdminView('roster')">&#128203; Roster</button>
       <button class="admin-viewtab" id="viewtab-analytics" onclick="setAdminView('analytics')">&#128200; Analytics</button>
       <button class="admin-viewtab" id="viewtab-applicants" onclick="setAdminView('applicants')">&#128188; Applicants</button>
+      <button class="admin-viewtab" id="viewtab-worksheets" onclick="setAdminView('worksheets')">&#9998; New Hire Worksheets</button>
     </div>
 
     <!-- ROSTER VIEW (existing) -->
@@ -920,6 +965,25 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <div class="an-section-note">Shared across trainers — each placement is tagged with who made it. Drag applicants into a tier, and reorder within a tier to set preference (1 = highest).</div>
       <div class="rank-board" id="rank-board"></div>
     </div>
+
+    <!-- NEW HIRE WORKSHEETS VIEW -->
+    <div id="admin-worksheets">
+      <div class="app-list-head">
+        <div class="admin-section-title" style="margin:0;">New Hire Worksheets — Dispatch Manifest</div>
+        <button class="app-refresh" onclick="refreshWorksheets()">&#8635; Refresh</button>
+      </div>
+      <div class="an-section-note">Responses from the new-hire intake worksheet. Click a person to view their full answers and print or email a clean summary.</div>
+      <div id="ws-admin-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WORKSHEET RESPONSE MODAL ══════════════════════════════════════ -->
+<div id="ws-resp-modal" style="display:none;">
+  <div class="tr-overlay" onclick="closeWsResp()"></div>
+  <div class="tr-panel">
+    <button class="tr-close" onclick="closeWsResp()">&times;</button>
+    <div id="ws-resp-body"></div>
   </div>
 </div>
 
@@ -955,6 +1019,15 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     </div>
   </div>
   <div id="exam-content"></div>
+</div>
+
+<div class="screen" id="worksheet-screen" style="display:none;">
+  <div class="ws-topbar">
+    <button class="back-to-portal" onclick="closeWorksheet()">&#8592; Portal</button>
+    <span class="exam-topbar-title">New Hire Worksheet</span>
+    <span></span>
+  </div>
+  <div class="ws-wrap" id="worksheet-body"></div>
 </div>
 
 <script>
@@ -1551,6 +1624,26 @@ const RANK_TIERS = [
 
 // ── App settings (shared key/value, e.g. applicant test open/closed) ────────────
 var APP_SETTINGS = {};
+var SHEET_WORKSHEETS = {};   // id(upper) -> {id,name,date,answers}
+function loadWorksheets(done){
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'lws_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && Array.isArray(res.worksheets)) {
+        const map = {}; res.worksheets.forEach(w => { map[String(w.id).toUpperCase()] = w; });
+        SHEET_WORKSHEETS = map; finish(true);
+      } else finish(false);
+    } catch(e){ finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=worksheets&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
 function loadSettings(done){
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
   const cb = 'lset_' + Math.random().toString(36).slice(2);
@@ -1814,6 +1907,44 @@ let currentQuiz = null;
 let examSelected = {};
 let examResults  = null;
 
+// ── New-hire intake worksheet: "The Dispatch Manifest — New Crew on Deck" ───────
+// Not graded. Featured in Up next until submitted; trainers view responses + print a summary.
+const WORKSHEET_DEF = {
+  id: 'manifest',
+  title: 'The Dispatch Manifest',
+  subtitle: 'New Crew on Deck',
+  intro: 'Welcome aboard! Please complete all sections — your answers will be featured in the team newsletter.',
+  outro: 'Welcome to the Spatch Squad — we\u2019re so glad you\u2019re here. \uD83C\uDF89',
+  sections: [
+    { title: 'Personal Information', icon: '\uD83D\uDC64', fields: [
+      { id: 'fullname', label: 'Full Name', type: 'text' },
+      { id: 'hometown', label: 'Hometown / Where You\u2019re From', type: 'text' }
+    ]},
+    { title: 'Your Path to Dispatch', icon: '\uD83D\uDCCB', fields: [
+      { id: 'path', label: 'What led you to aircraft dispatching? Tell us your story.', type: 'textarea' }
+    ]},
+    { title: 'Life Outside the OCC', icon: '\uD83C\uDF0D', fields: [
+      { id: 'hobbies', label: 'What are your hobbies and interests outside of work?', type: 'textarea' },
+      { id: 'funfact', label: 'Share a fun fact or hidden talent about yourself!', type: 'text' }
+    ]},
+    { title: 'Aviation Preferences', icon: '\uD83D\uDDFA\uFE0F', fields: [
+      { id: 'airport', label: 'What is your favorite airport, and why?', type: 'text' },
+      { id: 'seat', label: 'Seat preference?', type: 'choice', options: ['Window','Aisle','Middle','Jumpseat'] },
+      { id: 'trades', label: 'Are you open to shift trades?', type: 'choice', options: ['Yes','No','Maybe'] }
+    ]},
+    { title: 'Anything Else?', icon: '\uD83D\uDCAC', fields: [
+      { id: 'else', label: 'Is there anything else you\u2019d like your new teammates to know about you?', type: 'textarea' }
+    ]}
+  ]
+};
+function worksheetFieldList(){ const a=[]; WORKSHEET_DEF.sections.forEach(s=>s.fields.forEach(f=>a.push(f))); return a; }
+// Has the current student already submitted the worksheet? (local mirror + sheet)
+function worksheetDone(uid){
+  try { if (localStorage.getItem('bz_ws_' + uid)) return true; } catch(e){}
+  return !!(SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(uid).toUpperCase()]);
+}
+
+
 // ── Local score storage ───────────────────────────────────────────────────────
 function getName(uid) {
   try {
@@ -1924,8 +2055,9 @@ function enterStudentPortal(val, first, last) {
     document.getElementById('portal-welcome-msg').textContent = 'Welcome, ' + first + '!';
     setName(val, first, last);
     renderPortal();
-    // Pull this student's finalized results/notes from the sheet, then refresh
+    // Pull this student's finalized results/notes + worksheet status from the sheet, then refresh
     loadResults(function(){ try { mergeSheetScoresForUser(val); renderPortal(); } catch(e){} });
+    loadWorksheets(function(){ try { renderDashboard(); } catch(e){} });
   } catch(e) { console.error('portal render error:', e); }
 }
 
@@ -2064,7 +2196,20 @@ function renderDashboard() {
     : 'No graded scores yet';
 
   let nextBlock;
-  if (next) {
+  if (!worksheetDone(currentUser)) {
+    // New-hire intake worksheet takes priority in Up next until it's submitted.
+    nextBlock = `
+      <div class="dash-next-top">
+        <div class="dash-next-row">
+          <div class="dash-next-icon dash-next-icon-ws">&#9992;</div>
+          <div>
+            <div class="dash-next-mod">Start here · New hire worksheet</div>
+            <div class="dash-next-name">${WORKSHEET_DEF.title} — ${WORKSHEET_DEF.subtitle}</div>
+          </div>
+        </div>
+        <button class="dash-next-btn" onclick="openWorksheet()">&#9998; Fill out</button>
+      </div>`;
+  } else if (next) {
     const tabFor = next.type === 'test' ? 'test' : 'kc';
     nextBlock = `
       <div class="dash-next-top">
@@ -2121,6 +2266,87 @@ function renderDashboard() {
         <div class="dash-prog-track"><div class="dash-prog-fill" style="width:${pct}%"></div></div>
       </div>
     </div>`;
+}
+
+
+// ── New-hire worksheet: form, open, submit ─────────────────────────────────────
+function openWorksheet(){
+  const wrap = document.getElementById('worksheet-screen');
+  if (!wrap) return;
+  const existing = (SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(currentUser).toUpperCase()]) || null;
+  const prior = existing ? Object.assign({}, existing.answers) : {};
+  if (!prior.fullname) prior.fullname = getName(currentUser) || '';
+  let body = `<div class="ws-head">
+      <div class="ws-head-emoji">\u2708\uFE0F</div>
+      <div>
+        <div class="ws-head-title">${WORKSHEET_DEF.title}</div>
+        <div class="ws-head-sub">${WORKSHEET_DEF.subtitle}</div>
+      </div>
+    </div>
+    <div class="ws-intro">${WORKSHEET_DEF.intro}</div>`;
+  WORKSHEET_DEF.sections.forEach(sec => {
+    body += `<div class="ws-section"><div class="ws-section-title">${sec.icon} ${sec.title}</div>`;
+    sec.fields.forEach(f => {
+      const val = prior[f.id] != null ? String(prior[f.id]) : '';
+      body += `<div class="ws-field"><label class="ws-label">${f.label}</label>`;
+      if (f.type === 'textarea') {
+        body += `<textarea class="ws-input ws-textarea" id="ws-${f.id}" rows="3">${esc2(val)}</textarea>`;
+      } else if (f.type === 'choice') {
+        body += `<div class="ws-choices">` + f.options.map(o =>
+          `<button type="button" class="ws-choice ${val===o?'sel':''}" data-f="${f.id}" data-v="${esc2(o)}" onclick="wsPickChoice('${f.id}','${esc2(o)}')">${o}</button>`
+        ).join('') + `</div>`;
+      } else {
+        body += `<input type="text" class="ws-input" id="ws-${f.id}" value="${esc2(val)}">`;
+      }
+      body += `</div>`;
+    });
+    body += `</div>`;
+  });
+  body += `<div class="ws-actions">
+      <button class="ws-cancel" onclick="closeWorksheet()">Cancel</button>
+      <button class="ws-submit" onclick="submitWorksheetForm()">Submit worksheet</button>
+    </div>`;
+  document.getElementById('worksheet-body').innerHTML = body;
+  window._wsChoices = {};
+  worksheetFieldList().forEach(f => { if (f.type==='choice' && prior[f.id]) window._wsChoices[f.id] = prior[f.id]; });
+  wrap.style.display = 'block';
+  document.getElementById('screen-portal').style.display = 'none';
+  window.scrollTo(0,0);
+}
+function closeWorksheet(){
+  const wrap = document.getElementById('worksheet-screen');
+  if (wrap) wrap.style.display = 'none';
+  document.getElementById('screen-portal').style.display = 'block';
+}
+function wsPickChoice(fid, val){
+  if (!window._wsChoices) window._wsChoices = {};
+  window._wsChoices[fid] = val;
+  document.querySelectorAll('.ws-choice[data-f="'+fid+'"]').forEach(b => {
+    b.classList.toggle('sel', b.getAttribute('data-v') === val);
+  });
+}
+function submitWorksheetForm(){
+  const answers = {};
+  worksheetFieldList().forEach(f => {
+    if (f.type === 'choice') { answers[f.id] = (window._wsChoices && window._wsChoices[f.id]) || ''; }
+    else { const el = document.getElementById('ws-' + f.id); answers[f.id] = el ? el.value.trim() : ''; }
+  });
+  const nm = answers.fullname || getName(currentUser) || '';
+  try { localStorage.setItem('bz_ws_' + currentUser, JSON.stringify({ id:currentUser, name:nm, date:new Date().toLocaleDateString(), answers:answers })); } catch(e){}
+  SHEET_WORKSHEETS[String(currentUser).toUpperCase()] = { id:currentUser, name:nm, date:new Date().toLocaleDateString(), answers:answers };
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='wshf'; form.style.display='none';
+    const inp = document.createElement('input'); inp.type='hidden'; inp.name='data';
+    inp.value = JSON.stringify({ action:'submitWorksheet', id:currentUser, name:nm, answers:answers, date:new Date().toLocaleDateString() });
+    form.appendChild(inp);
+    let ifr = document.getElementById('wshf');
+    if (!ifr){ ifr = document.createElement('iframe'); ifr.name='wshf'; ifr.id='wshf'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+  } catch(e){}
+  closeWorksheet();
+  renderDashboard();
+  if (typeof toast === 'function') toast('Thanks! Your Dispatch Manifest has been submitted.', 'ok');
 }
 
 function renderPortal() {
@@ -3678,11 +3904,20 @@ function setAdminView(view) {
   document.getElementById('admin-analytics').classList.toggle('active', view === 'analytics');
   var appEl = document.getElementById('admin-applicants');
   if (appEl) appEl.classList.toggle('active', view === 'applicants');
+  var wsEl = document.getElementById('admin-worksheets');
+  if (wsEl) wsEl.classList.toggle('active', view === 'worksheets');
   document.getElementById('viewtab-roster').classList.toggle('active', view === 'roster');
   document.getElementById('viewtab-analytics').classList.toggle('active', view === 'analytics');
   var appTab = document.getElementById('viewtab-applicants');
   if (appTab) appTab.classList.toggle('active', view === 'applicants');
+  var wsTab = document.getElementById('viewtab-worksheets');
+  if (wsTab) wsTab.classList.toggle('active', view === 'worksheets');
   if (view === 'analytics') renderAnalytics();
+  if (view === 'worksheets') {
+    const list = document.getElementById('ws-admin-list');
+    if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading worksheet responses…</div>';
+    loadWorksheets(function(){ renderWorksheetsAdmin(); });
+  }
   if (view === 'applicants') {
     renderApplicants();
     // Always pull the latest from the sheet on entry so a trainer sees everyone's
@@ -3823,6 +4058,84 @@ function fallbackCopy(text, ok) {
   document.body.appendChild(ta); ta.select();
   try { document.execCommand('copy'); ok && ok(); } catch(e){}
   document.body.removeChild(ta);
+}
+
+// ── New Hire Worksheets (trainer side) ─────────────────────────────────────────
+function refreshWorksheets(){
+  const list = document.getElementById('ws-admin-list');
+  if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading\u2026</div>';
+  loadWorksheets(function(){ renderWorksheetsAdmin(); });
+}
+function renderWorksheetsAdmin(){
+  const list = document.getElementById('ws-admin-list');
+  if (!list) return;
+  const rows = Object.values(SHEET_WORKSHEETS || {});
+  if (!rows.length){
+    list.innerHTML = '<div class="qc-sub" style="padding:1.2rem;">No worksheet responses yet. New hires complete it from the \u201CUp next\u201D card on their home screen.</div>';
+    return;
+  }
+  rows.sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+  let html = '<div class="ws-resp-grid">';
+  rows.forEach(r => {
+    const a = r.answers || {};
+    const nm = esc2(a.fullname || r.name || r.id);
+    const home = esc2(a.hometown || '');
+    html += `<div class="ws-resp-card" onclick="openWsResp('${esc2(r.id)}')">
+      <div class="ws-resp-name">${nm}</div>
+      <div class="ws-resp-meta">${home ? home + ' \u00B7 ' : ''}${esc2(r.id)}</div>
+      <div class="ws-resp-date">Submitted ${esc2(r.date||'')}</div>
+      <div class="ws-resp-open">View &amp; print &#8594;</div>
+    </div>`;
+  });
+  html += '</div>';
+  list.innerHTML = html;
+}
+function openWsResp(id){
+  const r = (SHEET_WORKSHEETS || {})[String(id).toUpperCase()];
+  if (!r) return;
+  const a = r.answers || {};
+  const nm = esc2(a.fullname || r.name || r.id);
+  let body = `<div class="ws-resp-head">
+      <div>
+        <div class="ws-resp-h-title">${nm}</div>
+        <div class="ws-resp-h-sub">Dispatch Manifest \u00B7 ${esc2(r.id)} \u00B7 Submitted ${esc2(r.date||'')}</div>
+      </div>
+      <button class="ws-print-btn" onclick="printWsSummary('${esc2(id)}')">&#128424; Print / Email summary</button>
+    </div>`;
+  WORKSHEET_DEF.sections.forEach(sec => {
+    body += `<div class="ws-resp-section"><div class="ws-resp-section-title">${sec.icon} ${sec.title}</div>`;
+    sec.fields.forEach(f => {
+      const v = a[f.id] != null && String(a[f.id]).trim() ? esc2(a[f.id]) : '<span class="ws-resp-blank">\u2014 no answer \u2014</span>';
+      body += `<div class="ws-resp-qa"><div class="ws-resp-q">${f.label}</div><div class="ws-resp-ans">${v}</div></div>`;
+    });
+    body += `</div>`;
+  });
+  document.getElementById('ws-resp-body').innerHTML = body;
+  document.getElementById('ws-resp-modal').style.display = 'block';
+}
+function closeWsResp(){ const m=document.getElementById('ws-resp-modal'); if(m) m.style.display='none'; }
+function printWsSummary(id){
+  const r = (SHEET_WORKSHEETS || {})[String(id).toUpperCase()];
+  if (!r) return;
+  const a = r.answers || {};
+  const nm = (a.fullname || r.name || r.id);
+  let html = '<html><head><title>Dispatch Manifest \u2014 ' + esc2(nm) + '</title>'
+    + '<style>body{font-family:Arial,sans-serif;color:#1a1a1a;max-width:720px;margin:24px auto;padding:0 20px;line-height:1.5;}'
+    + 'h1{font-size:22px;margin:0;color:#0B1F3A;} .sub{color:#666;font-size:13px;margin:2px 0 20px;font-style:italic;}'
+    + '.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#2566CC;border-bottom:2px solid #e3edf7;padding-bottom:4px;margin:22px 0 10px;font-weight:bold;}'
+    + '.q{font-weight:bold;font-size:13.5px;margin-top:12px;} .ans{font-size:13.5px;margin-top:2px;white-space:pre-wrap;} .blank{color:#999;}'
+    + '</style></head><body>';
+  html += '<h1>\u2708\uFE0F The Dispatch Manifest</h1><div class="sub">New Crew on Deck \u2014 ' + esc2(nm) + ' \u00B7 ' + esc2(r.date||'') + '</div>';
+  WORKSHEET_DEF.sections.forEach(sec => {
+    html += '<div class="sec">' + sec.title + '</div>';
+    sec.fields.forEach(f => {
+      const v = a[f.id] != null && String(a[f.id]).trim() ? esc2(a[f.id]) : '<span class="blank">\u2014 no answer \u2014</span>';
+      html += '<div class="q">' + f.label + '</div><div class="ans">' + v + '</div>';
+    });
+  });
+  html += '</body></html>';
+  const w = window.open('', '_blank');
+  if (w){ w.document.write(html); w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 350); }
 }
 
 function renderApplicants() {
