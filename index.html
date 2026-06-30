@@ -108,6 +108,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .home-card-arrow{color:var(--blue);font-size:20px;margin-top:1rem;transition:transform .2s;}
 .home-card:hover .home-card-arrow{transform:translateX(5px);}
 .home-card-study{border-left:5px solid var(--cyan);}
+.home-card-playbook{border-left:5px solid var(--navy);}
 .home-card-practice{border-left:5px solid var(--accent);}
 .home-card-ojt{border-left:5px solid var(--gold);background:linear-gradient(180deg,#FFFDF7,#fff);}
 .home-card-ojt .home-card-icon{color:var(--gold);}
@@ -207,6 +208,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 /* Dispatch Operations Playbook reader */
 .pb-loading,.pb-noresult{padding:2rem;text-align:center;color:var(--ink3);font-size:14px;}
 .pb-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:1rem;}
+.pb-back{border:1.5px solid var(--gray);background:#fff;color:var(--ink2);border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);}
+.pb-back:hover{border-color:var(--blue);color:var(--blue);}
 .pb-head-title{font-family:var(--display);font-weight:800;font-size:21px;color:var(--navy);}
 .pb-search-wrap{flex:1;min-width:220px;max-width:380px;}
 .pb-search{width:100%;border:1.5px solid var(--gray);border-radius:10px;padding:9px 14px;font-size:13.5px;font-family:var(--font);box-sizing:border-box;}
@@ -826,10 +829,16 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="home-card-sub">Section finals and comprehensive exam. Open book. Results recorded automatically.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
-      <div class="home-card home-card-study" onclick="showPortalSection('study')">
+      <div class="home-card home-card-study" onclick="window.open('breeze_study_materials.html','_blank')">
         <div class="home-card-icon">&#128218;</div>
         <div class="home-card-title">Study Materials</div>
-        <div class="home-card-sub">The Dispatch Operations Playbook — browsable, searchable reference handbook.</div>
+        <div class="home-card-sub">Reference guides, module notes, and training resources.</div>
+        <div class="home-card-arrow">&#8594;</div>
+      </div>
+      <div class="home-card home-card-playbook" onclick="showPortalSection('playbook')">
+        <div class="home-card-icon">&#9992;</div>
+        <div class="home-card-title">Dispatch Operations Playbook</div>
+        <div class="home-card-sub">Browsable, searchable operations handbook — FARs, weather, performance, ATC, and more.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
       <div class="home-card home-card-ojt" id="home-card-ojt" style="display:none;" onclick="showPortalSection('ojt')">
@@ -846,8 +855,18 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <div id="quiz-section-container"></div>
     </div>
 
-    <!-- Study materials → Dispatch Operations Playbook (hidden until card clicked) -->
+    <!-- Study materials (hidden until card clicked) -->
     <div id="portal-study" style="display:none;">
+      <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
+      <div class="study-coming-soon">
+        <div style="font-size:48px;margin-bottom:1rem;">&#128218;</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy);margin-bottom:.5rem;">Study Materials</div>
+        <div style="font-size:14px;color:var(--ink3);max-width:400px;margin:0 auto;">Reference guides, module notes, and training resources will be available here. Check back soon.</div>
+      </div>
+    </div>
+
+    <!-- Dispatch Operations Playbook (hidden until card clicked) -->
+    <div id="portal-playbook" style="display:none;">
       <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
       <div class="pb-reader" id="pb-reader">
         <div class="pb-loading">Loading the Dispatch Operations Playbook…</div>
@@ -2429,6 +2448,7 @@ function renderPlaybook(){
   ).join('');
   wrap.innerHTML = `
     <div class="pb-head">
+      <button class="pb-back" onclick="showPortalHome()">&#8592; Home</button>
       <div class="pb-head-title">\u2708\uFE0F Dispatch Operations Playbook</div>
       <div class="pb-search-wrap"><input type="text" id="pb-search" class="pb-search" placeholder="Search the playbook\u2026" oninput="pbSearch(this.value)"></div>
     </div>
@@ -2620,11 +2640,14 @@ function showPortalSection(tab) {
   document.getElementById('portal-home').style.display = 'none';
   var dash = document.getElementById('portal-dashboard'); if (dash) dash.style.display = 'none';
   document.getElementById('portal-study').style.display = 'none';
+  var pbv = document.getElementById('portal-playbook'); if (pbv) pbv.style.display = 'none';
   document.getElementById('portal-content').style.display = 'none';
   document.getElementById('portal-practice').style.display = 'none';
   var ojt = document.getElementById('portal-ojt'); if (ojt) ojt.style.display = 'none';
   if (tab === 'study') {
     document.getElementById('portal-study').style.display = 'block';
+  } else if (tab === 'playbook') {
+    if (pbv) pbv.style.display = 'block';
     openPlaybook();
   } else if (tab === 'practice') {
     renderPractice();
@@ -2645,6 +2668,7 @@ function showPortalHome() {
   document.getElementById('portal-home').style.display = 'grid';
   document.getElementById('portal-content').style.display = 'none';
   document.getElementById('portal-study').style.display = 'none';
+  var pbv = document.getElementById('portal-playbook'); if (pbv) pbv.style.display = 'none';
   document.getElementById('portal-practice').style.display = 'none';
   var ojt = document.getElementById('portal-ojt'); if (ojt) ojt.style.display = 'none';
 }
