@@ -456,6 +456,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .rep-btn-pdf{background:#fff;border:1.5px solid var(--navy);color:var(--navy);}
 .rep-btn-pdf:hover{background:var(--surface);}
 .rep-note{font-size:12px;color:var(--ink3);margin-top:.9rem;min-height:1em;}
+.rep-opts-label{font-size:12px;font-weight:700;color:var(--ink2);margin:.4rem 0 .5rem;}
+.rep-opts{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:1rem;align-items:center;}
+.rep-chk{font-size:12.5px;color:var(--ink);display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.rep-chk input{width:15px;height:15px;cursor:pointer;}
+.rep-allbtn{border:1px solid var(--gray);background:#fff;color:var(--ink2);border-radius:7px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.rep-allbtn:hover{border-color:var(--blue);color:var(--blue);}
 .pc-reset-btn{border:1.5px solid var(--gray);background:#fff;color:var(--ink2);border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);}
 .pc-reset-btn:hover{border-color:var(--gold);color:#8a5a00;}
 .pc-progress{display:flex;align-items:center;gap:12px;margin:0 0 1rem;}
@@ -1084,17 +1090,38 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="admin-section-title" style="margin:0;">Question Bank Reports</div>
         <button class="rep-refresh-btn" id="rep-refresh-btn" onclick="refreshReportData()">&#8635; Refresh data</button>
       </div>
-      <div class="an-section-note">Generate a full report of all knowledge checks, tests, and questions — organized by section and quiz, with the answer key and references. For sending to Learning &amp; Development.</div>
+      <div class="an-section-note">Generate reports of your knowledge checks, tests, questions, and student analytics — for trainers and the Learning &amp; Development team. Choose what to include, then download as Word or PDF.</div>
       <div class="rep-updated" id="rep-updated"></div>
       <div class="rep-summary" id="rep-summary"></div>
       <div class="rep-card">
-        <div class="rep-card-title">Full Question Bank Report</div>
-        <div class="rep-card-sub">Every section &rarr; quiz &rarr; question, including correct answers, matching keys, scenario answers, and references. Each download pulls the latest data first, so your report is always current.</div>
+        <div class="rep-card-title">Question Bank Report</div>
+        <div class="rep-card-sub">Section &rarr; quiz &rarr; question, including correct answers, matching keys, scenario answers, and references. Each download pulls the latest data first.</div>
+        <div class="rep-opts-label">Include which sections?</div>
+        <div class="rep-opts" id="rep-qb-sections"></div>
         <div class="rep-btn-row">
           <button class="rep-btn rep-btn-word" onclick="generateReport('word')">&#128196; Download Word (.doc)</button>
           <button class="rep-btn rep-btn-pdf" onclick="generateReport('pdf')">&#128424; Open PDF (print / save)</button>
         </div>
         <div class="rep-note" id="rep-status"></div>
+      </div>
+
+      <div class="rep-card" style="margin-top:1.1rem;">
+        <div class="rep-card-title">Training Analytics Report</div>
+        <div class="rep-card-sub">Companion to the Analytics tab. Includes student names &amp; IDs (internal — for trainers &amp; L&amp;D). Pulls the latest data on each download.</div>
+        <div class="rep-opts-label">Include which parts?</div>
+        <div class="rep-opts" id="rep-an-parts">
+          <label class="rep-chk"><input type="checkbox" value="summary" checked> Executive summary</label>
+          <label class="rep-chk"><input type="checkbox" value="students" checked> Student performance roster</label>
+          <label class="rep-chk"><input type="checkbox" value="sections" checked> Subject / material performance</label>
+          <label class="rep-chk"><input type="checkbox" value="questions" checked> Most-missed questions</label>
+          <label class="rep-chk"><input type="checkbox" value="risk" checked> At-risk students</label>
+          <label class="rep-chk"><input type="checkbox" value="worksheets" checked> Worksheet completion</label>
+        </div>
+        <div class="rep-btn-row">
+          <button class="rep-btn rep-btn-word" onclick="generateAnalyticsReport('word')">&#128196; Download Word (.doc)</button>
+          <button class="rep-btn rep-btn-pdf" onclick="generateAnalyticsReport('pdf')">&#128424; Open PDF (print / save)</button>
+        </div>
+        <div class="rep-note" id="rep-an-status"></div>
       </div>
     </div>
   </div>
@@ -4353,14 +4380,268 @@ function fallbackCopy(text, ok) {
 
 
 
+
+// ── Analytics Report (students + training material + at-risk + worksheets) ─────
+// Builds a structured data object from the same analytics computation the tab uses.
+function buildAnalyticsReportData(){
+  const { qStats, secStats, allStudents } = computeAnalytics();
+  const quizById = {}; QUIZZES.forEach(q => quizById[q.id] = q);
+  const trackedCount = QUIZZES.filter(q => q.type !== 'practice').length;
+
+  // Per-student rows
+  const students = [];
+  Object.entries(allStudents).forEach(([uid, byQuiz]) => {
+    const recs = Object.values(byQuiz);
+    if (!recs.length) return;
+    const finalized = recs.filter(r => r.status !== 'pending' && typeof r.score === 'number');
+    const scores = finalized.map(r => r.score);
+    const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+    const failed = finalized.filter(r => r.pass === false).length;
+    const passed = finalized.filter(r => r.pass === true).length;
+    const completed = recs.filter(r => r.status !== 'pending').length;
+    const pending = recs.filter(r => r.status === 'pending').length;
+    students.push({
+      uid, name: getName(uid) || '(no name)',
+      avg, passed, failed, completed, pending,
+      tracked: trackedCount,
+      signedOff: (typeof isSignedOff === 'function') ? isSignedOff(uid) : false,
+      worksheet: !!(SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(uid).toUpperCase()])
+    });
+  });
+  students.sort((a,b)=> (a.avg ?? 999) - (b.avg ?? 999));
+
+  // Sections (training-material health)
+  const sections = Object.entries(secStats)
+    .map(([sec,v]) => ({ sec, attempts: v.attempts, misses: v.misses, pct: v.attempts ? Math.round(v.misses/v.attempts*100) : 0 }))
+    .filter(s => s.attempts >= 1)
+    .sort((a,b)=> b.pct - a.pct);
+
+  // Most-missed questions
+  const questions = Object.values(qStats)
+    .filter(q => q.attempts >= 1 && q.misses > 0)
+    .map(q => Object.assign({}, q, { pct: Math.round(q.misses/q.attempts*100) }))
+    .sort((a,b)=> b.pct - a.pct || b.misses - a.misses)
+    .slice(0, 25);
+
+  // At-risk
+  const risks = [];
+  Object.entries(allStudents).forEach(([uid, byQuiz]) => {
+    const recs = Object.values(byQuiz);
+    if (!recs.length) return;
+    const finalized = recs.filter(r => r.status !== 'pending' && typeof r.score === 'number');
+    const scores = finalized.map(r => r.score);
+    const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+    const failed = finalized.filter(r => r.pass === false).length;
+    const completed = recs.filter(r => r.status !== 'pending').length;
+    const reasons = [];
+    if (avg !== null && avg < PASS_THRESHOLD) reasons.push('Average score ' + avg + '% (below ' + PASS_THRESHOLD + '%)');
+    if (failed > 0) reasons.push(failed + ' failed attempt' + (failed>1?'s':''));
+    if (trackedCount > 0 && completed > 0 && completed < trackedCount && (completed/trackedCount) < 0.5 && failed === 0 && (avg === null || avg >= PASS_THRESHOLD))
+      reasons.push('Stalled — ' + completed + ' of ' + trackedCount + ' completed');
+    if (reasons.length) risks.push({ uid, name: getName(uid) || '(no name)', avg, reasons });
+  });
+  risks.sort((a,b)=> (a.avg ?? 999) - (b.avg ?? 999));
+
+  // Worksheet completion (tie-in)
+  const wsRows = Object.values(SHEET_WORKSHEETS || {}).map(w => ({
+    name: (w.answers && w.answers.fullname) || w.name || w.id, id: w.id, date: w.date || ''
+  })).sort((a,b)=> String(a.name).localeCompare(String(b.name)));
+
+  // Summary
+  const totalAnswered = Object.values(qStats).reduce((s,q)=>s+q.attempts,0);
+  const totalMissed   = Object.values(qStats).reduce((s,q)=>s+q.misses,0);
+  const summary = {
+    students: students.length,
+    answersReviewed: totalAnswered,
+    overallMiss: totalAnswered ? Math.round(totalMissed/totalAnswered*100) : 0,
+    weakestSection: sections[0] ? sections[0].sec : '—',
+    weakestPct: sections[0] ? sections[0].pct : 0,
+    atRisk: risks.length,
+    worksheetsDone: wsRows.length
+  };
+  return { summary, students, sections, questions, risks, wsRows };
+}
+
+function anSelectedParts(){
+  const boxes = document.querySelectorAll('#rep-an-parts input[type=checkbox]:checked');
+  const set = {}; Array.from(boxes).forEach(b => set[b.value] = true);
+  return set;
+}
+function generateAnalyticsReport(fmt){
+  const status = document.getElementById('rep-an-status');
+  const parts = anSelectedParts();
+  if (!Object.keys(parts).length){ if(status) status.textContent = 'Pick at least one part to include.'; return; }
+  if (status) status.textContent = 'Refreshing data, then building your report…';
+  // Pull latest results + worksheets so the report is current.
+  loadResults(function(){
+    loadWorksheets(function(){
+      const data = buildAnalyticsReportData();
+      if (!data.students.length && !data.sections.length){ if(status) status.textContent='No student data recorded yet.'; return; }
+      if (fmt === 'pdf') buildAnalyticsPDF(data, parts); else buildAnalyticsDOC(data, parts);
+      if (status) status.textContent = (fmt === 'pdf') ? 'PDF opened in a new tab — use Save as PDF.' : 'Word document downloaded.';
+    });
+  });
+}
+
+function buildAnalyticsPDF(d, parts){
+  parts = parts || {summary:1,students:1,sections:1,questions:1,risk:1,worksheets:1};
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const sevColor = p => p>=40?'#b4123f':(p>=20?'#b8860b':'#0a7d2c');
+  let h = '<html><head><title>Breeze Dispatch — Training Analytics Report</title><style>'
+    + 'body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:820px;margin:24px auto;padding:0 26px;line-height:1.5;}'
+    + 'h1{font-size:23px;color:#001533;margin:0 0 2px;} .meta{color:#666;font-size:12px;margin-bottom:16px;}'
+    + 'h2{font-size:15px;color:#fff;background:#001533;padding:7px 12px;border-radius:5px;margin:24px 0 12px;}'
+    + '.cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}'
+    + '.card{border:1.5px solid #d6e2f2;border-radius:8px;padding:9px 14px;min-width:120px;}'
+    + '.card-num{font-size:20px;font-weight:bold;color:#001533;} .card-lbl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.04em;}'
+    + 'table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px;} th{background:#eef4fb;text-align:left;padding:6px 8px;font-size:10.5px;color:#001533;border-bottom:2px solid #d6e2f2;}'
+    + 'td{padding:5px 8px;border-bottom:1px solid #eee;} .r{text-align:right;} .c{text-align:center;}'
+    + '.pill{display:inline-block;font-size:9.5px;font-weight:bold;padding:1px 7px;border-radius:9px;} .pill-ok{background:#e3f7ea;color:#0a7d2c;} .pill-no{background:#ffe0e7;color:#b4123f;} .pill-warn{background:#fff2cc;color:#8a5a00;}'
+    + '.reason{font-size:11px;color:#555;} .bar{height:7px;background:#eef4fb;border-radius:9px;overflow:hidden;width:90px;display:inline-block;vertical-align:middle;} .bar-f{height:100%;}'
+    + '@media print{h2,.pill,.bar-f{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+    + '</style></head><body>';
+  h += `<h1>Training Analytics Report</h1><div class="meta">Breeze Airways · Dispatch Training & Standards · Generated ${today}</div>`;
+  // 1. Summary
+  if (parts.summary) {
+  h += '<h2>Executive Summary</h2><div class="cards">'
+    + `<div class="card"><div class="card-num">${d.summary.students}</div><div class="card-lbl">Students analyzed</div></div>`
+    + `<div class="card"><div class="card-num">${d.summary.answersReviewed}</div><div class="card-lbl">Answers reviewed</div></div>`
+    + `<div class="card"><div class="card-num">${d.summary.overallMiss}%</div><div class="card-lbl">Overall miss rate</div></div>`
+    + `<div class="card"><div class="card-num">${d.summary.weakestPct}%</div><div class="card-lbl">Weakest: ${repEscHtml(d.summary.weakestSection)}</div></div>`
+    + `<div class="card"><div class="card-num">${d.summary.atRisk}</div><div class="card-lbl">At-risk students</div></div>`
+    + `<div class="card"><div class="card-num">${d.summary.worksheetsDone}</div><div class="card-lbl">Worksheets done</div></div>`
+    + '</div>';
+  }
+  // 2. Student roster
+  if (parts.students) {
+  h += '<h2>Student Performance</h2><table><tr><th>Student</th><th>ID</th><th class="c">Avg</th><th class="c">Passed</th><th class="c">Failed</th><th class="c">Completed</th><th class="c">Status</th></tr>';
+  d.students.forEach(s => {
+    const avgTxt = s.avg!==null ? s.avg+'%' : '—';
+    const avgPill = s.avg===null ? '' : (s.avg>=PASS_THRESHOLD ? 'pill-ok' : 'pill-no');
+    h += `<tr><td>${repEscHtml(s.name)}</td><td>${repEscHtml(s.uid)}</td>`
+      + `<td class="c"><span class="pill ${avgPill}">${avgTxt}</span></td>`
+      + `<td class="c">${s.passed}</td><td class="c">${s.failed}</td>`
+      + `<td class="c">${s.completed}/${s.tracked}</td>`
+      + `<td class="c">${s.signedOff?'<span class="pill pill-ok">Signed off</span>':'<span class="pill pill-warn">In training</span>'}</td></tr>`;
+  });
+  h += '</table>';
+  }
+  // 3. Subject performance
+  if (parts.sections) {
+  h += '<h2>Subject / Material Performance</h2><table><tr><th>Section</th><th class="c">Miss rate</th><th class="c">Missed / Answered</th><th></th></tr>';
+  d.sections.forEach(s => {
+    h += `<tr><td>${repEscHtml(s.sec)}</td><td class="c" style="color:${sevColor(s.pct)};font-weight:bold;">${s.pct}%</td>`
+      + `<td class="c">${s.misses} / ${s.attempts}</td>`
+      + `<td><span class="bar"><span class="bar-f" style="width:${s.pct}%;background:${sevColor(s.pct)};"></span></span></td></tr>`;
+  });
+  h += '</table>';
+  }
+  // 4. Most-missed questions
+  if (parts.questions) {
+  h += '<h2>Most-Missed Questions</h2><table><tr><th>Question</th><th>Quiz</th><th class="c">Miss %</th><th class="c">Missed/Ans</th></tr>';
+  if (!d.questions.length) h += '<tr><td colspan="4" style="color:#888;">No missed questions recorded.</td></tr>';
+  d.questions.forEach(q => {
+    const txt = String(q.text).replace(/<[^>]*>/g,'').slice(0,110);
+    h += `<tr><td>${repEscHtml(txt)}${q.written?' <span class="pill pill-warn">Written</span>':''}</td>`
+      + `<td>${repEscHtml((q.mod?q.mod+' — ':'')+q.name)} · Q${q.n}</td>`
+      + `<td class="c" style="color:${sevColor(q.pct)};font-weight:bold;">${q.pct}%</td>`
+      + `<td class="c">${q.misses}/${q.attempts}</td></tr>`;
+  });
+  h += '</table>';
+  }
+  // 5. At-risk
+  if (parts.risk) {
+  h += '<h2>At-Risk Students</h2>';
+  if (!d.risks.length) h += '<div style="color:#0a7d2c;font-size:12px;">No students currently flagged — everyone at or above '+PASS_THRESHOLD+'% with steady progress.</div>';
+  else { h += '<table><tr><th>Student</th><th>ID</th><th class="c">Avg</th><th>Flags</th></tr>';
+    d.risks.forEach(r => { h += `<tr><td>${repEscHtml(r.name)}</td><td>${repEscHtml(r.uid)}</td><td class="c">${r.avg!==null?r.avg+'%':'—'}</td><td class="reason">${r.reasons.map(repEscHtml).join('; ')}</td></tr>`; });
+    h += '</table>';
+  }
+  }
+  // 6. Worksheet completion
+  if (parts.worksheets) {
+  h += '<h2>New-Hire Worksheet Completion</h2>';
+  if (!d.wsRows.length) h += '<div style="color:#888;font-size:12px;">No worksheet responses yet.</div>';
+  else { h += '<table><tr><th>Name</th><th>ID</th><th>Submitted</th></tr>';
+    d.wsRows.forEach(w => { h += `<tr><td>${repEscHtml(w.name)}</td><td>${repEscHtml(w.id)}</td><td>${repEscHtml(w.date)}</td></tr>`; });
+    h += '</table>';
+  }
+  }
+  h += '</body></html>';
+  const w = window.open('', '_blank');
+  if (w){ w.document.write(h); w.document.close(); setTimeout(()=>{ try{ w.print(); }catch(e){} }, 400); }
+}
+
+function buildAnalyticsDOC(d, parts){
+  parts = parts || {summary:1,students:1,sections:1,questions:1,risk:1,worksheets:1};
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const sevColor = p => p>=40?'b4123f':(p>=20?'b8860b':'0a7d2c');
+  let doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    + '<head><meta charset="utf-8"><title>Training Analytics Report</title><style>'
+    + 'body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;}'
+    + 'h1{font-size:19pt;color:#001533;margin:0 0 2pt;} .meta{color:#666;font-size:9.5pt;margin-bottom:12pt;}'
+    + 'h2{font-size:13pt;color:#fff;background:#001533;padding:5pt 9pt;margin:16pt 0 8pt;}'
+    + 'table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:8pt;}'
+    + 'th{background:#eef4fb;text-align:left;padding:4pt 6pt;font-size:9pt;color:#001533;border:1px solid #d6e2f2;}'
+    + 'td{padding:3pt 6pt;border:1px solid #e2e2e2;} .c{text-align:center;}'
+    + '</style></head><body>';
+  doc += `<h1>Training Analytics Report</h1><div class="meta">Breeze Airways &middot; Dispatch Training &amp; Standards &middot; Generated ${today}</div>`;
+  if (parts.summary) {
+  doc += '<h2>Executive Summary</h2><table><tr>'
+    + `<th>Students</th><th>Answers reviewed</th><th>Overall miss</th><th>Weakest subject</th><th>At-risk</th><th>Worksheets</th></tr><tr>`
+    + `<td class="c">${d.summary.students}</td><td class="c">${d.summary.answersReviewed}</td><td class="c">${d.summary.overallMiss}%</td>`
+    + `<td class="c">${repEscHtml(d.summary.weakestSection)} (${d.summary.weakestPct}%)</td><td class="c">${d.summary.atRisk}</td><td class="c">${d.summary.worksheetsDone}</td></tr></table>`;
+  }
+  if (parts.students) {
+  doc += '<h2>Student Performance</h2><table><tr><th>Student</th><th>ID</th><th class="c">Avg</th><th class="c">Passed</th><th class="c">Failed</th><th class="c">Completed</th><th class="c">Status</th></tr>';
+  d.students.forEach(s => { const avgTxt=s.avg!==null?s.avg+'%':'—';
+    doc += `<tr><td>${repEscHtml(s.name)}</td><td>${repEscHtml(s.uid)}</td><td class="c">${avgTxt}</td><td class="c">${s.passed}</td><td class="c">${s.failed}</td><td class="c">${s.completed}/${s.tracked}</td><td class="c">${s.signedOff?'Signed off':'In training'}</td></tr>`; });
+  doc += '</table>';
+  }
+  if (parts.sections) {
+  doc += '<h2>Subject / Material Performance</h2><table><tr><th>Section</th><th class="c">Miss rate</th><th class="c">Missed / Answered</th></tr>';
+  d.sections.forEach(s => { doc += `<tr><td>${repEscHtml(s.sec)}</td><td class="c" style="color:#${sevColor(s.pct)};font-weight:bold;">${s.pct}%</td><td class="c">${s.misses} / ${s.attempts}</td></tr>`; });
+  doc += '</table>';
+  }
+  if (parts.questions) {
+  doc += '<h2>Most-Missed Questions</h2><table><tr><th>Question</th><th>Quiz</th><th class="c">Miss %</th><th class="c">Missed/Ans</th></tr>';
+  if(!d.questions.length) doc += '<tr><td colspan="4">No missed questions recorded.</td></tr>';
+  d.questions.forEach(q => { const txt=String(q.text).replace(/<[^>]*>/g,'').slice(0,110);
+    doc += `<tr><td>${repEscHtml(txt)}${q.written?' (Written)':''}</td><td>${repEscHtml((q.mod?q.mod+' — ':'')+q.name)} · Q${q.n}</td><td class="c" style="color:#${sevColor(q.pct)};font-weight:bold;">${q.pct}%</td><td class="c">${q.misses}/${q.attempts}</td></tr>`; });
+  doc += '</table>';
+  }
+  if (parts.risk) {
+  doc += '<h2>At-Risk Students</h2>';
+  if(!d.risks.length) doc += '<p style="color:#0a7d2c;">No students currently flagged.</p>';
+  else { doc += '<table><tr><th>Student</th><th>ID</th><th class="c">Avg</th><th>Flags</th></tr>';
+    d.risks.forEach(r => { doc += `<tr><td>${repEscHtml(r.name)}</td><td>${repEscHtml(r.uid)}</td><td class="c">${r.avg!==null?r.avg+'%':'—'}</td><td>${r.reasons.map(repEscHtml).join('; ')}</td></tr>`; });
+    doc += '</table>'; }
+  }
+  if (parts.worksheets) {
+  doc += '<h2>New-Hire Worksheet Completion</h2>';
+  if(!d.wsRows.length) doc += '<p>No worksheet responses yet.</p>';
+  else { doc += '<table><tr><th>Name</th><th>ID</th><th>Submitted</th></tr>';
+    d.wsRows.forEach(w => { doc += `<tr><td>${repEscHtml(w.name)}</td><td>${repEscHtml(w.id)}</td><td>${repEscHtml(w.date)}</td></tr>`; });
+    doc += '</table>'; }
+  }
+  doc += '</body></html>';
+  const blob = new Blob(['\ufeff', doc], { type:'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='Breeze_Dispatch_Training_Analytics_Report.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
 // ── Question Bank Reports (for Learning & Development) ─────────────────────────
 const LETTERS_REP = ['A','B','C','D','E','F'];
 // Group all quizzes by section, preserving a sensible section order.
-function reportGrouped(){
+function reportGrouped(allowed){
   const order = ['Basic Indoctrination','General Subjects','Group II Aircraft','All Sections','Practice','OJT'];
+  const allowSet = (allowed && allowed.length) ? new Set(allowed) : null;
   const bySection = {};
   QUIZZES.forEach(q => {
     const sec = q.section || 'Other';
+    if (allowSet && !allowSet.has(sec)) return;   // scope to selected sections when provided
     if (!bySection[sec]) bySection[sec] = [];
     bySection[sec].push(q);
   });
@@ -4384,6 +4665,26 @@ function renderReportSummary(){
   el.innerHTML = `<div class="rep-stat"><div class="rep-stat-num">${s.sections}</div><div class="rep-stat-lbl">Sections</div></div>
     <div class="rep-stat"><div class="rep-stat-num">${s.quizzes}</div><div class="rep-stat-lbl">Quizzes</div></div>
     <div class="rep-stat"><div class="rep-stat-num">${s.questions}</div><div class="rep-stat-lbl">Questions</div></div>`;
+  // Build the "which sections" checkboxes for the Question Bank report from current data.
+  const secEl = document.getElementById('rep-qb-sections');
+  if (secEl){
+    const { sections } = reportGrouped();
+    const prev = {};
+    secEl.querySelectorAll('input[type=checkbox]').forEach(c => { prev[c.value] = c.checked; });
+    secEl.innerHTML = sections.map(sec => {
+      const checked = (sec in prev) ? prev[sec] : true;   // keep prior choice, default on
+      return `<label class="rep-chk"><input type="checkbox" value="${repEscHtml(sec)}" ${checked?'checked':''}> ${repEscHtml(sec)}</label>`;
+    }).join('') + '<button type="button" class="rep-allbtn" onclick="repToggleAllSections(this)">Toggle all</button>';
+  }
+}
+function repToggleAllSections(btn){
+  const boxes = document.querySelectorAll('#rep-qb-sections input[type=checkbox]');
+  const anyOff = Array.from(boxes).some(b => !b.checked);
+  boxes.forEach(b => b.checked = anyOff);   // if any are off, turn all on; else turn all off
+}
+function repSelectedSections(){
+  const boxes = document.querySelectorAll('#rep-qb-sections input[type=checkbox]:checked');
+  return Array.from(boxes).map(b => b.value);
 }
 function quizTypeLabel(t){ return t === 'test' ? 'Test / Exam' : (t === 'practice' ? 'Practice' : 'Knowledge Check'); }
 function qTypeName(q){
@@ -4439,18 +4740,24 @@ function refreshReportData(then){
 // ---- Generate: always refresh first so the report reflects the newest data ----
 function generateReport(fmt){
   const status = document.getElementById('rep-status');
+  const picked = repSelectedSections();
+  if (!picked.length){ if(status) status.textContent = 'Pick at least one section to include.'; return; }
   if (status) status.textContent = 'Refreshing data, then building your report…';
   refreshReportData(function(){
+    const pk = repSelectedSections();   // re-read after refresh (checkboxes rebuilt)
+    if (!pk.length){ if(status) status.textContent='Pick at least one section to include.'; return; }
     if (!QUIZZES || !QUIZZES.length){ if(status) status.textContent='No questions loaded — check the sheet connection and try Refresh.'; return; }
-    if (fmt === 'pdf') { buildReportPDF(); }
-    else { buildReportDOCX(); }
+    if (fmt === 'pdf') { buildReportPDF(pk); }
+    else { buildReportDOCX(pk); }
   });
 }
 function repEscHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function buildReportPDF(){
-  const { sections, bySection } = reportGrouped();
+function buildReportPDF(allowed){
+  const { sections, bySection } = reportGrouped(allowed);
   const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const s = reportStats();
+  // Stats for just the included sections.
+  let sQuiz=0, sQ=0; sections.forEach(sec=>bySection[sec].forEach(q=>{sQuiz++; sQ+=(q.questions||[]).length;}));
+  const s = { sections: sections.length, quizzes: sQuiz, questions: sQ };
   let html = '<html><head><title>Breeze Dispatch — Question Bank Report</title><style>'
     + 'body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:800px;margin:24px auto;padding:0 26px;line-height:1.5;}'
     + 'h1{font-size:24px;color:#001533;margin:0 0 2px;} .meta{color:#666;font-size:12.5px;margin-bottom:6px;}'
@@ -4521,12 +4828,13 @@ function buildReportPDF(){
 }
 
 // ---- Word version: build a Word-compatible document in the browser (no library, works offline) ----
-function buildReportDOCX(){
+function buildReportDOCX(allowed){
   const status = document.getElementById('rep-status');
   if (status) status.textContent = 'Building Word document…';
   try {
-    const { sections, bySection } = reportGrouped();
-    const st = reportStats();
+    const { sections, bySection } = reportGrouped(allowed);
+    let sQuiz=0, sQ=0; sections.forEach(sec=>bySection[sec].forEach(q=>{sQuiz++; sQ+=(q.questions||[]).length;}));
+    const st = { sections: sections.length, quizzes: sQuiz, questions: sQ };
     const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
     // Word opens an HTML document wrapped with the Office XML namespaces. Colors/bold/tables all render.
