@@ -439,6 +439,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 #admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets,#admin-prepcheck,#admin-reports{display:none;}
 #admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active,#admin-prepcheck.active,#admin-reports.active{display:block;}
 .rep-summary{display:flex;gap:14px;margin:0 0 1.3rem;flex-wrap:wrap;}
+.rep-refresh-btn{margin-left:auto;border:1.5px solid var(--blue);background:var(--skysoft);color:var(--blue);border-radius:9px;padding:9px 16px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);}
+.rep-refresh-btn:hover{background:#dcebff;}
+.rep-refresh-btn:disabled{opacity:.6;cursor:default;}
+.rep-updated{font-size:12px;color:var(--ink3);font-weight:600;margin:0 0 1rem;min-height:1em;}
 .rep-stat{background:#fff;border:1.5px solid var(--gray);border-radius:13px;padding:1rem 1.4rem;text-align:center;min-width:110px;}
 .rep-stat-num{font-family:var(--display);font-weight:800;font-size:28px;color:var(--navy);line-height:1;}
 .rep-stat-lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-top:5px;font-weight:700;}
@@ -1076,12 +1080,16 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
     <!-- REPORTS VIEW -->
     <div id="admin-reports">
-      <div class="admin-section-title" style="margin:0 0 .3rem;">Question Bank Reports</div>
+      <div class="app-list-head">
+        <div class="admin-section-title" style="margin:0;">Question Bank Reports</div>
+        <button class="rep-refresh-btn" id="rep-refresh-btn" onclick="refreshReportData()">&#8635; Refresh data</button>
+      </div>
       <div class="an-section-note">Generate a full report of all knowledge checks, tests, and questions — organized by section and quiz, with the answer key and references. For sending to Learning &amp; Development.</div>
+      <div class="rep-updated" id="rep-updated"></div>
       <div class="rep-summary" id="rep-summary"></div>
       <div class="rep-card">
         <div class="rep-card-title">Full Question Bank Report</div>
-        <div class="rep-card-sub">Every section &rarr; quiz &rarr; question, including correct answers, matching keys, scenario answers, and references.</div>
+        <div class="rep-card-sub">Every section &rarr; quiz &rarr; question, including correct answers, matching keys, scenario answers, and references. Each download pulls the latest data first, so your report is always current.</div>
         <div class="rep-btn-row">
           <button class="rep-btn rep-btn-word" onclick="generateReport('word')">&#128196; Download Word (.docx)</button>
           <button class="rep-btn rep-btn-pdf" onclick="generateReport('pdf')">&#128424; Open PDF (print / save)</button>
@@ -4188,8 +4196,8 @@ function setAdminView(view) {
   if (repTab) repTab.classList.toggle('active', view === 'reports');
   if (view === 'analytics') renderAnalytics();
   if (view === 'reports') {
-    // Pull the latest questions so the report reflects current content, then show a summary.
-    loadQuestions(function(){ renderReportSummary(); });
+    // Pull the latest questions so the report reflects current content.
+    refreshReportData();
   }
   if (view === 'prepcheck') {
     const list = document.getElementById('pc-list');
@@ -4405,12 +4413,38 @@ function qAnswerText(q){
   return `${LETTERS_REP[ci]}. ${(q.options||[])[ci]||''}`;
 }
 
-// ---- PDF (print) version: open a formatted HTML report in a new tab ----
+// Pull the latest questions from the sheet, update the summary + "last refreshed" stamp.
+var _repRefreshing = false;
+function refreshReportData(then){
+  if (_repRefreshing) return;
+  _repRefreshing = true;
+  const btn = document.getElementById('rep-refresh-btn');
+  const upd = document.getElementById('rep-updated');
+  if (btn){ btn.disabled = true; btn.textContent = '↻ Refreshing…'; }
+  if (upd) upd.textContent = 'Pulling the latest questions from the sheet…';
+  loadQuestions(function(ok){
+    _repRefreshing = false;
+    if (btn){ btn.disabled = false; btn.innerHTML = '&#8635; Refresh data'; }
+    renderReportSummary();
+    const now = new Date();
+    if (upd){
+      upd.innerHTML = ok
+        ? '&#10003; Data current as of ' + now.toLocaleString()
+        : '&#9888; Could not reach the sheet — showing last available data (' + now.toLocaleTimeString() + ')';
+    }
+    if (typeof then === 'function') then(ok);
+  });
+}
+
+// ---- Generate: always refresh first so the report reflects the newest data ----
 function generateReport(fmt){
   const status = document.getElementById('rep-status');
-  if (!QUIZZES || !QUIZZES.length){ if(status) status.textContent='No questions loaded yet — try Refresh.'; return; }
-  if (fmt === 'pdf') { buildReportPDF(); }
-  else { buildReportDOCX(); }
+  if (status) status.textContent = 'Refreshing data, then building your report…';
+  refreshReportData(function(){
+    if (!QUIZZES || !QUIZZES.length){ if(status) status.textContent='No questions loaded — check the sheet connection and try Refresh.'; return; }
+    if (fmt === 'pdf') { buildReportPDF(); }
+    else { buildReportDOCX(); }
+  });
 }
 function repEscHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function buildReportPDF(){
