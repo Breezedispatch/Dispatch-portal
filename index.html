@@ -4455,6 +4455,13 @@ function buildReportPDF(){
     + 'body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:800px;margin:24px auto;padding:0 26px;line-height:1.5;}'
     + 'h1{font-size:24px;color:#001533;margin:0 0 2px;} .meta{color:#666;font-size:12.5px;margin-bottom:6px;}'
     + '.stats{font-size:12.5px;color:#1F74DE;font-weight:bold;margin-bottom:18px;}'
+    + '.toc{border:1.5px solid #d6e2f2;border-radius:8px;padding:14px 18px;margin:0 0 8px;background:#f7fafd;}'
+    + '.toc-title{font-size:15px;font-weight:bold;color:#001533;margin:0 0 10px;}'
+    + '.toc-sec{font-size:13px;font-weight:bold;color:#1F74DE;margin:11px 0 4px;}'
+    + '.toc-item{font-size:12px;margin:2px 0 2px 14px;} .toc-item a{color:#1a1a1a;text-decoration:none;}'
+    + '.toc-item a:hover{text-decoration:underline;} .toc-badge{display:inline-block;font-size:9.5px;font-weight:bold;padding:1px 6px;border-radius:9px;margin-right:6px;vertical-align:middle;}'
+    + '.badge-test{background:#ffe0e7;color:#b4123f;} .badge-kc{background:#e3f0ff;color:#1F74DE;} .badge-practice{background:#eee7fb;color:#6b3fb0;} .badge-ojt{background:#fff2cc;color:#8a5a00;}'
+    + '.toc-count{color:#888;font-size:11px;}'
     + '.section{background:#001533;color:#fff;font-size:16px;font-weight:bold;padding:9px 14px;border-radius:6px;margin:26px 0 12px;}'
     + '.quiz{border-left:4px solid #1F74DE;padding:4px 0 4px 12px;margin:16px 0 10px;} .quiz-name{font-size:15px;font-weight:bold;color:#001533;}'
     + '.quiz-meta{font-size:11.5px;color:#777;} .q{margin:11px 0;padding-bottom:9px;border-bottom:1px solid #eee;}'
@@ -4462,15 +4469,38 @@ function buildReportPDF(){
     + '.opt{font-size:12.5px;margin-left:14px;} .opt-correct{color:#0a7d2c;font-weight:bold;}'
     + '.ans{font-size:12.5px;margin-top:3px;background:#f2f8ff;border-radius:5px;padding:5px 9px;} .ans b{color:#0a7d2c;}'
     + '.ref{font-size:11.5px;color:#666;font-style:italic;margin-top:3px;}'
-    + '@media print{.section{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+    + '@media print{.section,.toc-badge{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
     + '</style></head><body>';
   html += `<h1>Dispatch Question Bank Report</h1><div class="meta">Breeze Airways · Dispatch Training & Standards · Generated ${today}</div>`;
   html += `<div class="stats">${s.sections} sections · ${s.quizzes} quizzes · ${s.questions} questions</div>`;
+
+  // Give each quiz a stable anchor id for the index links.
+  const anchorOf = {};
+  let n = 0;
+  sections.forEach(sec => { bySection[sec].forEach(quiz => { anchorOf[quiz.id || ('q'+n)] = 'pbq_' + (n++); }); });
+  function badgeClass(t){ return t==='test'?'badge-test':(t==='practice'?'badge-practice':(t==='ojt'?'badge-ojt':'badge-kc')); }
+
+  // ---- Index / table of contents ----
+  html += '<div class="toc"><div class="toc-title">Contents</div>';
+  sections.forEach(sec => {
+    html += `<div class="toc-sec">${repEscHtml(sec)}</div>`;
+    bySection[sec].forEach(quiz => {
+      const qs = quiz.questions || [];
+      const aid = anchorOf[quiz.id || ''] || '';
+      html += `<div class="toc-item"><span class="toc-badge ${badgeClass(quiz.type)}">${quizTypeLabel(quiz.type)}</span>`
+        + `<a href="#${aid}">${repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name)}</a> `
+        + `<span class="toc-count">(${qs.length} question${qs.length!==1?'s':''})</span></div>`;
+    });
+  });
+  html += '</div>';
+
+  // ---- Body ----
   sections.forEach(sec => {
     html += `<div class="section">${repEscHtml(sec)}</div>`;
     bySection[sec].forEach(quiz => {
       const qs = quiz.questions || [];
-      html += `<div class="quiz"><div class="quiz-name">${repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name)}</div>`;
+      const aid = anchorOf[quiz.id || ''] || '';
+      html += `<div class="quiz" id="${aid}"><div class="quiz-name">${repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name)}</div>`;
       html += `<div class="quiz-meta">${quizTypeLabel(quiz.type)} · ${qs.length} question${qs.length!==1?'s':''} · Pass ${quiz.passMark}%${quiz.sub?' · '+repEscHtml(quiz.sub):''}</div></div>`;
       qs.forEach((q,idx) => {
         html += `<div class="q"><div class="q-type">Q${idx+1} · ${qTypeName(q)} · ${q.pts||0} pts</div><div class="q-text">${repEscHtml(q.text)}</div>`;
@@ -4507,6 +4537,10 @@ function buildReportDOCX(){
       + 'h1{font-size:20pt;color:#001533;margin:0 0 2pt;}'
       + '.meta{color:#666;font-size:9.5pt;margin-bottom:2pt;}'
       + '.stats{color:#1F74DE;font-size:10pt;font-weight:bold;margin-bottom:14pt;}'
+      + '.toc-title{font-size:13pt;font-weight:bold;color:#001533;margin:0 0 6pt;}'
+      + '.toc-sec{font-size:11pt;font-weight:bold;color:#1F74DE;margin:9pt 0 3pt;}'
+      + '.toc-item{font-size:10pt;margin:0 0 2pt 16pt;} .toc-item a{color:#1a1a1a;text-decoration:none;}'
+      + '.toc-badge{font-size:8pt;font-weight:bold;} .toc-count{color:#888;font-size:9pt;}'
       + '.section{background:#001533;color:#fff;font-size:13pt;font-weight:bold;padding:7pt 10pt;margin:18pt 0 9pt;}'
       + '.quiz-name{font-size:12pt;font-weight:bold;color:#001533;border-left:3pt solid #1F74DE;padding-left:8pt;margin:12pt 0 2pt;}'
       + '.quiz-meta{font-size:9pt;color:#777;font-style:italic;margin:0 0 6pt 8pt;}'
@@ -4521,11 +4555,30 @@ function buildReportDOCX(){
     doc += '<h1>Dispatch Question Bank Report</h1>';
     doc += '<div class="meta">Breeze Airways &middot; Dispatch Training &amp; Standards &middot; Generated ' + today + '</div>';
     doc += '<div class="stats">' + st.sections + ' sections &middot; ' + st.quizzes + ' quizzes &middot; ' + st.questions + ' questions</div>';
+
+    // Assign a stable anchor to each quiz for the index links.
+    const anchorOf = {}; let n = 0;
+    sections.forEach(sec => { bySection[sec].forEach(quiz => { anchorOf[quiz.id || ('q'+n)] = 'pbq_' + (n++); }); });
+
+    // ---- Index / table of contents ----
+    doc += '<div class="toc-title">Contents</div>';
+    sections.forEach(sec => {
+      doc += '<div class="toc-sec">' + repEscHtml(sec) + '</div>';
+      bySection[sec].forEach(quiz => {
+        const qs = quiz.questions || [];
+        const aid = anchorOf[quiz.id || ''] || '';
+        doc += '<div class="toc-item"><span class="toc-badge">[' + quizTypeLabel(quiz.type) + ']</span> '
+          + '<a href="#' + aid + '">' + repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name) + '</a> '
+          + '<span class="toc-count">(' + qs.length + ' question' + (qs.length!==1?'s':'') + ')</span></div>';
+      });
+    });
+
     sections.forEach(sec => {
       doc += '<div class="section">' + repEscHtml(sec) + '</div>';
       bySection[sec].forEach(quiz => {
         const qs = quiz.questions || [];
-        doc += '<div class="quiz-name">' + repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name) + '</div>';
+        const aid = anchorOf[quiz.id || ''] || '';
+        doc += '<div class="quiz-name"><a name="' + aid + '"></a>' + repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name) + '</div>';
         doc += '<div class="quiz-meta">' + quizTypeLabel(quiz.type) + ' &middot; ' + qs.length + ' question' + (qs.length!==1?'s':'') + ' &middot; Pass ' + quiz.passMark + '%' + (quiz.sub?' &middot; '+repEscHtml(quiz.sub):'') + '</div>';
         qs.forEach((q,idx) => {
           doc += '<div class="qtype">Q' + (idx+1) + ' &middot; ' + qTypeName(q) + ' &middot; ' + (q.pts||0) + ' pts</div>';
