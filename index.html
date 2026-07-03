@@ -1091,7 +1091,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="rep-card-title">Full Question Bank Report</div>
         <div class="rep-card-sub">Every section &rarr; quiz &rarr; question, including correct answers, matching keys, scenario answers, and references. Each download pulls the latest data first, so your report is always current.</div>
         <div class="rep-btn-row">
-          <button class="rep-btn rep-btn-word" onclick="generateReport('word')">&#128196; Download Word (.docx)</button>
+          <button class="rep-btn rep-btn-word" onclick="generateReport('word')">&#128196; Download Word (.doc)</button>
           <button class="rep-btn rep-btn-pdf" onclick="generateReport('pdf')">&#128424; Open PDF (print / save)</button>
         </div>
         <div class="rep-note" id="rep-status"></div>
@@ -4490,58 +4490,68 @@ function buildReportPDF(){
   const status=document.getElementById('rep-status'); if(status) status.textContent='PDF report opened in a new tab — use your browser\u2019s Save as PDF.';
 }
 
-// ---- Word (.docx) version: build with the docx library loaded on demand ----
-function loadDocxLib(cb){
-  if (window.docx) { cb(true); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js';
-  s.onload = function(){ cb(!!window.docx); };
-  s.onerror = function(){ cb(false); };
-  document.head.appendChild(s);
-}
+// ---- Word version: build a Word-compatible document in the browser (no library, works offline) ----
 function buildReportDOCX(){
   const status = document.getElementById('rep-status');
   if (status) status.textContent = 'Building Word document…';
-  loadDocxLib(function(ok){
-    if (!ok || !window.docx){ if(status) status.textContent='Could not load the Word generator (offline?). Try the PDF option instead.'; return; }
-    try {
-      const D = window.docx;
-      const { sections, bySection } = reportGrouped();
-      const st = reportStats();
-      const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-      const kids = [];
-      kids.push(new D.Paragraph({ children:[new D.TextRun({text:'Dispatch Question Bank Report', bold:true, size:36, color:'001533'})] }));
-      kids.push(new D.Paragraph({ children:[new D.TextRun({text:`Breeze Airways · Dispatch Training & Standards · Generated ${today}`, size:19, color:'666666'})] }));
-      kids.push(new D.Paragraph({ children:[new D.TextRun({text:`${st.sections} sections · ${st.quizzes} quizzes · ${st.questions} questions`, size:20, color:'1F74DE', bold:true})], spacing:{after:220} }));
-      sections.forEach(sec => {
-        kids.push(new D.Paragraph({ shading:{type:D.ShadingType.SOLID, color:'001533'}, spacing:{before:260, after:120}, children:[new D.TextRun({text:sec, bold:true, size:26, color:'FFFFFF'})] }));
-        bySection[sec].forEach(quiz => {
-          const qs = quiz.questions || [];
-          kids.push(new D.Paragraph({ spacing:{before:160, after:20}, border:{left:{color:'1F74DE',space:6,style:D.BorderStyle.SINGLE,size:18}}, children:[new D.TextRun({text: (quiz.mod?quiz.mod+' — ':'')+quiz.name, bold:true, size:24, color:'001533'})] }));
-          kids.push(new D.Paragraph({ spacing:{after:80}, children:[new D.TextRun({text:`${quizTypeLabel(quiz.type)} · ${qs.length} question${qs.length!==1?'s':''} · Pass ${quiz.passMark}%${quiz.sub?' · '+quiz.sub:''}`, size:18, color:'777777', italics:true})] }));
-          qs.forEach((q,idx) => {
-            kids.push(new D.Paragraph({ spacing:{before:120}, children:[new D.TextRun({text:`Q${idx+1} · ${qTypeName(q)} · ${q.pts||0} pts`, size:16, color:'1F74DE', bold:true})] }));
-            kids.push(new D.Paragraph({ children:[new D.TextRun({text:q.text||'', bold:true, size:21})] }));
-            if (!q.qtype && !q.written) {
-              (q.options||[]).forEach((o,i)=>{ if(String(o).trim()){ const isC=i===Number(q.correct); kids.push(new D.Paragraph({ indent:{left:300}, children:[new D.TextRun({text:`${LETTERS_REP[i]}. ${o}${isC?'  ✓':''}`, size:20, bold:isC, color:isC?'0A7D2C':'000000'})] })); } });
-            } else {
-              kids.push(new D.Paragraph({ shading:{type:D.ShadingType.SOLID,color:'F2F8FF'}, children:[new D.TextRun({text:'Answer: ', bold:true, size:20, color:'0A7D2C'}), new D.TextRun({text:qAnswerText(q), size:20})] }));
-            }
-            if (q.cite) kids.push(new D.Paragraph({ children:[new D.TextRun({text:'Reference: '+q.cite, size:18, italics:true, color:'666666'})] }));
-          });
+  try {
+    const { sections, bySection } = reportGrouped();
+    const st = reportStats();
+    const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+    // Word opens an HTML document wrapped with the Office XML namespaces. Colors/bold/tables all render.
+    let doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+      + '<head><meta charset="utf-8"><title>Dispatch Question Bank Report</title>'
+      + '<style>'
+      + 'body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;}'
+      + 'h1{font-size:20pt;color:#001533;margin:0 0 2pt;}'
+      + '.meta{color:#666;font-size:9.5pt;margin-bottom:2pt;}'
+      + '.stats{color:#1F74DE;font-size:10pt;font-weight:bold;margin-bottom:14pt;}'
+      + '.section{background:#001533;color:#fff;font-size:13pt;font-weight:bold;padding:7pt 10pt;margin:18pt 0 9pt;}'
+      + '.quiz-name{font-size:12pt;font-weight:bold;color:#001533;border-left:3pt solid #1F74DE;padding-left:8pt;margin:12pt 0 2pt;}'
+      + '.quiz-meta{font-size:9pt;color:#777;font-style:italic;margin:0 0 6pt 8pt;}'
+      + '.qtype{font-size:8.5pt;color:#1F74DE;font-weight:bold;margin-top:9pt;}'
+      + '.qtext{font-weight:bold;font-size:10.5pt;margin:1pt 0;}'
+      + '.opt{font-size:10pt;margin-left:16pt;}'
+      + '.opt-correct{color:#0A7D2C;font-weight:bold;}'
+      + '.ans{font-size:10pt;background:#F2F8FF;padding:4pt 8pt;margin-top:2pt;}'
+      + '.ans-lbl{color:#0A7D2C;font-weight:bold;}'
+      + '.ref{font-size:9pt;color:#666;font-style:italic;margin-top:2pt;}'
+      + '</style></head><body>';
+    doc += '<h1>Dispatch Question Bank Report</h1>';
+    doc += '<div class="meta">Breeze Airways &middot; Dispatch Training &amp; Standards &middot; Generated ' + today + '</div>';
+    doc += '<div class="stats">' + st.sections + ' sections &middot; ' + st.quizzes + ' quizzes &middot; ' + st.questions + ' questions</div>';
+    sections.forEach(sec => {
+      doc += '<div class="section">' + repEscHtml(sec) + '</div>';
+      bySection[sec].forEach(quiz => {
+        const qs = quiz.questions || [];
+        doc += '<div class="quiz-name">' + repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name) + '</div>';
+        doc += '<div class="quiz-meta">' + quizTypeLabel(quiz.type) + ' &middot; ' + qs.length + ' question' + (qs.length!==1?'s':'') + ' &middot; Pass ' + quiz.passMark + '%' + (quiz.sub?' &middot; '+repEscHtml(quiz.sub):'') + '</div>';
+        qs.forEach((q,idx) => {
+          doc += '<div class="qtype">Q' + (idx+1) + ' &middot; ' + qTypeName(q) + ' &middot; ' + (q.pts||0) + ' pts</div>';
+          doc += '<div class="qtext">' + repEscHtml(q.text) + '</div>';
+          if (!q.qtype && !q.written) {
+            (q.options||[]).forEach((o,i)=>{ if(String(o).trim()){ const isC=i===Number(q.correct); doc += '<div class="opt ' + (isC?'opt-correct':'') + '">' + LETTERS_REP[i] + '. ' + repEscHtml(o) + (isC?' &#10003;':'') + '</div>'; } });
+          } else {
+            doc += '<div class="ans"><span class="ans-lbl">Answer:</span> ' + repEscHtml(qAnswerText(q)) + '</div>';
+          }
+          if (q.cite) doc += '<div class="ref">Reference: ' + repEscHtml(q.cite) + '</div>';
         });
       });
-      const doc = new D.Document({ sections:[{ properties:{}, children:kids }] });
-      D.Packer.toBlob(doc).then(function(blob){
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'Breeze_Dispatch_Question_Bank_Report.docx';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(()=>URL.revokeObjectURL(url), 4000);
-        if (status) status.textContent = 'Word document downloaded.';
-      }).catch(function(e){ if(status) status.textContent='Could not build the Word file — try the PDF option. ('+e.message+')'; });
-    } catch(e){ if(status) status.textContent='Report error: '+e.message+' — try the PDF option.'; }
-  });
+    });
+    doc += '</body></html>';
+
+    const blob = new Blob(['\ufeff', doc], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Breeze_Dispatch_Question_Bank_Report.doc';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    if (status) status.textContent = 'Word document downloaded — opens in Microsoft Word.';
+  } catch(e){
+    if (status) status.textContent = 'Could not build the Word file (' + e.message + ') — the PDF option always works.';
+  }
 }
 
 // ── Trainer Class Prep Checklist (shared master list) ──────────────────────────
