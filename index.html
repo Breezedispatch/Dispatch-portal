@@ -436,8 +436,22 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .admin-viewtabs{display:inline-flex;gap:4px;background:var(--gray);border-radius:12px;padding:4px;margin-bottom:1.5rem;}
 .admin-viewtab{font-family:var(--font);font-weight:700;font-size:12px;letter-spacing:.03em;padding:9px 18px;border-radius:9px;border:none;background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
 .admin-viewtab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(4,28,52,.08);}
-#admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets,#admin-prepcheck{display:none;}
-#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active,#admin-prepcheck.active{display:block;}
+#admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets,#admin-prepcheck,#admin-reports{display:none;}
+#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active,#admin-prepcheck.active,#admin-reports.active{display:block;}
+.rep-summary{display:flex;gap:14px;margin:0 0 1.3rem;flex-wrap:wrap;}
+.rep-stat{background:#fff;border:1.5px solid var(--gray);border-radius:13px;padding:1rem 1.4rem;text-align:center;min-width:110px;}
+.rep-stat-num{font-family:var(--display);font-weight:800;font-size:28px;color:var(--navy);line-height:1;}
+.rep-stat-lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-top:5px;font-weight:700;}
+.rep-card{background:#fff;border:1.5px solid var(--gray);border-radius:16px;padding:1.5rem 1.6rem;max-width:640px;}
+.rep-card-title{font-family:var(--display);font-weight:800;font-size:17px;color:var(--ink);}
+.rep-card-sub{font-size:13px;color:var(--ink2);margin:.4rem 0 1.2rem;line-height:1.5;}
+.rep-btn-row{display:flex;gap:12px;flex-wrap:wrap;}
+.rep-btn{border:none;border-radius:11px;padding:12px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:var(--font);}
+.rep-btn-word{background:var(--navy);color:#fff;box-shadow:0 6px 16px rgba(11,31,58,.18);}
+.rep-btn-word:hover{transform:translateY(-1px);}
+.rep-btn-pdf{background:#fff;border:1.5px solid var(--navy);color:var(--navy);}
+.rep-btn-pdf:hover{background:var(--surface);}
+.rep-note{font-size:12px;color:var(--ink3);margin-top:.9rem;min-height:1em;}
 .pc-reset-btn{border:1.5px solid var(--gray);background:#fff;color:var(--ink2);border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);}
 .pc-reset-btn:hover{border-color:var(--gold);color:#8a5a00;}
 .pc-progress{display:flex;align-items:center;gap:12px;margin:0 0 1rem;}
@@ -954,6 +968,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <button class="admin-viewtab" id="viewtab-applicants" onclick="setAdminView('applicants')">&#128188; Applicants</button>
       <button class="admin-viewtab" id="viewtab-worksheets" onclick="setAdminView('worksheets')">&#9998; New Hire Worksheets</button>
       <button class="admin-viewtab" id="viewtab-prepcheck" onclick="setAdminView('prepcheck')">&#9745; Class Prep Checklist</button>
+      <button class="admin-viewtab" id="viewtab-reports" onclick="setAdminView('reports')">&#128196; Reports</button>
     </div>
 
     <!-- ROSTER VIEW (existing) -->
@@ -1057,6 +1072,22 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <div id="pc-progress" class="pc-progress"></div>
       <div id="pc-list"></div>
       <button class="pc-add-btn" onclick="prepCheckAdd()">&#43; Add checklist item</button>
+    </div>
+
+    <!-- REPORTS VIEW -->
+    <div id="admin-reports">
+      <div class="admin-section-title" style="margin:0 0 .3rem;">Question Bank Reports</div>
+      <div class="an-section-note">Generate a full report of all knowledge checks, tests, and questions — organized by section and quiz, with the answer key and references. For sending to Learning &amp; Development.</div>
+      <div class="rep-summary" id="rep-summary"></div>
+      <div class="rep-card">
+        <div class="rep-card-title">Full Question Bank Report</div>
+        <div class="rep-card-sub">Every section &rarr; quiz &rarr; question, including correct answers, matching keys, scenario answers, and references.</div>
+        <div class="rep-btn-row">
+          <button class="rep-btn rep-btn-word" onclick="generateReport('word')">&#128196; Download Word (.docx)</button>
+          <button class="rep-btn rep-btn-pdf" onclick="generateReport('pdf')">&#128424; Open PDF (print / save)</button>
+        </div>
+        <div class="rep-note" id="rep-status"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -4143,6 +4174,8 @@ function setAdminView(view) {
   if (wsEl) wsEl.classList.toggle('active', view === 'worksheets');
   var pcEl = document.getElementById('admin-prepcheck');
   if (pcEl) pcEl.classList.toggle('active', view === 'prepcheck');
+  var repEl = document.getElementById('admin-reports');
+  if (repEl) repEl.classList.toggle('active', view === 'reports');
   document.getElementById('viewtab-roster').classList.toggle('active', view === 'roster');
   document.getElementById('viewtab-analytics').classList.toggle('active', view === 'analytics');
   var appTab = document.getElementById('viewtab-applicants');
@@ -4151,7 +4184,13 @@ function setAdminView(view) {
   if (wsTab) wsTab.classList.toggle('active', view === 'worksheets');
   var pcTab = document.getElementById('viewtab-prepcheck');
   if (pcTab) pcTab.classList.toggle('active', view === 'prepcheck');
+  var repTab = document.getElementById('viewtab-reports');
+  if (repTab) repTab.classList.toggle('active', view === 'reports');
   if (view === 'analytics') renderAnalytics();
+  if (view === 'reports') {
+    // Pull the latest questions so the report reflects current content, then show a summary.
+    loadQuestions(function(){ renderReportSummary(); });
+  }
   if (view === 'prepcheck') {
     const list = document.getElementById('pc-list');
     if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading checklist…</div>';
@@ -4304,6 +4343,172 @@ function fallbackCopy(text, ok) {
   document.body.removeChild(ta);
 }
 
+
+
+// ── Question Bank Reports (for Learning & Development) ─────────────────────────
+const LETTERS_REP = ['A','B','C','D','E','F'];
+// Group all quizzes by section, preserving a sensible section order.
+function reportGrouped(){
+  const order = ['Basic Indoctrination','General Subjects','Group II Aircraft','All Sections','Practice','OJT'];
+  const bySection = {};
+  QUIZZES.forEach(q => {
+    const sec = q.section || 'Other';
+    if (!bySection[sec]) bySection[sec] = [];
+    bySection[sec].push(q);
+  });
+  const sections = Object.keys(bySection).sort((a,b)=>{
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    if (ia<0 && ib<0) return a.localeCompare(b);
+    if (ia<0) return 1; if (ib<0) return -1; return ia-ib;
+  });
+  return { sections, bySection };
+}
+function reportStats(){
+  let quizzes = 0, questions = 0;
+  QUIZZES.forEach(q => { quizzes++; questions += (q.questions||[]).length; });
+  const secs = new Set(QUIZZES.map(q=>q.section||'Other'));
+  return { sections: secs.size, quizzes, questions };
+}
+function renderReportSummary(){
+  const el = document.getElementById('rep-summary');
+  if (!el) return;
+  const s = reportStats();
+  el.innerHTML = `<div class="rep-stat"><div class="rep-stat-num">${s.sections}</div><div class="rep-stat-lbl">Sections</div></div>
+    <div class="rep-stat"><div class="rep-stat-num">${s.quizzes}</div><div class="rep-stat-lbl">Quizzes</div></div>
+    <div class="rep-stat"><div class="rep-stat-num">${s.questions}</div><div class="rep-stat-lbl">Questions</div></div>`;
+}
+function quizTypeLabel(t){ return t === 'test' ? 'Test / Exam' : (t === 'practice' ? 'Practice' : 'Knowledge Check'); }
+function qTypeName(q){
+  if (q.qtype === 'matching') return 'Matching';
+  if (q.qtype === 'scenario') return 'Scenario';
+  if (q.qtype === 'hotspot') return 'Tap the spot';
+  if (q.written) return 'Written';
+  return 'Multiple choice';
+}
+// Build a plain structured answer string for a question (used by both PDF and DOCX).
+function qAnswerText(q){
+  if (q.qtype === 'matching') {
+    return (q.pairs||[]).map(p => `${p.left} → ${p.right}`).join('; ');
+  }
+  if (q.qtype === 'scenario') {
+    return (q.subs||[]).map((s,i) => {
+      if (s.type === 'written') return `(${i+1}) Model: ${s.model||'—'}`;
+      const opts = s.options||[]; const ci = Number(s.correct)||0;
+      return `(${i+1}) ${LETTERS_REP[ci]}. ${opts[ci]||''}`;
+    }).join('  |  ');
+  }
+  if (q.qtype === 'hotspot') {
+    return `Tap-the-spot on image (${(q.targets||[]).length} target${(q.targets||[]).length!==1?'s':''} defined)`;
+  }
+  if (q.written) return `Model answer: ${q.model||'—'}`;
+  const ci = Number(q.correct)||0;
+  return `${LETTERS_REP[ci]}. ${(q.options||[])[ci]||''}`;
+}
+
+// ---- PDF (print) version: open a formatted HTML report in a new tab ----
+function generateReport(fmt){
+  const status = document.getElementById('rep-status');
+  if (!QUIZZES || !QUIZZES.length){ if(status) status.textContent='No questions loaded yet — try Refresh.'; return; }
+  if (fmt === 'pdf') { buildReportPDF(); }
+  else { buildReportDOCX(); }
+}
+function repEscHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function buildReportPDF(){
+  const { sections, bySection } = reportGrouped();
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const s = reportStats();
+  let html = '<html><head><title>Breeze Dispatch — Question Bank Report</title><style>'
+    + 'body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:800px;margin:24px auto;padding:0 26px;line-height:1.5;}'
+    + 'h1{font-size:24px;color:#001533;margin:0 0 2px;} .meta{color:#666;font-size:12.5px;margin-bottom:6px;}'
+    + '.stats{font-size:12.5px;color:#1F74DE;font-weight:bold;margin-bottom:18px;}'
+    + '.section{background:#001533;color:#fff;font-size:16px;font-weight:bold;padding:9px 14px;border-radius:6px;margin:26px 0 12px;}'
+    + '.quiz{border-left:4px solid #1F74DE;padding:4px 0 4px 12px;margin:16px 0 10px;} .quiz-name{font-size:15px;font-weight:bold;color:#001533;}'
+    + '.quiz-meta{font-size:11.5px;color:#777;} .q{margin:11px 0;padding-bottom:9px;border-bottom:1px solid #eee;}'
+    + '.q-text{font-weight:bold;font-size:13px;} .q-type{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#1F74DE;font-weight:bold;}'
+    + '.opt{font-size:12.5px;margin-left:14px;} .opt-correct{color:#0a7d2c;font-weight:bold;}'
+    + '.ans{font-size:12.5px;margin-top:3px;background:#f2f8ff;border-radius:5px;padding:5px 9px;} .ans b{color:#0a7d2c;}'
+    + '.ref{font-size:11.5px;color:#666;font-style:italic;margin-top:3px;}'
+    + '@media print{.section{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+    + '</style></head><body>';
+  html += `<h1>Dispatch Question Bank Report</h1><div class="meta">Breeze Airways · Dispatch Training & Standards · Generated ${today}</div>`;
+  html += `<div class="stats">${s.sections} sections · ${s.quizzes} quizzes · ${s.questions} questions</div>`;
+  sections.forEach(sec => {
+    html += `<div class="section">${repEscHtml(sec)}</div>`;
+    bySection[sec].forEach(quiz => {
+      const qs = quiz.questions || [];
+      html += `<div class="quiz"><div class="quiz-name">${repEscHtml(quiz.mod ? quiz.mod + ' — ' + quiz.name : quiz.name)}</div>`;
+      html += `<div class="quiz-meta">${quizTypeLabel(quiz.type)} · ${qs.length} question${qs.length!==1?'s':''} · Pass ${quiz.passMark}%${quiz.sub?' · '+repEscHtml(quiz.sub):''}</div></div>`;
+      qs.forEach((q,idx) => {
+        html += `<div class="q"><div class="q-type">Q${idx+1} · ${qTypeName(q)} · ${q.pts||0} pts</div><div class="q-text">${repEscHtml(q.text)}</div>`;
+        if (!q.qtype && !q.written) {
+          (q.options||[]).forEach((o,i)=>{ if(String(o).trim()) html += `<div class="opt ${i===Number(q.correct)?'opt-correct':''}">${LETTERS_REP[i]}. ${repEscHtml(o)}${i===Number(q.correct)?' ✓':''}</div>`; });
+        } else {
+          html += `<div class="ans"><b>Answer:</b> ${repEscHtml(qAnswerText(q))}</div>`;
+        }
+        if (q.cite) html += `<div class="ref">Reference: ${repEscHtml(q.cite)}</div>`;
+        html += `</div>`;
+      });
+    });
+  });
+  html += '</body></html>';
+  const w = window.open('', '_blank');
+  if (w){ w.document.write(html); w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 400); }
+  const status=document.getElementById('rep-status'); if(status) status.textContent='PDF report opened in a new tab — use your browser\u2019s Save as PDF.';
+}
+
+// ---- Word (.docx) version: build with the docx library loaded on demand ----
+function loadDocxLib(cb){
+  if (window.docx) { cb(true); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js';
+  s.onload = function(){ cb(!!window.docx); };
+  s.onerror = function(){ cb(false); };
+  document.head.appendChild(s);
+}
+function buildReportDOCX(){
+  const status = document.getElementById('rep-status');
+  if (status) status.textContent = 'Building Word document…';
+  loadDocxLib(function(ok){
+    if (!ok || !window.docx){ if(status) status.textContent='Could not load the Word generator (offline?). Try the PDF option instead.'; return; }
+    try {
+      const D = window.docx;
+      const { sections, bySection } = reportGrouped();
+      const st = reportStats();
+      const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+      const kids = [];
+      kids.push(new D.Paragraph({ children:[new D.TextRun({text:'Dispatch Question Bank Report', bold:true, size:36, color:'001533'})] }));
+      kids.push(new D.Paragraph({ children:[new D.TextRun({text:`Breeze Airways · Dispatch Training & Standards · Generated ${today}`, size:19, color:'666666'})] }));
+      kids.push(new D.Paragraph({ children:[new D.TextRun({text:`${st.sections} sections · ${st.quizzes} quizzes · ${st.questions} questions`, size:20, color:'1F74DE', bold:true})], spacing:{after:220} }));
+      sections.forEach(sec => {
+        kids.push(new D.Paragraph({ shading:{type:D.ShadingType.SOLID, color:'001533'}, spacing:{before:260, after:120}, children:[new D.TextRun({text:sec, bold:true, size:26, color:'FFFFFF'})] }));
+        bySection[sec].forEach(quiz => {
+          const qs = quiz.questions || [];
+          kids.push(new D.Paragraph({ spacing:{before:160, after:20}, border:{left:{color:'1F74DE',space:6,style:D.BorderStyle.SINGLE,size:18}}, children:[new D.TextRun({text: (quiz.mod?quiz.mod+' — ':'')+quiz.name, bold:true, size:24, color:'001533'})] }));
+          kids.push(new D.Paragraph({ spacing:{after:80}, children:[new D.TextRun({text:`${quizTypeLabel(quiz.type)} · ${qs.length} question${qs.length!==1?'s':''} · Pass ${quiz.passMark}%${quiz.sub?' · '+quiz.sub:''}`, size:18, color:'777777', italics:true})] }));
+          qs.forEach((q,idx) => {
+            kids.push(new D.Paragraph({ spacing:{before:120}, children:[new D.TextRun({text:`Q${idx+1} · ${qTypeName(q)} · ${q.pts||0} pts`, size:16, color:'1F74DE', bold:true})] }));
+            kids.push(new D.Paragraph({ children:[new D.TextRun({text:q.text||'', bold:true, size:21})] }));
+            if (!q.qtype && !q.written) {
+              (q.options||[]).forEach((o,i)=>{ if(String(o).trim()){ const isC=i===Number(q.correct); kids.push(new D.Paragraph({ indent:{left:300}, children:[new D.TextRun({text:`${LETTERS_REP[i]}. ${o}${isC?'  ✓':''}`, size:20, bold:isC, color:isC?'0A7D2C':'000000'})] })); } });
+            } else {
+              kids.push(new D.Paragraph({ shading:{type:D.ShadingType.SOLID,color:'F2F8FF'}, children:[new D.TextRun({text:'Answer: ', bold:true, size:20, color:'0A7D2C'}), new D.TextRun({text:qAnswerText(q), size:20})] }));
+            }
+            if (q.cite) kids.push(new D.Paragraph({ children:[new D.TextRun({text:'Reference: '+q.cite, size:18, italics:true, color:'666666'})] }));
+          });
+        });
+      });
+      const doc = new D.Document({ sections:[{ properties:{}, children:kids }] });
+      D.Packer.toBlob(doc).then(function(blob){
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'Breeze_Dispatch_Question_Bank_Report.docx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+        if (status) status.textContent = 'Word document downloaded.';
+      }).catch(function(e){ if(status) status.textContent='Could not build the Word file — try the PDF option. ('+e.message+')'; });
+    } catch(e){ if(status) status.textContent='Report error: '+e.message+' — try the PDF option.'; }
+  });
+}
 
 // ── Trainer Class Prep Checklist (shared master list) ──────────────────────────
 var PREPCHECK_DATA = [];
