@@ -356,24 +356,45 @@ let dirty = false;
 function loadData() {
   setStatus('Connecting…');
   jsonp(QUESTIONS_URL, function(res){
-    if (!res || res.status !== 'ok') { setStatus('⚠ Load failed', true); toast('Could not load questions','err'); return; }
+    if (!res || res.status !== 'ok') { showConnRetry('Load failed'); toast('Could not load questions','err'); return; }
     allQuizzes = res.quizzes || [];
     allQuestions = res.questions || [];
     setStatus('● Connected');
     buildQuizList();
-  }, function(){ setStatus('⚠ Connection error', true); toast('Connection error — check the URL','err'); });
+  }, function(){ showConnRetry('Connection error'); toast('Connection error — tap the status to retry','err'); });
+}
+// Show the connection error as a clickable "retry" so a slow/dropped load can be re-attempted
+// without reloading the whole page (which would lose any unsaved edits).
+function showConnRetry(label){
+  const e = document.getElementById('conn-status');
+  if (!e) return;
+  e.innerHTML = '⚠ ' + label + ' — <span style="text-decoration:underline;cursor:pointer;">Retry</span>';
+  e.style.color = '#ffb3ab';
+  e.style.cursor = 'pointer';
+  e.onclick = function(){ e.onclick = null; e.style.cursor = ''; loadData(); };
+  // Also auto-retry once after a short delay, in case it was a transient cold-start hiccup.
+  if (!window._connAutoRetried){ window._connAutoRetried = true; setTimeout(function(){ if (allQuizzes.length === 0) loadData(); }, 4000); }
 }
 
 function jsonp(url, ok, fail) {
   const cb = 'cb_' + Math.random().toString(36).slice(2);
   const s = document.createElement('script');
-  let done = false;
-  window[cb] = function(data){ done = true; ok(data); cleanup(); };
-  function cleanup(){ delete window[cb]; if (s.parentNode) s.parentNode.removeChild(s); }
-  s.onerror = function(){ if(!done){ fail && fail(); cleanup(); } };
+  let done = false;      // a real result (success) arrived
+  let reported = false;  // we've told the caller something
+  function cleanup(){ try { delete window[cb]; } catch(e){} if (s.parentNode) s.parentNode.removeChild(s); }
+  window[cb] = function(data){
+    if (done) return; done = true;
+    ok(data);            // late success still delivers — clears the error banner
+    cleanup();
+  };
+  s.onerror = function(){ if(!done && !reported){ reported = true; fail && fail(); cleanup(); } };
   s.src = url + (url.indexOf('?')>-1?'&':'?') + 'callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ if(!done){ fail && fail(); cleanup(); } }, 12000);
+  // The full question bank is a large payload and the shared Apps Script backend can be
+  // slow on a cold start, so allow 20s before reporting a problem — but leave the callback
+  // armed so a late response can still succeed. Hard-stop cleanup at 45s.
+  setTimeout(function(){ if(!done && !reported){ reported = true; fail && fail(); } }, 20000);
+  setTimeout(function(){ if(!done){ cleanup(); } }, 45000);
 }
 
 // POST via hidden form+iframe (write), then reload
