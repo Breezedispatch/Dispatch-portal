@@ -1833,21 +1833,34 @@ function loadQuestions(done) {
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
   const cb = 'qcb_' + Math.random().toString(36).slice(2);
   const s = document.createElement('script');
-  let finished = false;
-  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  let reported = false;   // have we told the caller yet?
+  let settled = false;    // has a real (success or hard-error) result arrived?
+  function cleanup(){ try { delete window[cb]; } catch(e){} if (s.parentNode) s.parentNode.removeChild(s); }
+  // Report the outcome to the caller. A late-but-valid response may call this a SECOND
+  // time with ok=true after we already reported the timeout — that's intentional, so the
+  // "couldn't reach the sheet" warning clears itself once the (slow) data actually lands.
+  function report(ok){ if (reported && !ok) return; reported = true; done && done(ok); }
   window[cb] = function(res){
+    if (settled) return;
     try {
       if (res && res.status === 'ok' && res.quizzes && res.quizzes.length) {
+        settled = true;
         const built = buildQuizzesFromSheet(res.quizzes, res.questions || []);
         if (built.length) QUIZZES = ensureOJT(built);
-        finish(true);
-      } else { finish(false); }
-    } catch(e) { finish(false); }
+        cleanup();
+        report(true);
+      } else { settled = true; cleanup(); report(false); }
+    } catch(e) { settled = true; cleanup(); report(false); }
   };
-  s.onerror = function(){ finish(false); };
+  s.onerror = function(){ if (settled) return; settled = true; cleanup(); report(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  // The full question bank is a large JSONP payload and the shared Apps Script backend can
+  // be slow on a cold start, so give it real headroom (20s). If it still hasn't answered,
+  // tell the caller so the UI updates — but leave the callback armed so a late response
+  // (below) can still succeed and clear the warning. Only hard-fail for good at 45s.
+  setTimeout(function(){ if (!settled) report(false); }, 20000);
+  setTimeout(function(){ if (!settled){ settled = true; cleanup(); } }, 45000);
 }
 
 
@@ -1872,7 +1885,7 @@ function loadResults(done) {
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=results&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 
 // ── Sign-off state (synced via the Signoffs sheet tab, localStorage fallback) ────
@@ -1905,7 +1918,7 @@ function loadWorksheets(done){
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=worksheets&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function loadSettings(done){
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
@@ -1917,7 +1930,7 @@ function loadSettings(done){
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=settings&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function isTestClosed(){ return APP_SETTINGS.applicantTestClosed === 'true' || APP_SETTINGS.applicantTestClosed === '1'; }
 function toggleTestOpen(){
@@ -1954,7 +1967,7 @@ function loadRankings(done) {
   s.onerror = function(){ window._rankingsBackendOk = false; finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=rankings&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function currentTrainerName(){
   const n = ((currentUserFirst||'') + ' ' + (currentUserLast||'')).trim();
@@ -1987,7 +2000,7 @@ function loadNotes(done) {
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=notes&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function notesFor(uid){
   const u = String(uid).toUpperCase();
@@ -2048,7 +2061,7 @@ function loadSignoffs(done) {
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=signoffs&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 
 // Merge sheet signoffs with any local-only ones not yet synced.
@@ -2104,7 +2117,7 @@ function loadClasses(done){
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=classes&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function getClasses(){
   let local = {};
@@ -2780,7 +2793,7 @@ function loadPlaybook(done){
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=playbook&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 14000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function openPlaybook(){
   if (_pbLoaded && PLAYBOOK_DATA.length){ renderPlaybook(); return; }
@@ -4227,17 +4240,51 @@ async function _submitExamInner() {
       retake: RETAKE ? true : false,
       answers: answersOut
     };
-    await new Promise(resolve => {
-      const form = document.createElement('form');
-      form.method='POST'; form.action=SHEET_URL; form.target='hf'; form.style.display='none';
-      const inp = document.createElement('input');
-      inp.type='hidden'; inp.name='data'; inp.value=JSON.stringify(payload);
-      form.appendChild(inp);
-      const ifr = document.createElement('iframe');
-      ifr.name='hf'; ifr.style.display='none';
-      ifr.onload = resolve; setTimeout(resolve,8000);
-      document.body.appendChild(ifr); document.body.appendChild(form); form.submit();
-    });
+    // Send the result to the sheet via a hidden-iframe POST. A cross-origin iframe POST
+    // can't read a response, so we can't tell from the POST alone whether the row saved.
+    // We therefore VERIFY afterward by re-reading results and checking this row landed,
+    // retrying once. The score is already in localStorage (above), so the student never
+    // loses their own copy; verification is about making sure the TRAINER sees it too.
+    const _submittedAt = payload.submittedAt;
+    function _postResultOnce(){
+      return new Promise(resolve => {
+        try {
+          const form = document.createElement('form');
+          form.method='POST'; form.action=SHEET_URL; form.target='hf'; form.style.display='none';
+          const inp = document.createElement('input');
+          inp.type='hidden'; inp.name='data'; inp.value=JSON.stringify(payload);
+          form.appendChild(inp);
+          let ifr = document.getElementById('hf-frame');
+          if (!ifr){ ifr = document.createElement('iframe'); ifr.name='hf'; ifr.id='hf-frame'; ifr.style.display='none'; document.body.appendChild(ifr); }
+          let settled = false;
+          const finish = () => { if (settled) return; settled = true; if (form.parentNode) form.parentNode.removeChild(form); resolve(); };
+          ifr.onload = finish; setTimeout(finish, 10000);
+          document.body.appendChild(form); form.submit();
+        } catch(e) { resolve(); }
+      });
+    }
+    // Did our row make it into the sheet? Re-read results and look for this id+exam+timestamp.
+    function _verifyResultSaved(){
+      return new Promise(resolve => {
+        try {
+          loadResults(function(){
+            const U = String(currentUser).toUpperCase();
+            const found = (SHEET_RESULTS||[]).some(r =>
+              String(r.id||'').toUpperCase() === U &&
+              (r.exam||'') === payload.exam &&
+              (r.submittedAt||'') === _submittedAt);
+            resolve(found);
+          });
+        } catch(e) { resolve(false); }
+      });
+    }
+    window._lastSubmitConfirmed = null;   // null = unknown/not-checked
+    try {
+      await _postResultOnce();
+      let ok = await _verifyResultSaved();
+      if (!ok) { await _postResultOnce(); ok = await _verifyResultSaved(); }  // one retry
+      window._lastSubmitConfirmed = ok;
+    } catch(e) { window._lastSubmitConfirmed = false; }
   } catch(e) {}
 
   showResults(pct, pass, results);
@@ -4273,6 +4320,12 @@ function showResults(score, pass, results) {
     ? `<div class="result-sub" style="margin-top:.5rem;">Your multiple-choice answers are shown below so you can review what you missed. Your written ${writtenQuestions.length>1?'answers have':'answer has'} been sent to your instructor — your final score and feedback will appear here once it's been reviewed.</div>`
     : '';
 
+  // Only shown if we could NOT confirm the result reached the sheet. The result is safely
+  // stored on this device, so this is a "let your trainer know" nudge, not a lost-work alarm.
+  const uploadNote = (window._lastSubmitConfirmed === false)
+    ? `<div class="result-sub" style="margin-top:.6rem;padding:.6rem .8rem;background:#fff6e5;border:1px solid #f0c46b;border-radius:10px;color:#7a5200;">&#9888; Your result is saved on this device, but we couldn't confirm it reached the training system (the connection may have dropped). Please let your trainer know, or reopen this page later to sync automatically. Your answers are not lost.</div>`
+    : '';
+
   let html = `<div class="wrap">
     <div class="result-banner ${bannerClass}">
       <div class="result-icon">${bannerIcon}</div>
@@ -4280,6 +4333,7 @@ function showResults(score, pass, results) {
       ${scoreLine}
       <div class="result-sub">${currentUser} &nbsp;·&nbsp; ${new Date().toLocaleDateString()}</div>
       ${writtenNote}
+      ${uploadNote}
       <div class="result-meta">
         <div class="rmeta"><div class="rmeta-val">${correct}</div><div class="rmeta-lbl">MC Correct</div></div>
         <div class="rmeta"><div class="rmeta-val">${incorrect}</div><div class="rmeta-lbl">MC Incorrect</div></div>
@@ -5521,9 +5575,11 @@ function refreshReportData(then){
   const upd = document.getElementById('rep-updated');
   if (btn){ btn.disabled = true; btn.textContent = '↻ Refreshing…'; }
   if (upd) upd.textContent = 'Pulling the latest questions from the sheet…';
+  let acted = false;   // downstream `then` (e.g. build the report) must run at most once
   loadQuestions(function(ok){
-    _repRefreshing = false;
-    if (btn){ btn.disabled = false; btn.innerHTML = '&#8635; Refresh data'; }
+    // loadQuestions may call back twice: a timeout (ok=false) then a late success (ok=true).
+    // Always refresh the summary + stamp on each call, but only re-enable the button and
+    // fire the downstream action once, so a slow response can't build the report twice.
     renderReportSummary();
     const now = new Date();
     if (upd){
@@ -5531,6 +5587,10 @@ function refreshReportData(then){
         ? '&#10003; Data current as of ' + now.toLocaleString()
         : '&#9888; Could not reach the sheet — showing last available data (' + now.toLocaleTimeString() + ')';
     }
+    if (acted) return;
+    acted = true;
+    _repRefreshing = false;
+    if (btn){ btn.disabled = false; btn.innerHTML = '&#8635; Refresh data'; }
     if (typeof then === 'function') then(ok);
   });
 }
@@ -5733,7 +5793,7 @@ function loadPrepCheck(done){
   s.onerror = function(){ finish(false); };
   s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=prepcheck&callback=' + cb + '&t=' + Date.now();
   document.body.appendChild(s);
-  setTimeout(function(){ finish(false); }, 12000);
+  setTimeout(function(){ finish(false); }, 20000);
 }
 function refreshPrepCheck(){
   const list = document.getElementById('pc-list');
