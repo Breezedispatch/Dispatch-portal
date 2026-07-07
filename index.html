@@ -1913,7 +1913,7 @@ function loadWorksheets(done){
     try {
       if (res && Array.isArray(res.worksheets)) {
         const map = {}; res.worksheets.forEach(w => { map[String(w.id).toUpperCase()] = w; });
-        SHEET_WORKSHEETS = map; finish(true);
+        SHEET_WORKSHEETS = map; window._wsLoaded = true; finish(true);
       } else finish(false);
     } catch(e){ finish(false); }
   };
@@ -2324,8 +2324,16 @@ const WORKSHEET_DEF = {
 function worksheetFieldList(){ const a=[]; WORKSHEET_DEF.sections.forEach(s=>s.fields.forEach(f=>a.push(f))); return a; }
 // Has the current student already submitted the worksheet? (local mirror + sheet)
 function worksheetDone(uid){
+  const U = String(uid).toUpperCase();
+  // Once worksheets have loaded from the sheet, the sheet is the source of truth: if the
+  // student isn't in it, they still need to submit — even if a stale localStorage key
+  // lingers from an earlier submission that was later deleted by a trainer.
+  if (window._wsLoaded) {
+    return !!(SHEET_WORKSHEETS && SHEET_WORKSHEETS[U]);
+  }
+  // Before the sheet has answered (slow/offline), fall back to this device's own record.
   try { if (localStorage.getItem('bz_ws_' + uid)) return true; } catch(e){}
-  return !!(SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(uid).toUpperCase()]);
+  return !!(SHEET_WORKSHEETS && SHEET_WORKSHEETS[U]);
 }
 
 
@@ -2696,7 +2704,10 @@ function animateProgressBars(scope){
 function openWorksheet(){
   const wrap = document.getElementById('worksheet-screen');
   if (!wrap) return;
-  const existing = (SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(currentUser).toUpperCase()]) || null;
+  let existing = (SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(currentUser).toUpperCase()]) || null;
+  // Fall back to this device's saved copy if the sheet doesn't have it (e.g. a prior submit
+  // that didn't reach the server) so the student never loses what they typed.
+  if (!existing) { try { const raw = localStorage.getItem('bz_ws_' + currentUser); if (raw) existing = JSON.parse(raw); } catch(e){} }
   const prior = existing ? Object.assign({}, existing.answers) : {};
   if (!prior.fullname) prior.fullname = getName(currentUser) || '';
   let body = `<div class="ws-head">
