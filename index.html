@@ -78,6 +78,26 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
 /* ───────── PORTAL HEADER (shared look) ───────── */
 .portal-header,.admin-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.5rem;background:var(--navy);color:#fff;}
+.alert-bell-wrap{position:relative;display:inline-block;margin-right:8px;}
+.alert-bell{position:relative;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:9px;padding:7px 11px;font-size:15px;cursor:pointer;line-height:1;}
+.alert-bell:hover{background:rgba(255,255,255,.18);}
+.alert-bell.has-alerts{animation:bellNudge .6s ease;}
+@keyframes bellNudge{0%,100%{transform:rotate(0);}20%{transform:rotate(-12deg);}40%{transform:rotate(10deg);}60%{transform:rotate(-6deg);}80%{transform:rotate(3deg);}}
+.alert-count{position:absolute;top:-6px;right:-6px;background:#F0457A;color:#fff;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;font-family:var(--font);}
+.alert-panel{position:absolute;top:calc(100% + 10px);right:0;width:340px;max-height:70vh;overflow-y:auto;background:#fff;border:1px solid var(--gray);border-radius:14px;box-shadow:0 24px 60px rgba(11,31,58,.28);z-index:1000;padding:.5rem;}
+.alert-panel-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);font-weight:800;font-size:13px;color:var(--navy);padding:.5rem .6rem;text-transform:uppercase;letter-spacing:.04em;}
+.alert-refresh{background:none;border:none;color:var(--blue);font-size:14px;cursor:pointer;}
+.alert-empty{padding:1.4rem 1rem;text-align:center;color:var(--ink3);font-size:13px;}
+.alert-item{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;background:#fff;border:1px solid var(--gray);border-radius:11px;padding:.75rem .85rem;margin-bottom:.4rem;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.alert-item:hover{border-color:var(--sky);background:var(--surface);transform:translateX(2px);}
+.alert-item-icon{font-size:17px;line-height:1.2;flex-shrink:0;}
+.alert-item-text{display:flex;flex-direction:column;gap:2px;}
+.alert-item-title{font-size:13px;font-weight:700;color:var(--ink);line-height:1.3;}
+.alert-item-sub{font-size:11.5px;color:var(--ink3);line-height:1.35;}
+.alert-grade{border-left:3px solid var(--accent);}
+.alert-fail{border-left:3px solid var(--red);}
+.alert-inactive{border-left:3px solid var(--gold);}
+.alert-worksheet{border-left:3px solid var(--blue);}
 .portal-brand{display:flex;align-items:center;gap:.5rem;}
 .portal-logo{font-family:var(--display);font-weight:800;font-size:20px;color:#fff;letter-spacing:-.02em;}
 .portal-logo::after{content:'✓';color:var(--sky);font-size:14px;position:relative;top:-7px;margin-left:1px;}
@@ -994,6 +1014,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <span class="admin-badge">Admin</span>
     </div>
     <div class="portal-user">
+      <div class="alert-bell-wrap">
+        <button class="alert-bell" id="alert-bell" onclick="toggleAlertPanel()" title="Alerts">&#128276;<span class="alert-count" id="alert-count" style="display:none;">0</span></button>
+        <div class="alert-panel" id="alert-panel" style="display:none;">
+          <div class="alert-panel-head">Needs your attention <button class="alert-refresh" onclick="refreshAlerts()" title="Refresh">&#8635;</button></div>
+          <div id="alert-panel-body"></div>
+        </div>
+      </div>
       <button class="gs-pull-btn" onclick="openSheetImport()">&#8635; Load from Sheets</button>
       <span class="gs-status" id="gs-pull-status"></span>
       <button class="logout-btn" onclick="window.open('breeze_question_editor.html','_blank')" style="margin-left:8px;">&#9998; Content Editor</button>
@@ -2254,7 +2281,8 @@ function enterAdmin() {
   const tbody = document.getElementById('admin-tbody');
   if (tbody) tbody.innerHTML = `<tr><td colspan="99" style="text-align:center;padding:2rem;color:var(--ink3);">Loading trainee results…</td></tr>`;
   try {
-    loadResults(function(){ try { renderAdmin(); if (window._adminView === 'analytics') renderAnalytics(); } catch(e){ console.error('renderAdmin error:', e); if(tbody) tbody.innerHTML='<tr><td colspan=99 style="padding:2rem;text-align:center;color:var(--ink3);">Could not load results. Check the Apps Script deployment.</td></tr>'; } });
+    loadResults(function(){ try { renderAdmin(); if (window._adminView === 'analytics') renderAnalytics(); computeAlerts(); } catch(e){ console.error('renderAdmin error:', e); if(tbody) tbody.innerHTML='<tr><td colspan=99 style="padding:2rem;text-align:center;color:var(--ink3);">Could not load results. Check the Apps Script deployment.</td></tr>'; } });
+    loadWorksheets(function(){ try { computeAlerts(); } catch(e){} });
   } catch(e) { console.error('loadResults error:', e); }
 }
 
@@ -2985,6 +3013,25 @@ function startQuiz(qid, missedOnly) {
   window._examFlags = {};
   window._flagCursor = null;
   examResults  = null;
+
+  // Resume-where-you-left-off: only for practice & knowledge checks (never timed tests or retake mode).
+  const resumable = !missedOnly && (currentQuiz.timeLimit || 0) === 0;
+  if (resumable) {
+    const saved = loadExamProgress(qid);
+    if (saved && saved.answered > 0) {
+      const when = saved.when ? new Date(saved.when).toLocaleString() : 'earlier';
+      if (confirm('Resume where you left off?\n\nYou answered ' + saved.answered + ' question' + (saved.answered>1?'s':'') + ' on ' + when + '.\n\nOK = Resume · Cancel = Start over')) {
+        examSelected = saved.examSelected || {};
+        window._examWritten = saved.examWritten || {};
+        window._examMatch = saved.examMatch || {};
+        window._examHotspot = saved.examHotspot || {};
+      } else {
+        clearExamProgress(qid);
+      }
+    }
+  }
+  window._examResumable = resumable;
+
   const titlePrefix = missedOnly ? 'Retake — ' : '';
   document.getElementById('exam-topbar-title').textContent = titlePrefix + currentQuiz.mod + ' — ' + currentQuiz.name;
   updateExamProgress();
@@ -2992,9 +3039,45 @@ function startQuiz(qid, missedOnly) {
   showScreen('screen-exam');
 }
 
+// ── Resume-where-you-left-off (localStorage, per user + quiz) ──────────────────
+function examProgressKey(qid){ return 'bz_progress_' + currentUser + '_' + qid; }
+function countAnsweredForSave(){
+  let n = 0;
+  try {
+    Object.keys(examSelected||{}).forEach(k => { if (examSelected[k] !== undefined) n++; });
+    Object.keys(window._examWritten||{}).forEach(k => { if (String(window._examWritten[k]||'').trim()) n++; });
+    Object.keys(window._examMatch||{}).forEach(k => { if (window._examMatch[k] && Object.keys(window._examMatch[k]).length) n++; });
+    Object.keys(window._examHotspot||{}).forEach(k => { if (window._examHotspot[k]) n++; });
+  } catch(e){}
+  return n;
+}
+function saveExamProgress(){
+  if (!window._examResumable || !currentQuiz || examResults !== null) return;   // not while resuming a test/retake or after results
+  const qid = currentQuiz._retakeOf || currentQuiz.id;
+  try {
+    const answered = countAnsweredForSave();
+    if (answered === 0) { clearExamProgress(qid); return; }   // nothing to save
+    localStorage.setItem(examProgressKey(qid), JSON.stringify({
+      examSelected: examSelected,
+      examWritten: window._examWritten,
+      examMatch: window._examMatch,
+      examHotspot: window._examHotspot,
+      answered: answered,
+      when: Date.now()
+    }));
+  } catch(e){}
+}
+function loadExamProgress(qid){
+  try { const raw = localStorage.getItem(examProgressKey(qid)); return raw ? JSON.parse(raw) : null; } catch(e){ return null; }
+}
+function clearExamProgress(qid){ try { localStorage.removeItem(examProgressKey(qid)); } catch(e){} }
+
 function backToPortal() {
   if (examResults === null && Object.keys(examSelected).length > 0) {
-    if (!confirm('Leave this quiz? Your answers will be lost.')) return;
+    const msg = window._examResumable
+      ? 'Leave this quiz? Your progress is saved — you can resume where you left off next time.'
+      : 'Leave this quiz? Your answers will be lost.';
+    if (!confirm(msg)) return;
   }
   stopExamTimer();
   renderPortal();
@@ -3352,6 +3435,7 @@ function initOneMatching(qn) {
     const card = document.getElementById('qcard-'+qn);
     if (card) { if (done >= total && total>0) card.classList.add('answered'); else card.classList.remove('answered'); }
     updateExamProgress();
+    saveExamProgress();
   }
 
   tiles().forEach(attachTileDrag);
@@ -3486,6 +3570,7 @@ function hsTap(ev, qn){
   const m = document.getElementById('hsmark-' + qn);
   if (m){ m.style.display = 'block'; m.style.left = x + '%'; m.style.top = y + '%'; }
   if (typeof updateExamProgress === 'function') updateExamProgress();
+  saveExamProgress();
 }
 // Hotspot: full points if tap is within ANY target (circle by radius, or rect by bounds); else 0.
 function scoreHotspot(qu){
@@ -3665,6 +3750,7 @@ function setWritten(qn, val) {
   const card = document.getElementById('qcard-' + qn);
   if (card) { if (val.trim()) card.classList.add('answered'); else card.classList.remove('answered'); }
   updateExamProgress();
+  saveExamProgress();
 }
 
 function selectOpt(qn, oi) {
@@ -3676,6 +3762,7 @@ function selectOpt(qn, oi) {
   const card = document.getElementById('qcard-' + parentN);
   if (card) card.classList.add('answered');
   updateExamProgress();
+  saveExamProgress();
 }
 
 function updateExamProgress() {
@@ -3715,6 +3802,8 @@ function updateExamProgress() {
 async function submitExam() {
   stopExamTimer();
   const q = currentQuiz;
+  // Submitting finalizes the attempt — clear any saved resume progress.
+  try { clearExamProgress(q._retakeOf || q.id); } catch(e){}
   const written = window._examWritten || {};
   const match = window._examMatch || {};
   // Count unanswered across MC, written, matching, and scenario sub-questions.
@@ -4350,6 +4439,112 @@ function anSeverity(pct) { return pct >= 50 ? 'hot' : pct >= 30 ? 'warm' : 'ok';
 // ── Analytics engine ───────────────────────────────────────────────────────────
 // Walks every recorded attempt's per-question answers, maps each back to its quiz
 // definition, and tallies attempts vs. misses at the question and section level.
+
+// ── In-app trainer alerts (badge + panel; static site = no push, this is on-login) ──
+var _alertItems = [];
+function computeAlerts(){
+  const items = [];
+  const INACTIVE_DAYS = 7;
+  try {
+    const { allStudents } = computeAnalytics();
+    const quizById = {}; QUIZZES.forEach(q => quizById[q.id] = q);
+
+    // 1) Written answers awaiting grading (status pending)
+    let pendingCount = 0; const pendingWho = {};
+    (SHEET_RESULTS || []).forEach(r => {
+      if (String(r.status||'').toLowerCase() === 'pending') { pendingCount++; pendingWho[r.uid || r.id] = true; }
+    });
+    if (pendingCount > 0) items.push({ type:'grade', icon:'⏳', title: pendingCount + ' written answer' + (pendingCount>1?'s':'') + ' awaiting grading', sub: Object.keys(pendingWho).length + ' student' + (Object.keys(pendingWho).length>1?'s':'') + ' · open a trainee to grade', view:'roster' });
+
+    // 2) New failed attempts / low scores (finalized, not pending)
+    let failCount = 0; const failWho = [];
+    Object.entries(allStudents).forEach(([uid, byQuiz]) => {
+      Object.values(byQuiz).forEach(r => {
+        if (r.status !== 'pending' && r.pass === false) { failCount++; if (failWho.indexOf(uid)<0) failWho.push(uid); }
+      });
+    });
+    if (failCount > 0) items.push({ type:'fail', icon:'⚠️', title: failCount + ' failed attempt' + (failCount>1?'s':'') + ' to review', sub: failWho.slice(0,3).map(u=>getName(u)||u).join(', ') + (failWho.length>3?' +'+(failWho.length-3)+' more':''), view:'analytics' });
+
+    // 3) Inactive students (no activity in N+ days), among those in training (not signed off)
+    const lastByUser = {};
+    (SHEET_RESULTS || []).forEach(r => {
+      const uid = r.uid || r.id; const ts = r.submittedAt || r.date || '';
+      if (!uid || !ts) return;
+      if (!lastByUser[uid] || ts > lastByUser[uid]) lastByUser[uid] = ts;
+    });
+    const now = Date.now(); const inactive = [];
+    Object.entries(lastByUser).forEach(([uid, ts]) => {
+      const t = Date.parse(ts); if (isNaN(t)) return;
+      const days = Math.floor((now - t) / 86400000);
+      const signedOff = (typeof isSignedOff === 'function') ? isSignedOff(uid) : false;
+      if (days >= INACTIVE_DAYS && !signedOff) inactive.push({ uid, days });
+    });
+    inactive.sort((a,b)=>b.days-a.days);
+    if (inactive.length) items.push({ type:'inactive', icon:'💤', title: inactive.length + ' student' + (inactive.length>1?'s':'') + ' inactive ' + INACTIVE_DAYS + '+ days', sub: inactive.slice(0,3).map(i=>(getName(i.uid)||i.uid)+' ('+i.days+'d)').join(', ') + (inactive.length>3?' +'+(inactive.length-3)+' more':''), view:'roster' });
+
+    // 4) New worksheet submissions (since last time trainer acknowledged)
+    const wsRows = Object.values(SHEET_WORKSHEETS || {});
+    let lastSeen = 0; try { lastSeen = Number(localStorage.getItem('bz_ws_seen')||'0'); } catch(e){}
+    let newWs = 0; let latest = lastSeen;
+    wsRows.forEach(w => { const t = Date.parse(w.date||''); if (!isNaN(t)) { if (t > lastSeen) newWs++; if (t > latest) latest = t; } });
+    // If dates aren't parseable, fall back to "any worksheets exist but count unseen by stored count"
+    if (newWs === 0 && wsRows.length) {
+      let seenCount = 0; try { seenCount = Number(localStorage.getItem('bz_ws_count')||'0'); } catch(e){}
+      if (wsRows.length > seenCount) newWs = wsRows.length - seenCount;
+    }
+    if (newWs > 0) items.push({ type:'worksheet', icon:'✎', title: newWs + ' new worksheet' + (newWs>1?'s':'') + ' submitted', sub: 'New-hire Dispatch Manifest · view in New Hire Worksheets', view:'worksheets' });
+  } catch(e){ console.error('computeAlerts error', e); }
+
+  _alertItems = items;
+  renderAlertBadge();
+}
+function renderAlertBadge(){
+  const badge = document.getElementById('alert-count');
+  if (!badge) return;
+  const n = _alertItems.length;
+  if (n > 0){ badge.textContent = n; badge.style.display = 'inline-flex'; document.getElementById('alert-bell').classList.add('has-alerts'); }
+  else { badge.style.display = 'none'; document.getElementById('alert-bell').classList.remove('has-alerts'); }
+}
+function toggleAlertPanel(){
+  const panel = document.getElementById('alert-panel');
+  if (!panel) return;
+  const showing = panel.style.display !== 'none';
+  if (showing){ panel.style.display = 'none'; return; }
+  renderAlertPanel();
+  panel.style.display = 'block';
+}
+function renderAlertPanel(){
+  const body = document.getElementById('alert-panel-body');
+  if (!body) return;
+  if (!_alertItems.length){ body.innerHTML = '<div class="alert-empty">✓ You\u2019re all caught up — nothing needs attention right now.</div>'; return; }
+  body.innerHTML = _alertItems.map(a =>
+    `<button class="alert-item alert-${a.type}" onclick="alertGo('${a.view}','${a.type}')">
+      <span class="alert-item-icon">${a.icon}</span>
+      <span class="alert-item-text"><span class="alert-item-title">${a.title}</span><span class="alert-item-sub">${a.sub||''}</span></span>
+    </button>`
+  ).join('');
+}
+function alertGo(view, type){
+  document.getElementById('alert-panel').style.display = 'none';
+  // Acknowledge worksheets when the trainer opens them.
+  if (type === 'worksheet'){
+    try { localStorage.setItem('bz_ws_seen', String(Date.now())); localStorage.setItem('bz_ws_count', String(Object.values(SHEET_WORKSHEETS||{}).length)); } catch(e){}
+  }
+  if (typeof setAdminView === 'function') setAdminView(view);
+  setTimeout(computeAlerts, 400);
+}
+function refreshAlerts(){
+  const body = document.getElementById('alert-panel-body');
+  if (body) body.innerHTML = '<div class="alert-empty">Refreshing…</div>';
+  loadResults(function(){ loadWorksheets(function(){ computeAlerts(); renderAlertPanel(); }); });
+}
+// Close the panel when clicking outside it.
+document.addEventListener('click', function(e){
+  const wrap = document.querySelector('.alert-bell-wrap');
+  const panel = document.getElementById('alert-panel');
+  if (wrap && panel && panel.style.display !== 'none' && !wrap.contains(e.target)) panel.style.display = 'none';
+});
+
 function computeAnalytics() {
   const allStudentsRaw = getAllStudentScores();          // {uid: {quizId: rec}}
   // Scope: "active" excludes signed-off students; "all" includes everyone.
