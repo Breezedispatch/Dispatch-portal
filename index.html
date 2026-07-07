@@ -1169,6 +1169,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div style="display:flex;gap:8px;">
           <button class="rep-btn rep-btn-word" style="padding:8px 14px;font-size:12.5px;" onclick="generateNewCrewDoc()">&#128196; New Crew on Deck (.doc)</button>
           <button class="app-refresh" onclick="refreshWorksheets()">&#8635; Refresh</button>
+          <button class="app-refresh" style="border-color:var(--red,#c8284f);color:var(--red,#c8284f);" onclick="clearAllWorksheets()">&#128465; Clear all</button>
         </div>
       </div>
       <div class="an-section-note">Responses from the new-hire intake worksheet. Click a person to view their full answers and print or email a clean summary. Use <strong>New Crew on Deck</strong> to build one combined, formatted welcome document from everyone&rsquo;s answers &mdash; with a photo space for each person.</div>
@@ -5218,6 +5219,13 @@ function buildAnalyticsDOC(d, parts){
 function nc_esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function nc_clean(s){ return String(s==null?'':s).trim(); }
 // Turn one person's raw answers into a friendly multi-sentence bio.
+// Deterministic per-person picker: same name → same choices (consistent), but different
+// names land on different phrasings, so no two summaries read from an identical template.
+function _crewSeed(name){
+  let h = 0; const s = String(name||'');
+  for (let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+  return h;
+}
 function buildCrewNarrative(name, a){
   const first = (name||'').trim().split(/\s+/)[0] || 'This dispatcher';
   const hometown = nc_clean(a.hometown);
@@ -5229,33 +5237,71 @@ function buildCrewNarrative(name, a){
   const trades = nc_clean(a.trades);
   const els = nc_clean(a.else);
 
+  // Rotate through phrasing pools using the name seed + a per-slot offset.
+  const seed = _crewSeed(name);
+  const pick = (arr, slot) => arr[(seed + slot*7) % arr.length];
+
   const paras = [];
 
-  // Opening — origin + how they got to dispatch.
-  let p1 = '';
-  if (hometown) p1 += `Hailing from ${hometown}, `;
-  p1 += p1 ? `${first} joins the Spatch Squad` : `${first} joins the Spatch Squad`;
+  // ── Opening: origin + how they got to dispatch ──
+  const originTpls = hometown ? [
+    `Hailing from ${hometown}, ${first} joins the Spatch Squad`,
+    `${first} comes to us from ${hometown} and is joining the Spatch Squad`,
+    `Straight out of ${hometown}, ${first} is the newest face on the Spatch Squad`,
+    `All the way from ${hometown}, ${first} is officially part of the Spatch Squad`,
+    `Say hello to ${first}, joining the Spatch Squad from ${hometown}`
+  ] : [
+    `${first} is officially joining the Spatch Squad`,
+    `Say hello to ${first}, the newest member of the Spatch Squad`,
+    `${first} is the latest addition to the Spatch Squad`,
+    `Please welcome ${first} to the Spatch Squad`
+  ];
+  const storyLeads = [
+    'In their own words:',
+    'Here\u2019s their story:',
+    'How they found their way to dispatch:',
+    'On what brought them here:',
+    'The path that led them to the OCC:'
+  ];
+  let p1 = pick(originTpls, 1);
   if (path){
-    // Lower-case the first letter of their story so it flows after our lead-in, unless it starts with "I".
-    let story = path;
-    p1 += `. In their own words: “${story}”`;
+    p1 += `. ${pick(storyLeads, 2)} “${path}”`;
   } else {
-    p1 += ' — and we can\u2019t wait to have them on the floor.';
+    const noStory = [' — and we can\u2019t wait to have them on the floor.', ', and we\u2019re glad to have them.', ' — welcome aboard!', ', ready to hit the floor.'];
+    p1 += pick(noStory, 3);
   }
   paras.push(p1);
 
-  // Life outside the OCC.
+  // ── Life outside the OCC ──
   let p2 = '';
-  if (hobbies) p2 += `Outside the Ops Center, ${first} is into ${hobbies.replace(/\.$/,'')}. `;
-  if (funfact) p2 += `Fun fact: ${funfact.replace(/\.$/,'')}. `;
+  if (hobbies){
+    const hobbyTpls = [
+      `Outside the Ops Center, ${first} is into ${hobbies.replace(/\.$/,'')}.`,
+      `When they\u2019re off the clock, you\u2019ll find ${first} enjoying ${hobbies.replace(/\.$/,'')}.`,
+      `Away from the desk, ${first} loves ${hobbies.replace(/\.$/,'')}.`,
+      `${first} spends their free time on ${hobbies.replace(/\.$/,'')}.`,
+      `Beyond dispatch, ${first} is all about ${hobbies.replace(/\.$/,'')}.`
+    ];
+    p2 += pick(hobbyTpls, 4) + ' ';
+  }
+  if (funfact){
+    const funTpls = [
+      `Fun fact: ${funfact.replace(/\.$/,'')}.`,
+      `A little-known fact — ${funfact.replace(/\.$/,'')}.`,
+      `Here\u2019s something you might not guess: ${funfact.replace(/\.$/,'')}.`,
+      `And a fun one: ${funfact.replace(/\.$/,'')}.`
+    ];
+    p2 += pick(funTpls, 5);
+  }
   if (p2.trim()) paras.push(p2.trim());
 
-  // Aviation preferences — woven into one line (with airport split out when it's a long answer).
+  // ── Aviation preferences ──
   let p3bits = [];
-  const airportIsLong = airport && (airport.length > 40 || /[.!?]/.test(airport.replace(/\.$/,'')));
+  const airportIsLong = airport && (airport.length > 34 || /[.!?—–-]/.test(airport.replace(/\.$/,'')));
   if (airport && !airportIsLong) p3bits.push(`a soft spot for ${airport.replace(/\.$/,'')}`);
   if (seat) {
-    const seatTxt = /jump/i.test(seat) ? 'riding the jumpseat' : `a ${seat.toLowerCase()}-seat flyer`;
+    const s = seat.toLowerCase();
+    const seatTxt = /jump/i.test(seat) ? 'riding the jumpseat' : (/^[aeiou]/.test(s) ? `an ${s}-seat flyer` : `a ${s}-seat flyer`);
     p3bits.push(seatTxt);
   }
   if (trades){
@@ -5269,20 +5315,32 @@ function buildCrewNarrative(name, a){
     if (p3bits.length === 1) joined = p3bits[0];
     else if (p3bits.length === 2) joined = p3bits[0] + ' and ' + p3bits[1];
     else joined = p3bits.slice(0,-1).join(', ') + ', and ' + p3bits[p3bits.length-1];
-    let p3 = `When it comes to flying, ${first} is ` + joined + '.';
-    // Fix grammar when the first bit is the "soft spot" phrase (noun, not adjective).
-    p3 = p3.replace(`${first} is a soft spot`, `${first} has a soft spot`);
+    const flyLeads = [
+      `When it comes to flying, ${first} is `,
+      `On the aviation side, ${first} is `,
+      `As for travel, ${first} is `,
+      `Ask about flying and ${first} is `
+    ];
+    let p3 = pick(flyLeads, 6) + joined + '.';
+    p3 = p3.replace(/ is a soft spot/, ' has a soft spot');   // noun, not adjective
     paras.push(p3);
   }
-  // Long/expressive airport answers get their own sentence so nothing reads run-on.
   if (airport && airportIsLong){
-    paras.push(`Favorite airport? ${airport.replace(/\.$/,'')}.`);
+    const airLeads = ['Favorite airport?', 'Top airport pick:', 'On their favorite airport:', 'The airport that has their heart —'];
+    paras.push(`${pick(airLeads, 8)} ${airport.replace(/\.$/,'')}.`);
   }
 
-  // Anything else.
-  if (els) paras.push(`${els}`);
+  // ── Anything else ──
+  if (els) paras.push(els);
 
-  if (!paras.length) paras.push(`${first} is joining the team — more to come as we get to know them!`);
+  if (!paras.length){
+    const fallback = [
+      `${first} is joining the team — more to come as we get to know them!`,
+      `We\u2019re just getting to know ${first} — stay tuned!`,
+      `${first} is here and settling in. Say hello when you see them!`
+    ];
+    paras.push(pick(fallback, 9));
+  }
   return paras;
 }
 function generateNewCrewDoc(){
@@ -5799,6 +5857,7 @@ function openWsResp(id){
         <div class="ws-resp-h-sub">Dispatch Manifest \u00B7 ${esc2(r.id)} \u00B7 Submitted ${esc2(r.date||'')}</div>
       </div>
       <button class="ws-print-btn" onclick="printWsSummary('${esc2(id)}')">&#128424; Print / Email summary</button>
+      <button class="ws-print-btn" style="background:var(--red-lt,#fde8ec);color:var(--red,#c8284f);border-color:var(--red,#c8284f);margin-left:6px;" onclick="deleteWorksheetResp('${esc2(id)}')">&#128465; Delete</button>
     </div>`;
   WORKSHEET_DEF.sections.forEach(sec => {
     body += `<div class="ws-resp-section"><div class="ws-resp-section-title">${sec.icon} ${sec.title}</div>`;
@@ -5834,6 +5893,49 @@ function printWsSummary(id){
   html += '</body></html>';
   const w = window.open('', '_blank');
   if (w){ w.document.write(html); w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 350); }
+}
+// Send a worksheet-delete to the sheet (backend already supports action:deleteWorksheet).
+function _wsDeleteToSheet(id){
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='wsdel'; form.style.display='none';
+    const inp = document.createElement('input'); inp.type='hidden'; inp.name='data';
+    inp.value = JSON.stringify({ action:'deleteWorksheet', id: id });
+    form.appendChild(inp);
+    let ifr = document.querySelector('iframe[name="wsdel"]');
+    if (!ifr){ ifr = document.createElement('iframe'); ifr.name='wsdel'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+    setTimeout(function(){ if(form.parentNode) form.parentNode.removeChild(form); }, 4000);
+  } catch(e){}
+}
+// Delete a single submitted worksheet.
+function deleteWorksheetResp(id){
+  const key = String(id).toUpperCase();
+  const r = (SHEET_WORKSHEETS || {})[key];
+  const nm = r ? ((r.answers && r.answers.fullname) || r.name || r.id) : id;
+  if (!confirm('Delete ' + nm + '\u2019s submitted Dispatch Manifest?\n\nThis removes their response from the portal and the sheet. This cannot be undone.')) return;
+  _wsDeleteToSheet(r ? r.id : id);
+  delete SHEET_WORKSHEETS[key];
+  try { localStorage.removeItem('bz_ws_' + (r ? r.id : id)); } catch(e){}
+  // Keep the "seen" count in sync so the alert badge doesn't go negative or re-fire.
+  try { localStorage.setItem('bz_ws_count', String(Object.values(SHEET_WORKSHEETS||{}).length)); } catch(e){}
+  closeWsResp();
+  renderWorksheetsAdmin();
+  try { computeAlerts(); } catch(e){}
+  if (typeof toast==='function') toast(nm + '\u2019s worksheet deleted', 'ok');
+}
+// Clear ALL submitted worksheets (after everyone's submitted / newsletter is out).
+function clearAllWorksheets(){
+  const rows = Object.values(SHEET_WORKSHEETS || {});
+  if (!rows.length){ if (typeof toast==='function') toast('There are no worksheets to clear.', 'info'); return; }
+  if (!confirm('Delete ALL ' + rows.length + ' submitted Dispatch Manifest worksheet' + (rows.length>1?'s':'') + '?\n\nThis permanently removes every response from the portal and the sheet. This cannot be undone.\n\nTip: generate the “New Crew on Deck” document first if you still need it.')) return;
+  if (!confirm('Are you sure? This will erase all ' + rows.length + ' response' + (rows.length>1?'s':'') + '.')) return;
+  rows.forEach(r => { _wsDeleteToSheet(r.id); try { localStorage.removeItem('bz_ws_' + r.id); } catch(e){} });
+  SHEET_WORKSHEETS = {};
+  try { localStorage.setItem('bz_ws_count', '0'); } catch(e){}
+  renderWorksheetsAdmin();
+  try { computeAlerts(); } catch(e){}
+  if (typeof toast==='function') toast('All worksheets cleared', 'ok');
 }
 
 function renderApplicants() {
