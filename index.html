@@ -2391,11 +2391,13 @@ function doLogin() {
 
 // Trainer picked "Student Training Portal"
 function chooseStudent() {
+  if (window._choiceLockUntil && Date.now() < window._choiceLockUntil) return;
   enterStudentPortal(currentUser, currentUserFirst, currentUserLast);
 }
 
 // Trainer picked "Admin Portal"
 function chooseAdmin() {
+  if (window._choiceLockUntil && Date.now() < window._choiceLockUntil) return;
   enterAdmin();
 }
 
@@ -2420,6 +2422,9 @@ function enterStudentPortal(val, first, last) {
 function backToChoice() {
   document.getElementById('choice-name').textContent = currentUserFirst + ' ' + currentUserLast;
   showScreen('screen-choice');
+  // Guard against a "ghost click": the same tap/click that pressed Switch portal can pass
+  // through onto whichever choice card now sits under the pointer. Briefly ignore card taps.
+  window._choiceLockUntil = Date.now() + 450;
 }
 
 function enterAdmin() {
@@ -2698,14 +2703,17 @@ function openWorksheet(){
   document.getElementById('worksheet-body').innerHTML = body;
   window._wsChoices = {};
   worksheetFieldList().forEach(f => { if (f.type==='choice' && prior[f.id]) window._wsChoices[f.id] = prior[f.id]; });
-  wrap.style.display = 'block';
-  document.getElementById('screen-portal').style.display = 'none';
+  // Clear the markup's inline display:none so the .active class can show it, then route through showScreen.
+  wrap.style.display = '';
+  document.getElementById('screen-portal').style.display = '';
+  showScreen('worksheet-screen');
   window.scrollTo(0,0);
 }
 function closeWorksheet(){
   const wrap = document.getElementById('worksheet-screen');
-  if (wrap) wrap.style.display = 'none';
-  document.getElementById('screen-portal').style.display = 'block';
+  if (wrap) wrap.style.display = '';   // drop any inline display so class control wins
+  document.getElementById('screen-portal').style.display = '';  // clear the stale inline display:block that hid other screens
+  showScreen('screen-portal');
 }
 function wsPickChoice(fid, val){
   if (!window._wsChoices) window._wsChoices = {};
