@@ -1109,20 +1109,72 @@ async function submitApplicant() {
     answers: answersOut
   };
 
-  await new Promise(resolve => {
-    const form = document.createElement('form');
-    form.method='POST'; form.action=SHEET_URL; form.target='hf'; form.style.display='none';
-    const inp = document.createElement('input');
-    inp.type='hidden'; inp.name='data'; inp.value=JSON.stringify(payload);
-    form.appendChild(inp);
-    const ifr = document.createElement('iframe');
-    ifr.name='hf'; ifr.style.display='none';
-    ifr.onload = resolve; setTimeout(resolve, 8000);
-    document.body.appendChild(ifr); document.body.appendChild(form); form.submit();
-  });
+  // Submit via hidden-iframe POST (can't read a cross-origin response), then VERIFY the row
+  // actually landed by re-reading results, retrying once. The candidate assessment is the
+  // one submission we most need to not silently drop, so we confirm it reached the sheet.
+  const _appSubmittedAt = payload.submittedAt;
+  const _appId = String(payload.id).toUpperCase();
+  function _postApplicantOnce(){
+    return new Promise(resolve => {
+      try {
+        const form = document.createElement('form');
+        form.method='POST'; form.action=SHEET_URL; form.target='hf'; form.style.display='none';
+        const inp = document.createElement('input');
+        inp.type='hidden'; inp.name='data'; inp.value=JSON.stringify(payload);
+        form.appendChild(inp);
+        let ifr = document.getElementById('hf-frame');
+        if (!ifr){ ifr = document.createElement('iframe'); ifr.name='hf'; ifr.id='hf-frame'; ifr.style.display='none'; document.body.appendChild(ifr); }
+        let settled = false;
+        const finish = () => { if (settled) return; settled = true; if (form.parentNode) form.parentNode.removeChild(form); resolve(); };
+        ifr.onload = finish; setTimeout(finish, 10000);
+        document.body.appendChild(form); form.submit();
+      } catch(e) { resolve(); }
+    });
+  }
+  function _verifyApplicantSaved(){
+    return new Promise(resolve => {
+      try {
+        const cb = 'vcb_' + Math.random().toString(36).slice(2);
+        const s = document.createElement('script');
+        let fin = false;
+        const done = (v) => { if(fin) return; fin = true; try{ delete window[cb]; }catch(e){} if(s.parentNode) s.parentNode.removeChild(s); resolve(v); };
+        window[cb] = function(res){
+          try {
+            const rows = (res && (res.results || res.scores)) || [];
+            const found = Array.isArray(rows) && rows.some(r =>
+              String(r.id||'').trim().toUpperCase() === _appId &&
+              (r.submittedAt||'') === _appSubmittedAt);
+            done(found);
+          } catch(e){ done(false); }
+        };
+        s.onerror = function(){ done(false); };
+        s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=results&callback=' + cb + '&t=' + Date.now();
+        document.body.appendChild(s);
+        setTimeout(function(){ done(false); }, 15000);
+      } catch(e) { resolve(false); }
+    });
+  }
+  window._applicantConfirmed = null;
+  try {
+    await _postApplicantOnce();
+    let ok = await _verifyApplicantSaved();
+    if (!ok) { await _postApplicantOnce(); ok = await _verifyApplicantSaved(); }  // one retry
+    window._applicantConfirmed = ok;
+  } catch(e) { window._applicantConfirmed = false; }
 
   document.getElementById('exam-area').style.display = 'none';
   document.getElementById('thanks').style.display = 'block';
+  // If we couldn't confirm the submission reached the hiring team, tell the applicant so
+  // they can follow up — rather than letting them believe it went through when it may not have.
+  if (window._applicantConfirmed === false){
+    const th = document.getElementById('thanks');
+    if (th){
+      const note = document.createElement('div');
+      note.style.cssText = 'margin-top:1rem;padding:.8rem 1rem;background:#fff6e5;border:1px solid #f0c46b;border-radius:10px;color:#7a5200;font-size:14px;line-height:1.5;text-align:left;';
+      note.innerHTML = '&#9888; Your answers were sent, but we could not confirm they reached our hiring team (the connection may have dropped). <strong>Please email your recruiter to let them know you completed the assessment</strong>, or try submitting again from this same link.';
+      th.appendChild(note);
+    }
+  }
   window.scrollTo(0,0);
 }
 </script>
