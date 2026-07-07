@@ -3976,6 +3976,18 @@ function updateExamProgress() {
 }
 
 async function submitExam() {
+  // Re-entrancy guard: prevent double-submission (fast double-click, or clicking while
+  // the "unanswered questions" confirm is open). Duplicate submissions would create
+  // duplicate result rows in the sheet.
+  if (window._examSubmitting) return;
+  window._examSubmitting = true;
+  try {
+    await _submitExamInner();
+  } finally {
+    window._examSubmitting = false;
+  }
+}
+async function _submitExamInner() {
   stopExamTimer();
   const q = currentQuiz;
   // Submitting finalizes the attempt — clear any saved resume progress.
@@ -4686,10 +4698,13 @@ function computeAlerts(){
     const { allStudents } = computeAnalytics();
     const quizById = {}; QUIZZES.forEach(q => quizById[q.id] = q);
 
-    // 1) Written answers awaiting grading (status pending)
+    // 1) Written answers awaiting grading — counted from the SAME de-duplicated student
+    // data the roster uses (allStudents), so alerts never disagree with what's on screen.
     let pendingCount = 0; const pendingWho = {};
-    (SHEET_RESULTS || []).forEach(r => {
-      if (String(r.status||'').toLowerCase() === 'pending') { pendingCount++; pendingWho[r.uid || r.id] = true; }
+    Object.entries(allStudents).forEach(([uid, byQuiz]) => {
+      Object.values(byQuiz || {}).forEach(rec => {
+        if (rec && String(rec.status||'').toLowerCase() === 'pending') { pendingCount++; pendingWho[uid] = true; }
+      });
     });
     if (pendingCount > 0) items.push({ type:'grade', sig:'grade:'+pendingCount, icon:'⏳', title: pendingCount + ' written answer' + (pendingCount>1?'s':'') + ' awaiting grading', sub: Object.keys(pendingWho).length + ' student' + (Object.keys(pendingWho).length>1?'s':'') + ' · open a trainee to grade', view:'roster' });
 
@@ -4702,11 +4717,13 @@ function computeAlerts(){
     });
     if (failCount > 0) items.push({ type:'fail', sig:'fail:'+failCount, icon:'⚠️', title: failCount + ' failed attempt' + (failCount>1?'s':'') + ' to review', sub: failWho.slice(0,3).map(u=>getName(u)||u).join(', ') + (failWho.length>3?' +'+(failWho.length-3)+' more':''), view:'analytics' });
 
-    // 3) Inactive students (no activity in N+ days), among those in training (not signed off)
+    // 3) Inactive students (no activity in N+ days) — only among people actually on the
+    // roster (allStudents), so orphaned/applicant rows in SHEET_RESULTS can't trigger it.
     const lastByUser = {};
     (SHEET_RESULTS || []).forEach(r => {
       const uid = r.uid || r.id; const ts = r.submittedAt || r.date || '';
       if (!uid || !ts) return;
+      if (!allStudents[uid]) return;   // not on the roster → ignore
       if (!lastByUser[uid] || ts > lastByUser[uid]) lastByUser[uid] = ts;
     });
     const now = Date.now(); const inactive = [];
