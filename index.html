@@ -319,6 +319,16 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .view-fade{animation:viewFade .3s cubic-bezier(.2,.8,.2,1);}
 @media (prefers-reduced-motion: reduce){.view-fade{animation:none;}}
 
+/* Skeleton loaders (shimmering placeholders while data loads) */
+@keyframes skelShimmer{0%{background-position:-360px 0;}100%{background-position:360px 0;}}
+.skel{display:inline-block;border-radius:6px;background:#e7edf5;background-image:linear-gradient(90deg,#e7edf5 0px,#f2f6fb 180px,#e7edf5 360px);background-size:720px 100%;animation:skelShimmer 1.25s infinite linear;}
+.skel-row td{padding:14px 12px;}
+.skel-line{height:12px;width:100%;}
+.skel-pill{height:20px;width:52px;border-radius:20px;}
+.skel-chip{height:16px;width:70%;}
+.skel-card{height:64px;width:100%;border-radius:12px;margin-bottom:.6rem;}
+@media (prefers-reduced-motion: reduce){.skel{animation:none;}}
+
 /* Toast notifications */
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:11000;display:flex;flex-direction:column;gap:10px;align-items:flex-end;pointer-events:none;}
 .toast{display:flex;align-items:center;gap:10px;min-width:200px;max-width:360px;background:#fff;border:1px solid var(--gray);border-left:4px solid var(--green);border-radius:12px;padding:12px 16px;box-shadow:0 16px 40px rgba(11,31,58,.22);font-size:13.5px;font-weight:600;color:var(--ink);opacity:0;transform:translateX(24px);transition:opacity .3s,transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:auto;}
@@ -1156,9 +1166,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     <div id="admin-worksheets">
       <div class="app-list-head">
         <div class="admin-section-title" style="margin:0;">New Hire Worksheets — Dispatch Manifest</div>
-        <button class="app-refresh" onclick="refreshWorksheets()">&#8635; Refresh</button>
+        <div style="display:flex;gap:8px;">
+          <button class="rep-btn rep-btn-word" style="padding:8px 14px;font-size:12.5px;" onclick="generateNewCrewDoc()">&#128196; New Crew on Deck (.doc)</button>
+          <button class="app-refresh" onclick="refreshWorksheets()">&#8635; Refresh</button>
+        </div>
       </div>
-      <div class="an-section-note">Responses from the new-hire intake worksheet. Click a person to view their full answers and print or email a clean summary.</div>
+      <div class="an-section-note">Responses from the new-hire intake worksheet. Click a person to view their full answers and print or email a clean summary. Use <strong>New Crew on Deck</strong> to build one combined, formatted welcome document from everyone&rsquo;s answers &mdash; with a photo space for each person.</div>
       <div id="ws-admin-list"></div>
     </div>
 
@@ -2432,7 +2445,7 @@ function enterAdmin() {
   if (window._rosterScope === undefined) window._rosterScope = 'active';
   if (window._anScope === undefined) window._anScope = 'all';
   const tbody = document.getElementById('admin-tbody');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="99" style="text-align:center;padding:2rem;color:var(--ink3);">Loading trainee results…</td></tr>`;
+  if (tbody) tbody.innerHTML = rosterSkeletonRows(6);
   try {
     loadResults(function(){ try { renderAdmin(); if (window._adminView === 'analytics') renderAnalytics(); computeAlerts(); } catch(e){ console.error('renderAdmin error:', e); if(tbody) tbody.innerHTML='<tr><td colspan=99 style="padding:2rem;text-align:center;color:var(--ink3);">Could not load results. Check the Apps Script deployment.</td></tr>'; } });
     loadWorksheets(function(){ try { computeAlerts(); } catch(e){} });
@@ -4377,6 +4390,23 @@ function getAllStudentScores(which) {
   return students;
 }
 
+// Shimmering placeholder rows for the roster while results load.
+function rosterSkeletonRows(n){
+  const cols = (typeof QUIZZES !== 'undefined' && QUIZZES.length ? QUIZZES.length : 6) + 5; // ID, Class, quizzes…, Completed, Avg, Action
+  let rows = '';
+  for (let i=0;i<n;i++){
+    let cells = '<td><span class="skel skel-line" style="width:80px;"></span><br><span class="skel skel-chip" style="margin-top:6px;width:110px;"></span></td>';
+    cells += '<td><span class="skel skel-line" style="width:70px;"></span></td>';
+    const qn = cols - 5;
+    for (let q=0;q<qn;q++) cells += '<td><span class="skel skel-pill"></span></td>';
+    cells += '<td><span class="skel skel-line" style="width:60px;"></span></td>';
+    cells += '<td><span class="skel skel-line" style="width:40px;"></span></td>';
+    cells += '<td><span class="skel skel-pill" style="width:70px;"></span></td>';
+    rows += '<tr class="skel-row">' + cells + '</tr>';
+  }
+  return rows;
+}
+
 function renderAdmin() {
   const allStudents = getAllStudentScores();
   const search   = (document.getElementById('admin-search')?.value || '').toLowerCase();
@@ -4614,8 +4644,13 @@ function setAdminView(view) {
   }
   if (view === 'worksheets') {
     const list = document.getElementById('ws-admin-list');
-    if (list) list.innerHTML = '<div class="qc-sub" style="padding:1rem;">Loading worksheet responses…</div>';
-    loadWorksheets(function(){ renderWorksheetsAdmin(); });
+    if (list) list.innerHTML = '<span class="skel skel-card"></span><span class="skel skel-card"></span><span class="skel skel-card"></span>';
+    loadWorksheets(function(){
+      renderWorksheetsAdmin();
+      // Opening the tab = acknowledging current worksheets. Update the seen count and clear the alert.
+      try { localStorage.setItem('bz_ws_count', String(Object.values(SHEET_WORKSHEETS||{}).length)); } catch(e){}
+      try { computeAlerts(); } catch(e){}
+    });
   }
   if (view === 'applicants') {
     renderApplicants();
@@ -4683,15 +4718,11 @@ function computeAlerts(){
     inactive.sort((a,b)=>b.days-a.days);
     if (inactive.length) items.push({ type:'inactive', sig:'inactive:'+inactive.length, icon:'💤', title: inactive.length + ' student' + (inactive.length>1?'s':'') + ' inactive ' + INACTIVE_DAYS + '+ days', sub: inactive.slice(0,3).map(i=>(getName(i.uid)||i.uid)+' ('+i.days+'d)').join(', ') + (inactive.length>3?' +'+(inactive.length-3)+' more':''), view:'roster' });
 
-    // 4) New worksheet submissions
+    // 4) New worksheet submissions — count-based (reliable regardless of date formats).
+    // "New" = worksheets present now minus the count the trainer has acknowledged by opening the tab.
     const wsRows = Object.values(SHEET_WORKSHEETS || {});
-    let lastSeen = 0; try { lastSeen = Number(localStorage.getItem('bz_ws_seen')||'0'); } catch(e){}
-    let newWs = 0; let latest = lastSeen;
-    wsRows.forEach(w => { const t = Date.parse(w.date||''); if (!isNaN(t)) { if (t > lastSeen) newWs++; if (t > latest) latest = t; } });
-    if (newWs === 0 && wsRows.length) {
-      let seenCount = 0; try { seenCount = Number(localStorage.getItem('bz_ws_count')||'0'); } catch(e){}
-      if (wsRows.length > seenCount) newWs = wsRows.length - seenCount;
-    }
+    let seenCount = 0; try { seenCount = Number(localStorage.getItem('bz_ws_count')||'0'); } catch(e){}
+    const newWs = Math.max(0, wsRows.length - seenCount);
     if (newWs > 0) items.push({ type:'worksheet', sig:'worksheet:'+wsRows.length, icon:'✎', title: newWs + ' new worksheet' + (newWs>1?'s':'') + ' submitted', sub: 'New-hire Dispatch Manifest · view in New Hire Worksheets', view:'worksheets' });
   } catch(e){ console.error('computeAlerts error', e); }
 
@@ -4772,7 +4803,7 @@ function alertGo(view, type){
   document.getElementById('alert-panel').style.display = 'none';
   // Acknowledge worksheets when the trainer opens them.
   if (type === 'worksheet'){
-    try { localStorage.setItem('bz_ws_seen', String(Date.now())); localStorage.setItem('bz_ws_count', String(Object.values(SHEET_WORKSHEETS||{}).length)); } catch(e){}
+    try { localStorage.setItem('bz_ws_count', String(Object.values(SHEET_WORKSHEETS||{}).length)); } catch(e){}
   }
   if (typeof setAdminView === 'function') setAdminView(view);
   setTimeout(computeAlerts, 400);
@@ -5179,6 +5210,139 @@ function buildAnalyticsDOC(d, parts){
   const a = document.createElement('a'); a.href=url; a.download='Breeze_Dispatch_Training_Analytics_Report.doc';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+// ── "New Crew on Deck" combined welcome document ───────────────────────────────
+// Takes every worksheet submission and formats each into a warm narrative summary,
+// with a photo placeholder + name caption for each person. Word (.doc) output.
+function nc_esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function nc_clean(s){ return String(s==null?'':s).trim(); }
+// Turn one person's raw answers into a friendly multi-sentence bio.
+function buildCrewNarrative(name, a){
+  const first = (name||'').trim().split(/\s+/)[0] || 'This dispatcher';
+  const hometown = nc_clean(a.hometown);
+  const path = nc_clean(a.path);
+  const hobbies = nc_clean(a.hobbies);
+  const funfact = nc_clean(a.funfact);
+  const airport = nc_clean(a.airport);
+  const seat = nc_clean(a.seat);
+  const trades = nc_clean(a.trades);
+  const els = nc_clean(a.else);
+
+  const paras = [];
+
+  // Opening — origin + how they got to dispatch.
+  let p1 = '';
+  if (hometown) p1 += `Hailing from ${hometown}, `;
+  p1 += p1 ? `${first} joins the Spatch Squad` : `${first} joins the Spatch Squad`;
+  if (path){
+    // Lower-case the first letter of their story so it flows after our lead-in, unless it starts with "I".
+    let story = path;
+    p1 += `. In their own words: “${story}”`;
+  } else {
+    p1 += ' — and we can\u2019t wait to have them on the floor.';
+  }
+  paras.push(p1);
+
+  // Life outside the OCC.
+  let p2 = '';
+  if (hobbies) p2 += `Outside the Ops Center, ${first} is into ${hobbies.replace(/\.$/,'')}. `;
+  if (funfact) p2 += `Fun fact: ${funfact.replace(/\.$/,'')}. `;
+  if (p2.trim()) paras.push(p2.trim());
+
+  // Aviation preferences — woven into one line (with airport split out when it's a long answer).
+  let p3bits = [];
+  const airportIsLong = airport && (airport.length > 40 || /[.!?]/.test(airport.replace(/\.$/,'')));
+  if (airport && !airportIsLong) p3bits.push(`a soft spot for ${airport.replace(/\.$/,'')}`);
+  if (seat) {
+    const seatTxt = /jump/i.test(seat) ? 'riding the jumpseat' : `a ${seat.toLowerCase()}-seat flyer`;
+    p3bits.push(seatTxt);
+  }
+  if (trades){
+    const t = trades.toLowerCase();
+    if (t === 'yes') p3bits.push('always up for a shift trade');
+    else if (t === 'no') p3bits.push('not one for shift trades');
+    else if (t === 'maybe') p3bits.push('open to the occasional shift trade');
+  }
+  if (p3bits.length){
+    let joined;
+    if (p3bits.length === 1) joined = p3bits[0];
+    else if (p3bits.length === 2) joined = p3bits[0] + ' and ' + p3bits[1];
+    else joined = p3bits.slice(0,-1).join(', ') + ', and ' + p3bits[p3bits.length-1];
+    let p3 = `When it comes to flying, ${first} is ` + joined + '.';
+    // Fix grammar when the first bit is the "soft spot" phrase (noun, not adjective).
+    p3 = p3.replace(`${first} is a soft spot`, `${first} has a soft spot`);
+    paras.push(p3);
+  }
+  // Long/expressive airport answers get their own sentence so nothing reads run-on.
+  if (airport && airportIsLong){
+    paras.push(`Favorite airport? ${airport.replace(/\.$/,'')}.`);
+  }
+
+  // Anything else.
+  if (els) paras.push(`${els}`);
+
+  if (!paras.length) paras.push(`${first} is joining the team — more to come as we get to know them!`);
+  return paras;
+}
+function generateNewCrewDoc(){
+  const rows = Object.values(SHEET_WORKSHEETS || {});
+  if (!rows.length){ if (typeof toast==='function') toast('No worksheet responses yet to build from.', 'info'); return; }
+  // Sort alphabetically by name for a tidy roster.
+  rows.sort((x,y) => (nc_clean((x.answers&&x.answers.fullname)||x.name).localeCompare(nc_clean((y.answers&&y.answers.fullname)||y.name))));
+
+  const NAVY='#001533', BLUE='#1F74DE', CREAM='#FFF0E3';
+  let doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    + '<head><meta charset="utf-8"><title>The Dispatch Manifest — New Crew on Deck</title><style>'
+    + 'body{font-family:"Open Sans",Arial,sans-serif;font-size:11.5pt;color:#1a1a1a;line-height:1.5;}'
+    + `h1{font-family:"Poppins","Arial Black",sans-serif;font-size:26pt;color:${NAVY};margin:0 0 4pt;}`
+    + `.kicker{color:${BLUE};font-weight:bold;font-size:11pt;letter-spacing:1pt;text-transform:uppercase;margin-bottom:2pt;}`
+    + `.rule{border-bottom:3px solid ${BLUE};width:80pt;margin:6pt 0 14pt;}`
+    + '.intro{font-size:12pt;margin-bottom:6pt;}'
+    + `.person{margin:0 0 10pt;}`
+    + `.pname{font-family:"Poppins",Arial,sans-serif;font-size:16pt;color:${NAVY};font-weight:bold;margin:0 0 6pt;border-left:5px solid ${BLUE};padding-left:8pt;}`
+    + `.photo-box{width:150pt;height:150pt;border:2px dashed ${BLUE};background:${CREAM};color:${BLUE};text-align:center;vertical-align:middle;font-size:9.5pt;font-weight:bold;}`
+    + `.photo-cap{width:150pt;text-align:center;font-size:9pt;color:#555;padding-top:3pt;font-style:italic;}`
+    + 'p{margin:0 0 7pt;}'
+    + `.pagebreak{page-break-before:always;}`
+    + '</style></head><body>';
+
+  // Cover / intro (mirrors the current welcome slide, warm tone).
+  doc += `<div class="kicker">The Dispatch Manifest</div>`;
+  doc += `<h1>New Crew on Deck!</h1>`;
+  doc += `<div class="rule"></div>`;
+  doc += `<p class="intro"><strong>Welcoming our newest Dispatchers to the Spatch Squad!</strong></p>`;
+  doc += `<p>We\u2019re thrilled to introduce the newest members of the Breeze Dispatch team — <strong>${rows.length}</strong> new ${rows.length===1?'dispatcher':'dispatchers'} hitting the floor! We asked a few questions so you can get to know them: where they\u2019re from, what led them to dispatching, and a glimpse of life beyond the Ops Center. So buckle up and meet the crew! \uD83D\uDEEB</p>`;
+
+  // One flowing section per person: name, photo box + caption, then narrative.
+  rows.forEach((r, idx) => {
+    const nm = nc_clean((r.answers && r.answers.fullname) || r.name) || 'New Dispatcher';
+    const a = r.answers || {};
+    const paras = buildCrewNarrative(nm, a);
+    // First person starts right after intro; subsequent ones get a page break for a clean layout.
+    doc += `<div class="person${idx>0?' pagebreak':''}">`;
+    doc += `<div class="pname">${nc_esc(nm)}</div>`;
+    // Photo placeholder (left) + narrative (right) via a two-column table so text wraps beside the photo.
+    doc += `<table style="border-collapse:collapse;"><tr>`
+      + `<td style="vertical-align:top;padding-right:14pt;">`
+      + `<table style="border-collapse:collapse;"><tr><td class="photo-box">Insert photo here</td></tr>`
+      + `<tr><td class="photo-cap">${nc_esc(nm)}</td></tr></table>`
+      + `</td>`
+      + `<td style="vertical-align:top;">`;
+    paras.forEach(p => { doc += `<p>${nc_esc(p)}</p>`; });
+    doc += `</td></tr></table>`;
+    doc += `</div>`;
+  });
+
+  doc += `<p style="margin-top:16pt;color:${NAVY};font-weight:bold;">Welcome to the Spatch Squad — we\u2019re so glad you\u2019re here. \uD83C\uDF89</p>`;
+  doc += '</body></html>';
+
+  const blob = new Blob(['\ufeff', doc], { type:'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='Breeze_New_Crew_on_Deck.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  if (typeof toast==='function') toast('New Crew on Deck document downloaded', 'ok');
 }
 
 // ── Question Bank Reports (for Learning & Development) ─────────────────────────
