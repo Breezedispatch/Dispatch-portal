@@ -99,7 +99,25 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
 /* home 3-card grid */
 .home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;padding-top:0;}
-.home-card{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:20px;padding:1.75rem;cursor:pointer;overflow:hidden;opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;transition:border-color .2s,transform .2s,box-shadow .2s;}
+.home-card{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:20px;padding:1.75rem;cursor:pointer;overflow:hidden;opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;transition:border-color .2s,transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s;}
+/* Staggered entrance — each card arrives a beat after the previous */
+.home-card:nth-child(1){animation-delay:.05s;}
+.home-card:nth-child(2){animation-delay:.13s;}
+.home-card:nth-child(3){animation-delay:.21s;}
+.home-card:nth-child(4){animation-delay:.29s;}
+.home-card:nth-child(5){animation-delay:.37s;}
+.home-card:nth-child(6){animation-delay:.45s;}
+.home-card:hover{transform:translateY(-6px);box-shadow:0 20px 44px rgba(11,31,58,.16);border-color:var(--sky);}
+.home-card:hover .home-card-arrow{transform:translateX(6px);}
+.dash-stat:nth-child(1){animation-delay:.06s;}
+.dash-stat:nth-child(2){animation-delay:.14s;}
+.dash-stat:nth-child(3){animation-delay:.22s;}
+.dash-stat{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s;}
+.dash-stat:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(11,31,58,.12);}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;transition-duration:.001ms!important;}
+  .home-card,.dash-stat,.dash-next{opacity:1!important;transform:none!important;}
+}
 .home-card:nth-child(1){animation-delay:.1s;}.home-card:nth-child(2){animation-delay:.2s;}.home-card:nth-child(3){animation-delay:.3s;}
 .home-card:hover{border-color:var(--sky);transform:translateY(-5px);box-shadow:0 20px 45px rgba(37,102,204,.15);}
 .home-card-icon{font-size:26px;color:var(--blue);}
@@ -268,6 +286,19 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .ws-submit{border:none;background:var(--navy);color:#fff;border-radius:10px;padding:11px 26px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font);box-shadow:0 6px 16px rgba(11,31,58,.2);}
 .ws-submit:hover{transform:translateY(-1px);}
 .dash-next-icon-ws{background:var(--gold-lt)!important;color:var(--gold)!important;}
+
+/* Pass celebration */
+.celebrate-layer{position:fixed;inset:0;z-index:9999;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .5s;}
+.celebrate-layer.cel-out{opacity:0;}
+.celebrate-ring{position:relative;width:96px;height:96px;filter:drop-shadow(0 8px 24px rgba(26,158,60,.35));}
+.celebrate-ring svg{width:96px;height:96px;}
+.cel-circle{fill:none;stroke:#1A9E3C;stroke-width:3;stroke-dasharray:151;stroke-dashoffset:151;animation:celRing .5s cubic-bezier(.2,.8,.2,1) forwards;}
+.cel-check{fill:none;stroke:#1A9E3C;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:44;stroke-dashoffset:44;animation:celCheck .35s .35s cubic-bezier(.2,.8,.2,1) forwards;}
+@keyframes celRing{to{stroke-dashoffset:0;}}
+@keyframes celCheck{to{stroke-dashoffset:0;}}
+.cel-piece{position:absolute;top:50%;left:50%;width:10px;height:10px;border-radius:2px;opacity:0;transform:translate(-50%,-50%);animation:celBurst 1s .3s cubic-bezier(.15,.7,.3,1) forwards;}
+@keyframes celBurst{0%{opacity:1;transform:translate(-50%,-50%) scale(.3) rotate(0deg);}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(240deg);}}
+@media (prefers-reduced-motion: reduce){.celebrate-layer{display:none!important;}}
 
 /* ───────── EXAM ───────── */
 #screen-exam{background:var(--surface);}
@@ -2340,6 +2371,8 @@ function renderDashboard() {
   const pct = total ? Math.round(touched / total * 100) : 0;
 
   const avgDisplay = avg != null ? avg + '%' : '—';
+  const avgIsNum = avg != null;
+  const avgNum = avg != null ? avg : 0;
   const avgSub = avg != null
     ? passed + ' of ' + completed + ' passed'
     : 'No graded scores yet';
@@ -2393,17 +2426,17 @@ function renderDashboard() {
     <div class="dash-stats">
       <div class="dash-stat">
         <div class="dash-stat-label">Completed</div>
-        <div class="dash-stat-num">${completed}<span style="font-size:18px;color:var(--ink3);font-weight:700;"> / ${total}</span></div>
+        <div class="dash-stat-num"><span class="count-up" data-target="${completed}">0</span><span style="font-size:18px;color:var(--ink3);font-weight:700;"> / ${total}</span></div>
         <div class="dash-stat-sub">Knowledge checks &amp; tests</div>
       </div>
       <div class="dash-stat is-score">
         <div class="dash-stat-label">Avg score</div>
-        <div class="dash-stat-num">${avgDisplay}</div>
+        <div class="dash-stat-num">${avgIsNum ? '<span class="count-up" data-target="'+avgNum+'" data-suffix="%">0</span>' : avgDisplay}</div>
         <div class="dash-stat-sub">${avgSub}</div>
       </div>
       <div class="dash-stat is-pending">
         <div class="dash-stat-label">Awaiting grade</div>
-        <div class="dash-stat-num">${pending}</div>
+        <div class="dash-stat-num"><span class="count-up" data-target="${pending}">0</span></div>
         <div class="dash-stat-sub">${pending === 1 ? 'Written answer in review' : 'Written answers in review'}</div>
       </div>
     </div>
@@ -2412,9 +2445,39 @@ function renderDashboard() {
       ${nextBlock}
       <div class="dash-prog">
         <div class="dash-prog-meta"><span><strong>${pct}%</strong> of your training started</span><span>${touched} / ${total}</span></div>
-        <div class="dash-prog-track"><div class="dash-prog-fill" style="width:${pct}%"></div></div>
+        <div class="dash-prog-track"><div class="dash-prog-fill" data-target="${pct}" style="width:0%"></div></div>
       </div>
     </div>`;
+  animateCounters(el);
+  animateProgressBars(el);
+}
+// Count numbers up from 0 for a polished dashboard reveal (respects reduced-motion).
+function animateCounters(scope){
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (scope||document).querySelectorAll('.count-up').forEach(elm => {
+    const target = parseFloat(elm.getAttribute('data-target')) || 0;
+    const suffix = elm.getAttribute('data-suffix') || '';
+    if (reduce || target === 0){ elm.textContent = target + suffix; return; }
+    const dur = 900, t0 = performance.now();
+    function tick(now){
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);   // ease-out cubic
+      elm.textContent = Math.round(target * eased) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+      else elm.textContent = target + suffix;
+    }
+    requestAnimationFrame(tick);
+  });
+}
+// Fill progress bars from 0 → their width on load.
+function animateProgressBars(scope){
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (scope||document).querySelectorAll('.dash-prog-fill[data-target]').forEach(bar => {
+    const target = parseFloat(bar.getAttribute('data-target')) || 0;
+    if (reduce){ bar.style.width = target + '%'; return; }
+    bar.style.width = '0%';
+    requestAnimationFrame(()=> requestAnimationFrame(()=>{ bar.style.width = target + '%'; }));
+  });
 }
 
 
@@ -3985,6 +4048,39 @@ function showResults(score, pass, results) {
   html += `</div>`;
   content.innerHTML = html;
   window.scrollTo({top:0,behavior:'smooth'});
+  // Tasteful celebration on a genuine pass (not for pending/written-only submissions).
+  if (pass && !hasWritten) { setTimeout(celebratePass, 250); }
+}
+// Brief, refined checkmark + burst — respects reduced-motion.
+function celebratePass(){
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+  const old = document.getElementById('celebrate-layer');
+  if (old) old.remove();
+  const layer = document.createElement('div');
+  layer.id = 'celebrate-layer';
+  layer.className = 'celebrate-layer';
+  // central check ring
+  const ring = document.createElement('div');
+  ring.className = 'celebrate-ring';
+  ring.innerHTML = '<svg viewBox="0 0 52 52"><circle class="cel-circle" cx="26" cy="26" r="24"/><path class="cel-check" d="M14 27 l8 8 l16 -18"/></svg>';
+  layer.appendChild(ring);
+  // confetti-ish burst using brand colors
+  const colors = ['#1F74DE','#7FB0FF','#F0457A','#1A9E3C','#FFC94D'];
+  for (let i=0;i<18;i++){
+    const p = document.createElement('span');
+    p.className = 'cel-piece';
+    const ang = (Math.PI*2) * (i/18) + (Math.random()*0.4);
+    const dist = 90 + Math.random()*70;
+    p.style.setProperty('--tx', Math.cos(ang)*dist + 'px');
+    p.style.setProperty('--ty', Math.sin(ang)*dist + 'px');
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = (Math.random()*0.05) + 's';
+    layer.appendChild(p);
+  }
+  document.body.appendChild(layer);
+  setTimeout(()=>{ layer.classList.add('cel-out'); }, 1400);
+  setTimeout(()=>{ if(layer.parentNode) layer.remove(); }, 2000);
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
