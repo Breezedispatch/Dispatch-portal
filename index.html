@@ -972,7 +972,9 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="home-card-sub">Reference guides, module notes, and training resources.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
-      <div class="home-card home-card-playbook" onclick="showPortalSection('playbook')">
+      <!-- Dispatch Operations Playbook — hidden for launch; still under development.
+           To re-enable, remove the style="display:none;" below. All reader code + data remain intact. -->
+      <div class="home-card home-card-playbook" style="display:none;" onclick="showPortalSection('playbook')">
         <div class="home-card-icon">&#9992;</div>
         <div class="home-card-title">Dispatch Operations Playbook</div>
         <div class="home-card-sub">Browsable, searchable operations handbook — FARs, weather, performance, ATC, and more.</div>
