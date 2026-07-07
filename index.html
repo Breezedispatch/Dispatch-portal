@@ -90,12 +90,17 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .alert-panel-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);font-weight:800;font-size:13px;color:var(--navy);padding:.5rem .6rem;text-transform:uppercase;letter-spacing:.04em;}
 .alert-refresh{background:none;border:none;color:var(--blue);font-size:14px;cursor:pointer;}
 .alert-empty{padding:1.4rem 1rem;text-align:center;color:var(--ink3);font-size:13px;}
-.alert-item{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;background:#fff;border:1px solid var(--gray);border-radius:11px;padding:.75rem .85rem;margin-bottom:.4rem;cursor:pointer;font-family:var(--font);transition:all .15s;}
-.alert-item:hover{border-color:var(--sky);background:var(--surface);transform:translateX(2px);}
+.alert-item{display:flex;align-items:stretch;gap:0;width:100%;background:#fff;border:1px solid var(--gray);border-radius:11px;margin-bottom:.4rem;overflow:hidden;transition:all .15s;}
+.alert-item:hover{border-color:var(--sky);background:var(--surface);}
+.alert-item-main{flex:1;display:flex;gap:11px;align-items:flex-start;text-align:left;background:none;border:none;padding:.75rem .5rem .75rem .85rem;cursor:pointer;font-family:var(--font);}
 .alert-item-icon{font-size:17px;line-height:1.2;flex-shrink:0;}
 .alert-item-text{display:flex;flex-direction:column;gap:2px;}
 .alert-item-title{font-size:13px;font-weight:700;color:var(--ink);line-height:1.3;}
 .alert-item-sub{font-size:11.5px;color:var(--ink3);line-height:1.35;}
+.alert-dismiss{flex-shrink:0;width:34px;border:none;border-left:1px solid var(--gray);background:none;color:var(--ink3);font-size:18px;cursor:pointer;transition:all .15s;}
+.alert-dismiss:hover{background:var(--red-lt);color:var(--red);}
+.alert-dismiss-all{width:100%;border:1px dashed var(--gray);background:#fff;color:var(--ink2);border-radius:9px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:.2rem;}
+.alert-dismiss-all:hover{border-color:var(--red);color:var(--red);background:var(--red-lt);}
 .alert-grade{border-left:3px solid var(--accent);}
 .alert-fail{border-left:3px solid var(--red);}
 .alert-inactive{border-left:3px solid var(--gold);}
@@ -696,6 +701,9 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 /* Roster scope toggle (Active / Signed off) + analytics scope */
 .roster-scope{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
 .roster-scopebtn{font-family:var(--font);font-weight:700;font-size:12.5px;padding:8px 16px;border-radius:10px;border:1.5px solid var(--gray);background:#fff;color:var(--ink3);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;}
+.class-input{width:92px;border:1.5px solid var(--gray);border-radius:7px;padding:5px 8px;font-size:12px;font-family:var(--font);color:var(--ink);background:var(--surface);}
+.class-input:focus{outline:none;border-color:var(--blue);background:#fff;}
+.class-input::placeholder{color:var(--ink3);}
 .roster-scopebtn:hover{border-color:var(--blue);color:var(--blue);}
 .roster-scopebtn.active{background:var(--navy);border-color:var(--navy);color:#fff;}
 .roster-scopecount{font-size:11px;font-weight:700;background:rgba(255,255,255,.22);color:inherit;border-radius:20px;padding:1px 8px;min-width:18px;text-align:center;}
@@ -1080,6 +1088,9 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <option value="completed">Completed</option>
         <option value="incomplete">Not started</option>
       </select>
+      <select id="admin-filter-class" onchange="renderAdmin()">
+        <option value="all">All classes</option>
+      </select>
     </div>
     <div class="admin-table-wrap">
       <table>
@@ -1102,6 +1113,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <span style="font-size:12px;color:var(--ink3);font-weight:600;margin-right:4px;align-self:center;">Include:</span>
         <button class="roster-scopebtn active" id="anscope-all" onclick="setAnalyticsScope('all')">All students</button>
         <button class="roster-scopebtn" id="anscope-active" onclick="setAnalyticsScope('active')">Active only</button>
+        <span style="font-size:12px;color:var(--ink3);font-weight:600;margin:0 4px 0 12px;align-self:center;">Class:</span>
+        <select id="an-filter-class" onchange="setAnalyticsClass(this.value)" style="padding:7px 10px;border:1.5px solid var(--gray);border-radius:8px;font-size:12px;font-family:var(--font);color:var(--ink2);">
+          <option value="all">All classes</option>
+        </select>
       </div>
       <div class="admin-summary" id="an-summary"></div>
 
@@ -1186,6 +1201,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <div class="rep-card" style="margin-top:1.1rem;">
         <div class="rep-card-title">Training Analytics Report</div>
         <div class="rep-card-sub">Companion to the Analytics tab. Includes student names &amp; IDs (internal — for trainers &amp; L&amp;D). Pulls the latest data on each download.</div>
+        <div class="rep-opts-label">Class / cohort:</div>
+        <div class="rep-opts">
+          <select id="rep-an-class" style="padding:7px 10px;border:1.5px solid var(--gray);border-radius:8px;font-size:12.5px;font-family:var(--font);color:var(--ink2);">
+            <option value="all">All students</option>
+          </select>
+        </div>
         <div class="rep-opts-label">Include which parts?</div>
         <div class="rep-opts" id="rep-an-parts">
           <label class="rep-chk"><input type="checkbox" value="summary" checked> Executive summary</label>
@@ -1819,6 +1840,7 @@ function loadQuestions(done) {
 // ── Load student results from the sheet (cross-device proficiency data) ────────
 let SHEET_RESULTS = [];           // raw rows from the Results tab
 let SHEET_SIGNOFFS = {};          // { UPPER(id): {date, by} } from the Signoffs tab
+let SHEET_CLASSES = {};           // { id: className } from the Classes tab
 function loadResults(done) {
   if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
   const cb = 'rcb_' + Math.random().toString(36).slice(2);
@@ -2047,6 +2069,80 @@ function setSignoff(uid, on) {
     document.body.appendChild(form); form.submit();
     setTimeout(function(){ if(form.parentNode) form.parentNode.removeChild(form); }, 4000);
   } catch(e) {}
+}
+
+// ── Student class / cohort ─────────────────────────────────────────────────────
+function loadClasses(done){
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'clcb_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && res.status === 'ok' && res.classes && typeof res.classes === 'object') {
+        SHEET_CLASSES = res.classes;
+        try { localStorage.setItem('bz_classes', JSON.stringify(res.classes)); } catch(e){}
+        finish(true);
+      } else finish(false);
+    } catch(e){ finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=classes&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 12000);
+}
+function getClasses(){
+  let local = {};
+  try { local = JSON.parse(localStorage.getItem('bz_classes') || '{}'); } catch(e){ local = {}; }
+  return Object.assign({}, local, SHEET_CLASSES);
+}
+function classOf(uid){
+  const c = getClasses();
+  return c[uid] || c[String(uid).toUpperCase()] || c[String(uid).toLowerCase()] || '';
+}
+// Sorted list of distinct class names currently in use.
+function allClassNames(){
+  const set = {}; const c = getClasses();
+  Object.values(c).forEach(v => { if (String(v||'').trim()) set[v] = true; });
+  return Object.keys(set).sort();
+}
+function setClass(uid, className){
+  const map = getClasses();
+  const val = String(className||'').trim();
+  if (val === '') delete map[uid]; else map[uid] = val;
+  SHEET_CLASSES = map;
+  try { localStorage.setItem('bz_classes', JSON.stringify(map)); } catch(e){}
+  try {
+    const form = document.createElement('form');
+    form.method='POST'; form.action=SHEET_URL; form.target='clhf'; form.style.display='none';
+    const inp = document.createElement('input'); inp.type='hidden'; inp.name='data';
+    inp.value = JSON.stringify({ action:'setClass', id: uid, className: val });
+    form.appendChild(inp);
+    let ifr = document.querySelector('iframe[name="clhf"]');
+    if (!ifr){ ifr = document.createElement('iframe'); ifr.name='clhf'; ifr.style.display='none'; document.body.appendChild(ifr); }
+    document.body.appendChild(form); form.submit();
+    setTimeout(function(){ if(form.parentNode) form.parentNode.removeChild(form); }, 4000);
+  } catch(e){}
+}
+// Roster action: assign/clear a student's class, update the datalist + filter, toast.
+function assignClass(uid, className){
+  const val = String(className||'').trim();
+  setClass(uid, val);
+  refreshClassDatalist();
+  const nm = getName(uid) || uid;
+  if (typeof toast === 'function') toast(val ? (nm + ' → ' + val) : (nm + ' removed from class'), 'ok');
+  // Refresh the class filter options (a new class name may now exist).
+  const cSel = document.getElementById('admin-filter-class');
+  if (cSel){ const cur = cSel.value; const names = allClassNames();
+    cSel.innerHTML = '<option value="all">All classes</option>' + names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('') + '<option value="__none__">— Unassigned —</option>';
+    if (cur && (cur==='all'||cur==='__none__'||names.indexOf(cur)>=0)) cSel.value = cur;
+  }
+}
+function refreshClassDatalist(){
+  let dl = document.getElementById('class-datalist');
+  if (!dl){ dl = document.createElement('datalist'); dl.id = 'class-datalist'; document.body.appendChild(dl); }
+  dl.innerHTML = allClassNames().map(n => `<option value="${n.replace(/"/g,'&quot;')}">`).join('');
 }
 
 // Bring this user's finalized scores + instructor notes (from the sheet) onto their device,
@@ -2335,6 +2431,7 @@ function enterAdmin() {
   try {
     loadResults(function(){ try { renderAdmin(); if (window._adminView === 'analytics') renderAnalytics(); computeAlerts(); } catch(e){ console.error('renderAdmin error:', e); if(tbody) tbody.innerHTML='<tr><td colspan=99 style="padding:2rem;text-align:center;color:var(--ink3);">Could not load results. Check the Apps Script deployment.</td></tr>'; } });
     loadWorksheets(function(){ try { computeAlerts(); } catch(e){} });
+    loadClasses(function(){ try { refreshClassDatalist(); renderAdmin(); } catch(e){} });
   } catch(e) { console.error('loadResults error:', e); }
 }
 
@@ -4277,6 +4374,7 @@ function renderAdmin() {
   const search   = (document.getElementById('admin-search')?.value || '').toLowerCase();
   const filterQ  = document.getElementById('admin-filter-quiz')?.value || 'all';
   const filterS  = document.getElementById('admin-filter-status')?.value || 'all';
+  const filterC  = document.getElementById('admin-filter-class')?.value || 'all';
 
   // Populate quiz filter if empty
   const qSel = document.getElementById('admin-filter-quiz');
@@ -4286,6 +4384,16 @@ function renderAdmin() {
       o.value = q.id; o.textContent = q.mod + ' — ' + q.name;
       qSel.appendChild(o);
     });
+  }
+  // Populate class filter from current assignments (rebuild each render to stay fresh).
+  const cSel = document.getElementById('admin-filter-class');
+  if (cSel) {
+    const cur = cSel.value;
+    const names = allClassNames();
+    cSel.innerHTML = '<option value="all">All classes</option>'
+      + names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('')
+      + '<option value="__none__">— Unassigned —</option>';
+    if (cur && (cur === 'all' || cur === '__none__' || names.indexOf(cur) >= 0)) cSel.value = cur;
   }
 
   // Summary metrics — scoped to the current Active/Signed-off tab.
@@ -4318,6 +4426,7 @@ function renderAdmin() {
   // Build thead
   document.getElementById('admin-thead').innerHTML = `<tr>
     <th>Employee ID</th>
+    <th>Class</th>
     ${QUIZZES.map(q => `<th>${q.mod}</th>`).join('')}
     <th>Completed</th>
     <th>Overall avg</th>
@@ -4335,6 +4444,9 @@ function renderAdmin() {
   rows = scopedEntries.slice();  // already filtered to the current tab above
 
   if (search) rows = rows.filter(([uid]) => uid.toLowerCase().includes(search) || (getName(uid)||'').toLowerCase().includes(search));
+  if (filterC && filterC !== 'all') {
+    rows = rows.filter(([uid]) => filterC === '__none__' ? !classOf(uid) : classOf(uid) === filterC);
+  }
   if (filterQ !== 'all') {
     rows = rows.filter(([, scores]) => {
       if (filterS === 'completed') return scores[filterQ];
@@ -4359,7 +4471,7 @@ function renderAdmin() {
     const emptyMsg = scope === 'signed'
       ? 'No signed-off students yet. Sign off a student from the Active tab and they will appear here.'
       : (search ? 'No students found matching "' + search + '"' : 'No active students. Students appear here after they log in and complete a quiz.');
-    document.getElementById('admin-tbody').innerHTML = `<tr><td colspan="${QUIZZES.length + 4}" style="text-align:center;padding:2rem;color:var(--ink3);">${emptyMsg}</td></tr>`;
+    document.getElementById('admin-tbody').innerHTML = `<tr><td colspan="${QUIZZES.length + 5}" style="text-align:center;padding:2rem;color:var(--ink3);">${emptyMsg}</td></tr>`;
   } else {
     document.getElementById('admin-tbody').innerHTML = rows.map(([uid, scores]) => {
       const attempts = Object.values(scores);
@@ -4372,8 +4484,11 @@ function renderAdmin() {
         const gradeBtn = `<button onclick="openGrading('${uid}','${q.id}')" style="margin-left:4px;font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid var(--blue);background:var(--blue-lt);color:var(--blue);cursor:pointer;font-weight:600;">✎ View answers</button>`;
         return `<td><span class="badge ${sc.pass ? 'badge-pass' : 'badge-fail'}">${sc.score}%</span>${gradeBtn}<div style="font-size:10px;color:var(--ink3);">${sc.date||''}</div></td>`;
       }).join('');
+      const curClass = classOf(uid);
+      const classCell = `<td><input class="class-input" list="class-datalist" value="${String(curClass).replace(/"/g,'&quot;')}" placeholder="—" onchange="assignClass('${uid}', this.value)" title="Assign a class"></td>`;
       return `<tr>
         <td style="font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;" onclick="openTrainee('${uid}')"><span style="color:var(--blue);text-decoration:underline;">${uid}</span><div style='font-size:11px;color:var(--ink3);font-weight:400;font-family:var(--font);'>${getName(uid)}</div></td>
+        ${classCell}
         ${quizCells}
         <td>
           <div class="progress-mini">
@@ -4441,6 +4556,19 @@ function setAnalyticsScope(scope) {
   document.getElementById('anscope-active').classList.toggle('active', scope === 'active');
   renderAnalytics();
 }
+function setAnalyticsClass(v){ window._anClass = v; renderAnalytics(); }
+// Keep the analytics class dropdown populated with current class names.
+function syncAnalyticsClassOptions(){
+  const sel = document.getElementById('an-filter-class');
+  if (!sel) return;
+  const cur = window._anClass || 'all';
+  const names = allClassNames();
+  sel.innerHTML = '<option value="all">All classes</option>'
+    + names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('')
+    + '<option value="__none__">— Unassigned —</option>';
+  if (cur === 'all' || cur === '__none__' || names.indexOf(cur) >= 0) sel.value = cur;
+  else window._anClass = 'all';
+}
 
 // ── Admin view toggle (Roster vs Analytics) ───────────────────────────────────
 function setAdminView(view) {
@@ -4469,6 +4597,7 @@ function setAdminView(view) {
   if (view === 'reports') {
     // Pull the latest questions so the report reflects current content.
     refreshReportData();
+    loadClasses(function(){ try { renderReportSummary(); } catch(e){} });
   }
   if (view === 'prepcheck') {
     const list = document.getElementById('pc-list');
@@ -4518,7 +4647,7 @@ function computeAlerts(){
     (SHEET_RESULTS || []).forEach(r => {
       if (String(r.status||'').toLowerCase() === 'pending') { pendingCount++; pendingWho[r.uid || r.id] = true; }
     });
-    if (pendingCount > 0) items.push({ type:'grade', icon:'⏳', title: pendingCount + ' written answer' + (pendingCount>1?'s':'') + ' awaiting grading', sub: Object.keys(pendingWho).length + ' student' + (Object.keys(pendingWho).length>1?'s':'') + ' · open a trainee to grade', view:'roster' });
+    if (pendingCount > 0) items.push({ type:'grade', sig:'grade:'+pendingCount, icon:'⏳', title: pendingCount + ' written answer' + (pendingCount>1?'s':'') + ' awaiting grading', sub: Object.keys(pendingWho).length + ' student' + (Object.keys(pendingWho).length>1?'s':'') + ' · open a trainee to grade', view:'roster' });
 
     // 2) New failed attempts / low scores (finalized, not pending)
     let failCount = 0; const failWho = [];
@@ -4527,7 +4656,7 @@ function computeAlerts(){
         if (r.status !== 'pending' && r.pass === false) { failCount++; if (failWho.indexOf(uid)<0) failWho.push(uid); }
       });
     });
-    if (failCount > 0) items.push({ type:'fail', icon:'⚠️', title: failCount + ' failed attempt' + (failCount>1?'s':'') + ' to review', sub: failWho.slice(0,3).map(u=>getName(u)||u).join(', ') + (failWho.length>3?' +'+(failWho.length-3)+' more':''), view:'analytics' });
+    if (failCount > 0) items.push({ type:'fail', sig:'fail:'+failCount, icon:'⚠️', title: failCount + ' failed attempt' + (failCount>1?'s':'') + ' to review', sub: failWho.slice(0,3).map(u=>getName(u)||u).join(', ') + (failWho.length>3?' +'+(failWho.length-3)+' more':''), view:'analytics' });
 
     // 3) Inactive students (no activity in N+ days), among those in training (not signed off)
     const lastByUser = {};
@@ -4544,23 +4673,51 @@ function computeAlerts(){
       if (days >= INACTIVE_DAYS && !signedOff) inactive.push({ uid, days });
     });
     inactive.sort((a,b)=>b.days-a.days);
-    if (inactive.length) items.push({ type:'inactive', icon:'💤', title: inactive.length + ' student' + (inactive.length>1?'s':'') + ' inactive ' + INACTIVE_DAYS + '+ days', sub: inactive.slice(0,3).map(i=>(getName(i.uid)||i.uid)+' ('+i.days+'d)').join(', ') + (inactive.length>3?' +'+(inactive.length-3)+' more':''), view:'roster' });
+    if (inactive.length) items.push({ type:'inactive', sig:'inactive:'+inactive.length, icon:'💤', title: inactive.length + ' student' + (inactive.length>1?'s':'') + ' inactive ' + INACTIVE_DAYS + '+ days', sub: inactive.slice(0,3).map(i=>(getName(i.uid)||i.uid)+' ('+i.days+'d)').join(', ') + (inactive.length>3?' +'+(inactive.length-3)+' more':''), view:'roster' });
 
-    // 4) New worksheet submissions (since last time trainer acknowledged)
+    // 4) New worksheet submissions
     const wsRows = Object.values(SHEET_WORKSHEETS || {});
     let lastSeen = 0; try { lastSeen = Number(localStorage.getItem('bz_ws_seen')||'0'); } catch(e){}
     let newWs = 0; let latest = lastSeen;
     wsRows.forEach(w => { const t = Date.parse(w.date||''); if (!isNaN(t)) { if (t > lastSeen) newWs++; if (t > latest) latest = t; } });
-    // If dates aren't parseable, fall back to "any worksheets exist but count unseen by stored count"
     if (newWs === 0 && wsRows.length) {
       let seenCount = 0; try { seenCount = Number(localStorage.getItem('bz_ws_count')||'0'); } catch(e){}
       if (wsRows.length > seenCount) newWs = wsRows.length - seenCount;
     }
-    if (newWs > 0) items.push({ type:'worksheet', icon:'✎', title: newWs + ' new worksheet' + (newWs>1?'s':'') + ' submitted', sub: 'New-hire Dispatch Manifest · view in New Hire Worksheets', view:'worksheets' });
+    if (newWs > 0) items.push({ type:'worksheet', sig:'worksheet:'+wsRows.length, icon:'✎', title: newWs + ' new worksheet' + (newWs>1?'s':'') + ' submitted', sub: 'New-hire Dispatch Manifest · view in New Hire Worksheets', view:'worksheets' });
   } catch(e){ console.error('computeAlerts error', e); }
 
-  _alertItems = items;
+  // Filter out alerts the trainer already dismissed at this exact signature.
+  // Because the signature includes the count, a GROWN count is a new signature → it re-raises.
+  const activeSigs = items.map(a => a.sig);
+  let dismissed = getDismissedAlerts();
+  // Prune dismissals whose signature is no longer active (keeps the store from growing forever
+  // and means if an issue fully clears then recurs, it will alert again).
+  const pruned = dismissed.filter(sig => activeSigs.indexOf(sig) >= 0);
+  if (pruned.length !== dismissed.length){ setDismissedAlerts(pruned); dismissed = pruned; }
+  _alertItems = items.filter(a => dismissed.indexOf(a.sig) < 0);
   renderAlertBadge();
+  renderAlertPanel();
+}
+// Dismissed-signature store (localStorage).
+function getDismissedAlerts(){
+  try { return JSON.parse(localStorage.getItem('bz_alert_dismissed')||'[]'); } catch(e){ return []; }
+}
+function setDismissedAlerts(list){ try { localStorage.setItem('bz_alert_dismissed', JSON.stringify(list)); } catch(e){} }
+function dismissAlert(sig){
+  const d = getDismissedAlerts();
+  if (d.indexOf(sig) < 0) d.push(sig);
+  setDismissedAlerts(d);
+  _alertItems = _alertItems.filter(a => a.sig !== sig);
+  renderAlertBadge(); renderAlertPanel();
+}
+function dismissAllAlerts(){
+  const d = getDismissedAlerts();
+  _alertItems.forEach(a => { if (d.indexOf(a.sig) < 0) d.push(a.sig); });
+  setDismissedAlerts(d);
+  _alertItems = [];
+  renderAlertBadge(); renderAlertPanel();
+  toast('All alerts dismissed', 'ok');
 }
 function renderAlertBadge(){
   const badge = document.getElementById('alert-count');
@@ -4594,11 +4751,14 @@ function renderAlertPanel(){
   if (!body) return;
   if (!_alertItems.length){ body.innerHTML = '<div class="alert-empty">✓ You\u2019re all caught up — nothing needs attention right now.</div>'; return; }
   body.innerHTML = _alertItems.map(a =>
-    `<button class="alert-item alert-${a.type}" onclick="alertGo('${a.view}','${a.type}')">
-      <span class="alert-item-icon">${a.icon}</span>
-      <span class="alert-item-text"><span class="alert-item-title">${a.title}</span><span class="alert-item-sub">${a.sub||''}</span></span>
-    </button>`
-  ).join('');
+    `<div class="alert-item alert-${a.type}">
+      <button class="alert-item-main" onclick="alertGo('${a.view}','${a.type}')">
+        <span class="alert-item-icon">${a.icon}</span>
+        <span class="alert-item-text"><span class="alert-item-title">${a.title}</span><span class="alert-item-sub">${a.sub||''}</span></span>
+      </button>
+      <button class="alert-dismiss" title="Dismiss this alert" onclick="event.stopPropagation(); dismissAlert('${a.sig}')">&times;</button>
+    </div>`
+  ).join('') + '<button class="alert-dismiss-all" onclick="dismissAllAlerts()">Dismiss all</button>';
 }
 function alertGo(view, type){
   document.getElementById('alert-panel').style.display = 'none';
@@ -4625,9 +4785,14 @@ function computeAnalytics() {
   const allStudentsRaw = getAllStudentScores();          // {uid: {quizId: rec}}
   // Scope: "active" excludes signed-off students; "all" includes everyone.
   const anScope = window._anScope || 'all';
+  const anClass = window._anClass || 'all';   // optional cohort/class filter
   const allStudents = {};
   Object.entries(allStudentsRaw).forEach(([uid, v]) => {
     if (anScope === 'active' && isSignedOff(uid)) return;
+    if (anClass !== 'all') {
+      const c = classOf(uid);
+      if (anClass === '__none__' ? !!c : c !== anClass) return;
+    }
     allStudents[uid] = v;
   });
   // Index quizzes + their questions for fast lookup.
@@ -4772,6 +4937,7 @@ function buildAnalyticsReportData(){
       avg, passed, failed, completed, pending,
       tracked: trackedCount,
       signedOff: (typeof isSignedOff === 'function') ? isSignedOff(uid) : false,
+      className: (typeof classOf === 'function') ? classOf(uid) : '',
       worksheet: !!(SHEET_WORKSHEETS && SHEET_WORKSHEETS[String(uid).toUpperCase()])
     });
   });
@@ -4838,12 +5004,18 @@ function generateAnalyticsReport(fmt){
   const status = document.getElementById('rep-an-status');
   const parts = anSelectedParts();
   if (!Object.keys(parts).length){ if(status) status.textContent = 'Pick at least one part to include.'; return; }
+  const repClass = (document.getElementById('rep-an-class')||{}).value || 'all';
   if (status) status.textContent = 'Refreshing data, then building your report…';
   // Pull latest results + worksheets so the report is current.
   loadResults(function(){
     loadWorksheets(function(){
+      // Temporarily apply the report's class scope to the analytics computation.
+      const savedClass = window._anClass;
+      window._anClass = repClass;
       const data = buildAnalyticsReportData();
-      if (!data.students.length && !data.sections.length){ if(status) status.textContent='No student data recorded yet.'; return; }
+      data._classLabel = repClass === 'all' ? 'All students' : (repClass === '__none__' ? 'Unassigned' : repClass);
+      window._anClass = savedClass;   // restore so the Analytics tab is unaffected
+      if (!data.students.length && !data.sections.length){ if(status) status.textContent='No student data for this class yet.'; return; }
       if (fmt === 'pdf') buildAnalyticsPDF(data, parts); else buildAnalyticsDOC(data, parts);
       if (status) status.textContent = (fmt === 'pdf') ? 'PDF opened in a new tab — use Save as PDF.' : 'Word document downloaded.';
       toast(fmt === 'pdf' ? 'Analytics report opened in a new tab' : 'Analytics report downloaded', fmt === 'pdf' ? 'info' : 'ok');
@@ -4868,7 +5040,7 @@ function buildAnalyticsPDF(d, parts){
     + '.reason{font-size:11px;color:#555;} .bar{height:7px;background:#eef4fb;border-radius:9px;overflow:hidden;width:90px;display:inline-block;vertical-align:middle;} .bar-f{height:100%;}'
     + '@media print{h2,.pill,.bar-f{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
     + '</style></head><body>';
-  h += `<h1>Training Analytics Report</h1><div class="meta">Breeze Airways · Dispatch Training & Standards · Generated ${today}</div>`;
+  h += `<h1>Training Analytics Report</h1><div class="meta">Breeze Airways · Dispatch Training & Standards · Generated ${today}${d._classLabel && d._classLabel!=='All students' ? ' · Class: '+repEscHtml(d._classLabel) : ''}</div>`;
   // 1. Summary
   if (parts.summary) {
   h += '<h2>Executive Summary</h2><div class="cards">'
@@ -4882,11 +5054,12 @@ function buildAnalyticsPDF(d, parts){
   }
   // 2. Student roster
   if (parts.students) {
-  h += '<h2>Student Performance</h2><table><tr><th>Student</th><th>ID</th><th class="c">Avg</th><th class="c">Passed</th><th class="c">Failed</th><th class="c">Completed</th><th class="c">Status</th></tr>';
+  h += '<h2>Student Performance</h2><table><tr><th>Student</th><th>ID</th><th>Class</th><th class="c">Avg</th><th class="c">Passed</th><th class="c">Failed</th><th class="c">Completed</th><th class="c">Status</th></tr>';
   d.students.forEach(s => {
     const avgTxt = s.avg!==null ? s.avg+'%' : '—';
     const avgPill = s.avg===null ? '' : (s.avg>=PASS_THRESHOLD ? 'pill-ok' : 'pill-no');
     h += `<tr><td>${repEscHtml(s.name)}</td><td>${repEscHtml(s.uid)}</td>`
+      + `<td>${repEscHtml(s.className||'—')}</td>`
       + `<td class="c"><span class="pill ${avgPill}">${avgTxt}</span></td>`
       + `<td class="c">${s.passed}</td><td class="c">${s.failed}</td>`
       + `<td class="c">${s.completed}/${s.tracked}</td>`
@@ -4953,7 +5126,7 @@ function buildAnalyticsDOC(d, parts){
     + 'th{background:#eef4fb;text-align:left;padding:4pt 6pt;font-size:9pt;color:#001533;border:1px solid #d6e2f2;}'
     + 'td{padding:3pt 6pt;border:1px solid #e2e2e2;} .c{text-align:center;}'
     + '</style></head><body>';
-  doc += `<h1>Training Analytics Report</h1><div class="meta">Breeze Airways &middot; Dispatch Training &amp; Standards &middot; Generated ${today}</div>`;
+  doc += `<h1>Training Analytics Report</h1><div class="meta">Breeze Airways &middot; Dispatch Training &amp; Standards &middot; Generated ${today}${d._classLabel && d._classLabel!=='All students' ? ' &middot; Class: '+repEscHtml(d._classLabel) : ''}</div>`;
   if (parts.summary) {
   doc += '<h2>Executive Summary</h2><table><tr>'
     + `<th>Students</th><th>Answers reviewed</th><th>Overall miss</th><th>Weakest subject</th><th>At-risk</th><th>Worksheets</th></tr><tr>`
@@ -4961,9 +5134,9 @@ function buildAnalyticsDOC(d, parts){
     + `<td class="c">${repEscHtml(d.summary.weakestSection)} (${d.summary.weakestPct}%)</td><td class="c">${d.summary.atRisk}</td><td class="c">${d.summary.worksheetsDone}</td></tr></table>`;
   }
   if (parts.students) {
-  doc += '<h2>Student Performance</h2><table><tr><th>Student</th><th>ID</th><th class="c">Avg</th><th class="c">Passed</th><th class="c">Failed</th><th class="c">Completed</th><th class="c">Status</th></tr>';
+  doc += '<h2>Student Performance</h2><table><tr><th>Student</th><th>ID</th><th>Class</th><th class="c">Avg</th><th class="c">Passed</th><th class="c">Failed</th><th class="c">Completed</th><th class="c">Status</th></tr>';
   d.students.forEach(s => { const avgTxt=s.avg!==null?s.avg+'%':'—';
-    doc += `<tr><td>${repEscHtml(s.name)}</td><td>${repEscHtml(s.uid)}</td><td class="c">${avgTxt}</td><td class="c">${s.passed}</td><td class="c">${s.failed}</td><td class="c">${s.completed}/${s.tracked}</td><td class="c">${s.signedOff?'Signed off':'In training'}</td></tr>`; });
+    doc += `<tr><td>${repEscHtml(s.name)}</td><td>${repEscHtml(s.uid)}</td><td>${repEscHtml(s.className||'—')}</td><td class="c">${avgTxt}</td><td class="c">${s.passed}</td><td class="c">${s.failed}</td><td class="c">${s.completed}/${s.tracked}</td><td class="c">${s.signedOff?'Signed off':'In training'}</td></tr>`; });
   doc += '</table>';
   }
   if (parts.sections) {
@@ -5043,6 +5216,16 @@ function renderReportSummary(){
       const checked = (sec in prev) ? prev[sec] : true;   // keep prior choice, default on
       return `<label class="rep-chk"><input type="checkbox" value="${repEscHtml(sec)}" ${checked?'checked':''}> ${repEscHtml(sec)}</label>`;
     }).join('') + '<button type="button" class="rep-allbtn" onclick="repToggleAllSections(this)">Toggle all</button>';
+  }
+  // Populate the analytics-report class dropdown from current assignments.
+  const racSel = document.getElementById('rep-an-class');
+  if (racSel){
+    const cur = racSel.value;
+    const names = (typeof allClassNames === 'function') ? allClassNames() : [];
+    racSel.innerHTML = '<option value="all">All students</option>'
+      + names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('')
+      + '<option value="__none__">— Unassigned —</option>';
+    if (cur && (cur==='all'||cur==='__none__'||names.indexOf(cur)>=0)) racSel.value = cur;
   }
 }
 function repToggleAllSections(btn){
@@ -5974,6 +6157,7 @@ function renderResultsBody(){
 }
 
 function renderAnalytics() {
+  syncAnalyticsClassOptions();
   const { qStats, secStats, allStudents } = computeAnalytics();
   window._AN = { qStats, secStats, allStudents };  // for drill-down handlers
 
