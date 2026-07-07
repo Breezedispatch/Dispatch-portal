@@ -4048,8 +4048,8 @@ function showResults(score, pass, results) {
   html += `</div>`;
   content.innerHTML = html;
   window.scrollTo({top:0,behavior:'smooth'});
-  // Tasteful celebration on a genuine pass (not for pending/written-only submissions).
-  if (pass && !hasWritten) { setTimeout(celebratePass, 250); }
+  // Celebrate every submission (pass, fail, or pending) per request.
+  setTimeout(celebratePass, 250);
 }
 // Brief, refined checkmark + burst — respects reduced-motion.
 function celebratePass(){
