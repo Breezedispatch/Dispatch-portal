@@ -82,6 +82,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .alert-bell{position:relative;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:9px;padding:7px 11px;font-size:15px;cursor:pointer;line-height:1;}
 .alert-bell:hover{background:rgba(255,255,255,.18);}
 .alert-bell.has-alerts{animation:bellNudge .6s ease;}
+.alert-bell.bell-pulse{animation:bellNudge .6s ease, bellGlow 1.6s ease-in-out 3;}
+@keyframes bellGlow{0%,100%{box-shadow:0 0 0 0 rgba(240,69,122,0);}50%{box-shadow:0 0 0 5px rgba(240,69,122,.28);}}
 @keyframes bellNudge{0%,100%{transform:rotate(0);}20%{transform:rotate(-12deg);}40%{transform:rotate(10deg);}60%{transform:rotate(-6deg);}80%{transform:rotate(3deg);}}
 .alert-count{position:absolute;top:-6px;right:-6px;background:#F0457A;color:#fff;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;font-family:var(--font);}
 .alert-panel{position:absolute;top:calc(100% + 10px);right:0;width:340px;max-height:70vh;overflow-y:auto;background:#fff;border:1px solid var(--gray);border-radius:14px;box-shadow:0 24px 60px rgba(11,31,58,.28);z-index:1000;padding:.5rem;}
@@ -307,7 +309,25 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .ws-submit:hover{transform:translateY(-1px);}
 .dash-next-icon-ws{background:var(--gold-lt)!important;color:var(--gold)!important;}
 
-/* Pass celebration */
+/* View crossfade on navigation */
+@keyframes viewFade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.view-fade{animation:viewFade .3s cubic-bezier(.2,.8,.2,1);}
+@media (prefers-reduced-motion: reduce){.view-fade{animation:none;}}
+
+/* Toast notifications */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:11000;display:flex;flex-direction:column;gap:10px;align-items:flex-end;pointer-events:none;}
+.toast{display:flex;align-items:center;gap:10px;min-width:200px;max-width:360px;background:#fff;border:1px solid var(--gray);border-left:4px solid var(--green);border-radius:12px;padding:12px 16px;box-shadow:0 16px 40px rgba(11,31,58,.22);font-size:13.5px;font-weight:600;color:var(--ink);opacity:0;transform:translateX(24px);transition:opacity .3s,transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:auto;}
+.toast-show{opacity:1;transform:translateX(0);}
+.toast-hide{opacity:0;transform:translateX(24px);}
+.toast-icon{flex-shrink:0;font-size:15px;font-weight:800;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;background:var(--green);}
+.toast-ok{border-left-color:var(--green);}
+.toast-ok .toast-icon{background:var(--green);}
+.toast-error{border-left-color:var(--red);}
+.toast-error .toast-icon{background:var(--red);}
+.toast-info{border-left-color:var(--blue);}
+.toast-info .toast-icon{background:var(--blue);}
+@media (prefers-reduced-motion: reduce){.toast{transition:opacity .15s;transform:none!important;}}
+@media(max-width:600px){#toast-container{left:16px;right:16px;bottom:16px;align-items:stretch;}.toast{max-width:none;}}
 .celebrate-layer{position:fixed;inset:0;z-index:9999;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .5s;}
 .celebrate-layer.cel-out{opacity:0;}
 .celebrate-ring{position:relative;width:96px;height:96px;filter:drop-shadow(0 8px 24px rgba(26,158,60,.35));}
@@ -2114,6 +2134,38 @@ let currentQuiz = null;
 let examSelected = {};
 let examResults  = null;
 
+// Re-trigger a brief fade-in on a freshly shown view element.
+function fadeInView(el){
+  if (!el) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+  el.classList.remove('view-fade'); void el.offsetWidth; el.classList.add('view-fade');
+}
+
+// ── Toast notifications ────────────────────────────────────────────────────────
+// toast(message, type) — type: 'ok' (default), 'error', 'info'
+function toast(message, type){
+  type = type || 'ok';
+  const c = document.getElementById('toast-container');
+  if (!c){ return; }
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  const icon = type === 'error' ? '&#9888;' : (type === 'info' ? '&#8505;' : '&#10003;');
+  t.innerHTML = '<span class="toast-icon">' + icon + '</span><span class="toast-msg"></span>';
+  t.querySelector('.toast-msg').textContent = message;
+  c.appendChild(t);
+  // force reflow then show (for the slide-in)
+  if (!reduce){ void t.offsetWidth; }
+  t.classList.add('toast-show');
+  const life = type === 'error' ? 4200 : 2800;
+  setTimeout(function(){
+    t.classList.remove('toast-show');
+    t.classList.add('toast-hide');
+    setTimeout(function(){ if (t.parentNode) t.remove(); }, 350);
+  }, life);
+}
+
 // ── New-hire intake worksheet: "The Dispatch Manifest — New Crew on Deck" ───────
 // Not graded. Featured in Up next until submitted; trainers view responses + print a summary.
 const WORKSHEET_DEF = {
@@ -2857,6 +2909,11 @@ function showPortalSection(tab) {
     renderPortal();
     document.getElementById('portal-content').style.display = 'block';
   }
+  // Crossfade whichever section just became visible.
+  ['portal-study','portal-playbook','portal-practice','portal-ojt','portal-content'].forEach(function(id){
+    var e = document.getElementById(id);
+    if (e && e.style.display !== 'none') fadeInView(e);
+  });
 }
 
 function showPortalHome() {
@@ -4366,6 +4423,7 @@ function signOffStudent(uid) {
   setSignoff(uid, true);
   renderAdmin();
   if (window._adminView === 'analytics') renderAnalytics();
+  toast(nm + ' signed off', 'ok');
 }
 
 function reinstateStudent(uid) {
@@ -4374,6 +4432,7 @@ function reinstateStudent(uid) {
   setSignoff(uid, false);
   renderAdmin();
   if (window._adminView === 'analytics') renderAnalytics();
+  toast(nm + ' reinstated to active roster', 'ok');
 }
 
 function setAnalyticsScope(scope) {
@@ -4431,6 +4490,11 @@ function setAdminView(view) {
       });
     });
   }
+  // Crossfade the admin view that just became active.
+  ['admin-roster','admin-analytics','admin-applicants','admin-worksheets','admin-prepcheck','admin-reports'].forEach(function(id){
+    var e = document.getElementById(id);
+    if (e && e.classList.contains('active')) fadeInView(e);
+  });
 }
 
 // Bucket a miss-rate into a severity class for color coding.
@@ -4500,10 +4564,22 @@ function computeAlerts(){
 }
 function renderAlertBadge(){
   const badge = document.getElementById('alert-count');
-  if (!badge) return;
+  const bell = document.getElementById('alert-bell');
+  if (!badge || !bell) return;
   const n = _alertItems.length;
-  if (n > 0){ badge.textContent = n; badge.style.display = 'inline-flex'; document.getElementById('alert-bell').classList.add('has-alerts'); }
-  else { badge.style.display = 'none'; document.getElementById('alert-bell').classList.remove('has-alerts'); }
+  const prev = (typeof window._prevAlertCount === 'number') ? window._prevAlertCount : 0;
+  if (n > 0){
+    badge.textContent = n; badge.style.display = 'inline-flex';
+    bell.classList.add('has-alerts');
+    // Pulse attention only when the number of items has grown since last check.
+    if (n > prev){
+      bell.classList.remove('bell-pulse'); void bell.offsetWidth; bell.classList.add('bell-pulse');
+    }
+  } else {
+    badge.style.display = 'none';
+    bell.classList.remove('has-alerts');
+  }
+  window._prevAlertCount = n;
 }
 function toggleAlertPanel(){
   const panel = document.getElementById('alert-panel');
@@ -4770,6 +4846,7 @@ function generateAnalyticsReport(fmt){
       if (!data.students.length && !data.sections.length){ if(status) status.textContent='No student data recorded yet.'; return; }
       if (fmt === 'pdf') buildAnalyticsPDF(data, parts); else buildAnalyticsDOC(data, parts);
       if (status) status.textContent = (fmt === 'pdf') ? 'PDF opened in a new tab — use Save as PDF.' : 'Word document downloaded.';
+      toast(fmt === 'pdf' ? 'Analytics report opened in a new tab' : 'Analytics report downloaded', fmt === 'pdf' ? 'info' : 'ok');
     });
   });
 }
@@ -5116,6 +5193,7 @@ function buildReportPDF(allowed){
   const w = window.open('', '_blank');
   if (w){ w.document.write(html); w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 400); }
   const status=document.getElementById('rep-status'); if(status) status.textContent='PDF report opened in a new tab — use your browser\u2019s Save as PDF.';
+  toast('Report opened in a new tab', 'info');
 }
 
 // ---- Word version: build a Word-compatible document in the browser (no library, works offline) ----
@@ -5201,6 +5279,7 @@ function buildReportDOCX(allowed){
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
     if (status) status.textContent = 'Word document downloaded — opens in Microsoft Word.';
+    toast('Question bank report downloaded', 'ok');
   } catch(e){
     if (status) status.textContent = 'Could not build the Word file (' + e.message + ') — the PDF option always works.';
   }
@@ -5302,6 +5381,7 @@ function prepCheckResetAll(){
   if (!confirm('Uncheck every item for a fresh class? (The items themselves stay; only the checkmarks reset.)')) return;
   PREPCHECK_DATA.forEach(it=>it.done=false);
   renderPrepCheck(); pcSaveNow();
+  toast('All checkmarks reset for a new class', 'ok');
 }
 // Debounced save so rapid typing/checks don't spam the backend.
 function pcSaveSoon(){ if(_pcSaveTimer) clearTimeout(_pcSaveTimer); _pcSaveTimer=setTimeout(pcSaveNow, 900);
@@ -6972,5 +7052,7 @@ loadQuestions(function(ok){
     <div id="results-body" style="padding:1.5rem;"></div>
   </div>
 </div>
+
+<div id="toast-container" aria-live="polite"></div>
 </body>
 </html>
