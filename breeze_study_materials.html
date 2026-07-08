@@ -218,6 +218,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
       <button class="sidebar-link" onclick="showPanel('intl-supplemental')">International Supplemental</button>
     </div>
     <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <button class="sidebar-link" onclick="showPanel('rnp-explainer')">&#9992; RNP 4 / 10 Explainer</button>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Reference</div>
       <button class="sidebar-link" onclick="showPanel('wind-decode')">Wind Decode Guide</button>
       <button class="sidebar-link" onclick="showPanel('exemption22897')">Exemption 22897</button>
@@ -1266,6 +1270,31 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
         </div>
       </div>
     </div>
+    <!-- ── RNP 4 / 10 EXPLAINER (interactive) ── -->
+    <div class="panel" id="panel-rnp-explainer">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#9992;</span>
+          <span class="guide-card-title">RNP 4 / RNP 10 &mdash; Oceanic &amp; Remote Navigation</span>
+        </div>
+        <div class="guide-card-body">
+          <p style="color:var(--ink2);line-height:1.6;margin:0 0 1rem;">
+            An interactive walkthrough of RNP 4 vs RNP 10, the A220&rsquo;s 384 NM overwater limit, 50 NM separation,
+            RAIM, ICAO filing codes, and oceanic contingency procedures &mdash; followed by fifteen FAA tabletop scenarios
+            across the Gulf and Caribbean. Use the play/scrub bar to move through it at your own pace.
+          </p>
+          <div style="position:relative;width:100%;aspect-ratio:16/9;min-height:480px;border-radius:12px;overflow:hidden;border:1px solid var(--gray);background:#0A1330;">
+            <iframe id="rnp-explainer-frame" data-src="rnp_explainer.html" title="RNP 4 / 10 Explainer"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block;"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div style="margin-top:.6rem;text-align:right;">
+            <button class="sidebar-link" style="display:inline-block;width:auto;"
+              onclick="window.open('rnp_explainer.html','_blank')">&#8599; Open full screen</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div><!-- /content -->
 </div><!-- /page -->
 
@@ -1277,6 +1306,12 @@ function showPanel(id) {
   document.getElementById('panel-' + id).classList.add('active');
   event.currentTarget.classList.add('active');
   window.scrollTo({top:0, behavior:'smooth'});
+  // Lazy-load the (large, self-contained) RNP explainer only the first time its panel opens,
+  // so it doesn't run on page load for users who never visit it.
+  if (id === 'rnp-explainer') {
+    var fr = document.getElementById('rnp-explainer-frame');
+    if (fr && !fr.src && fr.dataset.src) fr.src = fr.dataset.src;
+  }
 }
 
 
