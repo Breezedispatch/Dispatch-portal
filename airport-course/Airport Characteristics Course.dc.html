@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ background:#F1F5F5; font-family:'Figtree',system-ui,sans-serif; color:#17223B; -webkit-font-smoothing:antialiased; }
+  a{ color:#1F9D96; text-decoration:none; }
+  a:hover{ color:#14807A; }
+  ::selection{ background:#BFE7E4; }
+  .bz-scroll::-webkit-scrollbar{ width:10px; height:10px; }
+  .bz-scroll::-webkit-scrollbar-thumb{ background:#cfd9da; border-radius:6px; }
+  @keyframes bzspin{ to{ transform:rotate(360deg); } }
+  @keyframes bzfade{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+  input::placeholder{ color:#9AA4BC; }
+</style>
+<script src="airports-data.js"></script>
+<script src="c070-data.js"></script>
+<script src="c070-stats.js"></script>
+<script src="runways-data.js"></script>
+<script src="stats-data.js"></script>
+<script src="photos-data.js"></script>
+<script src="charts-data.js"></script>
+<script type="module">
+  import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs';
+  window.pdfjsLib = pdfjsLib;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column;">
+
+  <!-- ===== NAV ===== -->
+  <header style="position:sticky; top:0; z-index:40; background:rgba(255,255,255,.88); backdrop-filter:blur(10px); border-bottom:1px solid #E2E8E9;">
+    <div style="max-width:1200px; margin:0 auto; padding:0 24px; height:62px; display:flex; align-items:center; gap:20px;">
+      <div onClick="{{ goHome }}" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:none;">
+        <span style="width:26px; height:26px; border-radius:8px; background:#3FBFB8; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(63,191,184,.4);">
+          <span style="width:11px; height:11px; border-radius:50%; background:#14284F;"></span>
+        </span>
+        <span style="font-weight:700; font-size:15.5px; color:#14284F; letter-spacing:-.2px;">Airport Characteristics</span>
+      </div>
+      <nav style="display:flex; align-items:center; gap:4px; margin-left:8px;">
+        <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+          <button onClick="{{ n.go }}" style="{{ n.style }}">{{ n.label }}</button>
+        </sc-for>
+      </nav>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+        <div style="display:flex; align-items:center; gap:8px; padding:6px 12px; background:#F1F5F5; border-radius:999px;">
+          <span style="width:8px; height:8px; border-radius:50%; background:#3FBFB8;"></span>
+          <span style="font-size:12.5px; font-weight:600; color:#14284F; font-family:'IBM Plex Mono',monospace;">{{ reviewedCount }}/{{ totalAirports }}</span>
+          <span style="font-size:11.5px; color:#6B7690;">reviewed</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== LOADING ===== -->
+  <sc-if value="{{ notLoaded }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:80px;">
+      <span style="width:34px; height:34px; border-radius:50%; border:3px solid #D8E2E2; border-top-color:#3FBFB8; animation:bzspin .8s linear infinite;"></span>
+      <span style="font-size:13px; color:#6B7690;">Loading network guidance…</span>
+    </div>
+  </sc-if>
+
+  <!-- ===== HOME ===== -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;">
+    <section style="background:linear-gradient(160deg,#14284F 0%,#0B1730 100%); color:#fff; position:relative; overflow:hidden;">
+      <span style="position:absolute; right:-90px; top:-90px; width:320px; height:320px; border-radius:50%; background:radial-gradient(circle,rgba(63,191,184,.22),transparent 70%);"></span>
+      <div style="max-width:1200px; margin:0 auto; padding:64px 24px 72px; position:relative;">
+        <span style="display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#7FD6D0; text-transform:uppercase; margin-bottom:18px;">Dispatcher Training · Field Guide</span>
+        <h1 style="margin:0 0 16px; font-size:46px; line-height:1.05; font-weight:800; letter-spacing:-1px; max-width:760px;">Know every airport in the network before you release the flight.</h1>
+        <p style="margin:0 0 30px; font-size:17px; line-height:1.6; color:#C4CEDE; max-width:620px;">Special considerations, Class G tower-closure rules, preferred alternates, and key phone numbers for all {{ totalAirports }} airports — as an interactive map, guided lessons, and a searchable reference.</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button onClick="{{ goMap }}" style="cursor:pointer; border:none; background:#3FBFB8; color:#0B1730; font-family:'Figtree'; font-weight:700; font-size:14.5px; padding:13px 22px; border-radius:11px;" style-hover="cursor:pointer; border:none; background:#5AD0C9; color:#0B1730; font-family:'Figtree'; font-weight:700; font-size:14.5px; padding:13px 22px; border-radius:11px;">Open the network map →</button>
+          <button onClick="{{ goRef }}" style="cursor:pointer; border:1px solid rgba(255,255,255,.28); background:transparent; color:#fff; font-family:'Figtree'; font-weight:600; font-size:14.5px; padding:13px 22px; border-radius:11px;" style-hover="cursor:pointer; border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.06); color:#fff; font-family:'Figtree'; font-weight:600; font-size:14.5px; padding:13px 22px; border-radius:11px;">Browse airport reference</button>
+        </div>
+      </div>
+    </section>
+
+    <div style="max-width:1200px; margin:0 auto; padding:40px 24px 64px; display:flex; flex-direction:column; gap:36px;">
+
+      <!-- progress -->
+      <div style="background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:26px 28px; display:flex; align-items:center; gap:36px; flex-wrap:wrap;">
+        <div style="position:relative; width:128px; height:128px; flex:none;">
+          <svg width="128" height="128" viewBox="0 0 128 128" style="transform:rotate(-90deg);">
+            <circle cx="64" cy="64" r="52" fill="none" stroke="#EBF0F0" stroke-width="12"></circle>
+            <circle cx="64" cy="64" r="52" fill="none" stroke="#3FBFB8" stroke-width="12" stroke-linecap="round" stroke-dasharray="{{ ringCirc }}" stroke-dashoffset="{{ ringOffset }}"></circle>
+          </svg>
+          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:28px; font-weight:800; color:#14284F; line-height:1;">{{ reviewedPct }}%</span>
+            <span style="font-size:11px; color:#6B7690; margin-top:2px;">reviewed</span>
+          </div>
+        </div>
+        <div style="flex:1; min-width:240px; display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <h2 style="margin:0 0 4px; font-size:20px; font-weight:700; color:#14284F;">Your progress</h2>
+            <p style="margin:0; font-size:13.5px; color:#6B7690;">{{ reviewedCount }} of {{ totalAirports }} airports reviewed · {{ lessonsDoneCount }} of {{ lessonsTotal }} lessons complete</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:#6B7690;"><span>Guided lessons</span><span style="font-family:'IBM Plex Mono',monospace; color:#14284F;">{{ lessonsDoneCount }}/{{ lessonsTotal }}</span></div>
+            <div style="height:9px; background:#EBF0F0; border-radius:6px; overflow:hidden;"><div style="height:100%; width:{{ lessonsPctStr }}; background:#14284F; border-radius:6px; transition:width .4s ease;"></div></div>
+          </div>
+        </div>
+        <button onClick="{{ resetProgress }}" style="cursor:pointer; align-self:flex-start; border:1px solid #E2E8E9; background:#fff; color:#6B7690; font-family:'Figtree'; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:9px;" style-hover="cursor:pointer; align-self:flex-start; border:1px solid #E9B9B9; background:#FCF3F3; color:#B4544F; font-family:'Figtree'; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:9px;">Reset progress</button>
+      </div>
+
+      <!-- entry cards -->
+      <div>
+        <h2 style="margin:0 0 4px; font-size:15px; font-weight:700; color:#14284F; text-transform:uppercase; letter-spacing:1px;">Three ways to learn</h2>
+        <p style="margin:0 0 20px; font-size:13.5px; color:#6B7690;">Pick a starting point — progress is shared across all three.</p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px;">
+          <div onClick="{{ goMap }}" style="cursor:pointer; background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:12px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#fff; border:1px solid #BFE7E4; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:12px; transform:translateY(-3px); box-shadow:0 14px 30px rgba(11,23,48,.10);">
+            <span style="width:44px; height:44px; border-radius:12px; background:#E7F6F5; display:inline-flex; align-items:center; justify-content:center; font-size:22px;">🗺️</span>
+            <h3 style="margin:0; font-size:18px; font-weight:700; color:#14284F;">Network Map</h3>
+            <p style="margin:0; font-size:13.5px; line-height:1.55; color:#6B7690;">See all {{ stationCount }} stations across the U.S. Click any dot to open its full characteristics.</p>
+            <span style="margin-top:auto; font-size:13px; font-weight:600; color:#1F9D96;">Explore the map →</span>
+          </div>
+          <div onClick="{{ goLessons }}" style="cursor:pointer; background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:12px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#fff; border:1px solid #BFE7E4; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:12px; transform:translateY(-3px); box-shadow:0 14px 30px rgba(11,23,48,.10);">
+            <span style="width:44px; height:44px; border-radius:12px; background:#E7F6F5; display:inline-flex; align-items:center; justify-content:center; font-size:22px;">📘</span>
+            <h3 style="margin:0; font-size:18px; font-weight:700; color:#14284F;">Guided Lessons</h3>
+            <p style="margin:0; font-size:13.5px; line-height:1.55; color:#6B7690;">Seven short chapters grouped by theme — curfews, terrain, Class G, GDPs and more. Mark each complete as you go.</p>
+            <span style="margin-top:auto; font-size:13px; font-weight:600; color:#1F9D96;">Start the lessons →</span>
+          </div>
+          <div onClick="{{ goRef }}" style="cursor:pointer; background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:12px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#fff; border:1px solid #BFE7E4; border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:12px; transform:translateY(-3px); box-shadow:0 14px 30px rgba(11,23,48,.10);">
+            <span style="width:44px; height:44px; border-radius:12px; background:#E7F6F5; display:inline-flex; align-items:center; justify-content:center; font-size:22px;">🔎</span>
+            <h3 style="margin:0; font-size:18px; font-weight:700; color:#14284F;">Airport Reference</h3>
+            <p style="margin:0; font-size:13.5px; line-height:1.55; color:#6B7690;">Search and filter by region or hazard type. The fast lookup for the day of ops.</p>
+            <span style="margin-top:auto; font-size:13px; font-weight:600; color:#1F9D96;">Open the reference →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <!-- ===== MAP ===== -->
+  <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;">
+    <div style="max-width:1200px; margin:0 auto; padding:32px 24px 56px; width:100%;">
+      <div style="margin-bottom:18px;">
+        <h1 style="margin:0 0 4px; font-size:30px; font-weight:800; color:#14284F; letter-spacing:-.5px;">Network Map</h1>
+        <p style="margin:0; font-size:14px; color:#6B7690;">Click any station to open its full characteristics. Scroll or use the +/− buttons to zoom, drag to pan — more codes appear as you zoom into a cluster. Reviewed stations show a ✓.</p>
+      </div>
+      <div style="position:relative; margin-bottom:14px; max-width:460px;">
+        <span style="position:absolute; left:15px; top:15px; font-size:15px; color:#9AA4BC;">🔎</span>
+        <input value="{{ mapSearch }}" onInput="{{ onMapSearch }}" onKeyDown="{{ onMapSearchKey }}" placeholder="Find a station on the map…" style="width:100%; padding:12px 16px 12px 42px; font-family:'Figtree'; font-size:14.5px; color:#17223B; background:#fff; border:1px solid #E2E8E9; border-radius:12px; outline:none;" style-focus="width:100%; padding:12px 16px 12px 42px; font-family:'Figtree'; font-size:14.5px; color:#17223B; background:#fff; border:1px solid #3FBFB8; border-radius:12px; outline:none; box-shadow:0 0 0 3px rgba(63,191,184,.15);">
+        <sc-if value="{{ hasMapMatches }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; z-index:10; top:52px; left:0; right:0; background:#fff; border:1px solid #E2E8E9; border-radius:12px; box-shadow:0 12px 30px rgba(11,23,48,.14); overflow:hidden;">
+            <sc-for list="{{ mapMatches }}" as="m" hint-placeholder-count="4">
+              <div onClick="{{ m.focus }}" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid #F1F5F5;" style-hover="cursor:pointer; display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid #F1F5F5; background:#F7FAFA;">
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#14284F; min-width:44px;">{{ m.iata }}</span>
+                <span style="flex:1; font-size:13px; color:#3B455F;">{{ m.name }} · {{ m.cityState }}</span>
+                <sc-if value="{{ m.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px; font-weight:700; letter-spacing:.4px; padding:2px 7px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+      <div style="background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:16px; position:relative;">
+        <div id="bz-map" style="width:100%; position:relative;"></div>
+      </div>
+      <div style="margin-top:16px; display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+          <span style="font-size:12px; font-weight:600; color:#6B7690; text-transform:uppercase; letter-spacing:1px;">Stations</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#17223B;"><span style="width:13px; height:13px; border-radius:50%; background:oklch(0.60 0.13 200); border:2px solid #fff; box-shadow:0 0 0 1px #D2DCDC;"></span>Special-characteristics (region color)</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#17223B;"><span style="width:9px; height:9px; border-radius:50%; background:#AEB9C7; border:1px solid #fff; box-shadow:0 0 0 1px #D2DCDC;"></span>C070 network</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#17223B;"><span style="width:16px; height:16px; border-radius:50%; background:#3FBFB8; color:#fff; font-size:10px; display:inline-flex; align-items:center; justify-content:center;">✓</span>Reviewed</span>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+          <span style="font-size:12px; font-weight:600; color:#6B7690; text-transform:uppercase; letter-spacing:1px;">Regions</span>
+          <sc-for list="{{ regionLegend }}" as="r" hint-placeholder-count="5">
+            <span style="display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#17223B;"><span style="{{ r.dotStyle }}"></span>{{ r.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <!-- ===== LESSONS ===== -->
+  <sc-if value="{{ isLessons }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;">
+    <div style="max-width:1180px; margin:0 auto; padding:32px 24px 72px; width:100%;">
+      <div style="margin-bottom:26px;">
+        <h1 style="margin:0 0 4px; font-size:30px; font-weight:800; color:#14284F; letter-spacing:-.5px;">Guided Lessons</h1>
+        <p style="margin:0; font-size:14px; color:#6B7690;">Seven themed chapters. Read the briefing, review the stations, then mark the chapter complete.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 1fr; gap:36px; align-items:start;">
+        <!-- side rail -->
+        <aside style="position:sticky; top:80px; display:flex; flex-direction:column; gap:2px;">
+          <sc-for list="{{ chapterNav }}" as="c" hint-placeholder-count="7">
+            <a href="{{ c.href }}" style="{{ c.style }}"><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; opacity:.6;">{{ c.num }}</span> {{ c.title }} <sc-if value="{{ c.done }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto; color:#3FBFB8;">✓</span></sc-if></a>
+          </sc-for>
+        </aside>
+
+        <div style="display:flex; flex-direction:column; gap:20px; min-width:0;">
+
+          <!-- Ch 1 Class G -->
+          <section id="ch-classg" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">01</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.classg.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Operating After the Tower Closes — Class G</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">Many Breeze stations sit in Class B, C, or D airspace only while the tower is staffed. When the tower closes, that airspace reverts to <strong>Class G</strong>. We may still continue an operation into these fields when, at the scheduled time, the airspace <em>would</em> have been controlled but for a temporary or emergency ATC change, weather, or a mechanical delay.</p>
+            <p style="margin:0 0 8px; font-size:14.5px; line-height:1.65; color:#3B455F;">Before dispatching into Class G, confirm all four conditions are met:</p>
+            <ol style="margin:0 0 16px; padding-left:20px; font-size:14px; line-height:1.7; color:#3B455F;">
+              <li>The airport is served by an authorized instrument approach procedure (IAP).</li>
+              <li>The airport has an approved source of weather (ASOS / AWOS / D-ATIS).</li>
+              <li>The PIC has a suitable means to acquire traffic advisories and field status.</li>
+              <li>Facilities and services required for IFR are available and operational.</li>
+            </ol>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#F3F8F8; border-left:3px solid #3FBFB8; border-radius:0 8px 8px 0;"><strong>TCAS is required</strong> for all Class G tower-closed operations. Watch for field-specific exceptions — see Ogden's night restriction below.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.classg.airports }}" as="a" hint-placeholder-count="6"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.classg.toggle }}" style="{{ chapters.classg.btnStyle }}">{{ chapters.classg.btnLabel }}</button>
+          </section>
+
+          <!-- Ch 2 Curfews -->
+          <section id="ch-curfew" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">02</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.curfew.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Noise Curfews & Slot Restrictions</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">A handful of fields enforce hard <strong>noise-abatement curfews</strong> that dictate when we can depart or arrive. Safety and performance always take precedence over noise abatement — but outside of that, plan the operation to stay inside the curfew window and add hold fuel where slot constraints apply.</p>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#FDF6EC; border-left:3px solid #E0A53B; border-radius:0 8px 8px 0;">At <strong>SNA</strong>, arrivals that can't make the curfew are diverted to LAX — consult a duty manager. <strong>HPN</strong> is capped at 4 flights per 30 minutes, so carry extra hold fuel when practicable.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.curfew.airports }}" as="a" hint-placeholder-count="3"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.curfew.toggle }}" style="{{ chapters.curfew.btnStyle }}">{{ chapters.curfew.btnLabel }}</button>
+          </section>
+
+          <!-- Ch 3 Terrain -->
+          <section id="ch-terrain" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">03</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.terrain.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Terrain & Mountainous Fields</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">Rising terrain drives departure-procedure weight penalties, restricted night operations, and conservative planning. Verify takeoff and obstacle-departure performance early, and respect any runway- or time-of-day limits that terrain imposes.</p>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#F6F1EC; border-left:3px solid #B67A4A; border-radius:0 8px 8px 0;">Terrain also shapes weather — LAS sits in a mountain-ringed valley with highly variable winds, and hot/high conditions from April–October limit aircraft performance.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.terrain.airports }}" as="a" hint-placeholder-count="6"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.terrain.toggle }}" style="{{ chapters.terrain.btnStyle }}">{{ chapters.terrain.btnLabel }}</button>
+          </section>
+
+          <!-- Ch 4 Circle to land -->
+          <section id="ch-circle" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">04</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.circle.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Circle-to-Land Approaches</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">When the instrument approach doesn't align with the landing runway, crews fly a <strong>circle-to-land</strong> maneuver. These carry special company minimums and are often daylight-only, PIC-only, and dependent on specific lighting. Whenever a circle looks probable, add a precautionary alternate or extra fuel for a go-around or two.</p>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#F4F1F8; border-left:3px solid #8A6FBF; border-radius:0 8px 8px 0;">At <strong>SBD</strong>, roughly half the GA traffic overflown on the circle to RWY 24 has no transponder or ADS-B — visual separation is essential. Company minimums live on the 10-7 Jeppesen charts.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.circle.airports }}" as="a" hint-placeholder-count="2"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.circle.toggle }}" style="{{ chapters.circle.btnStyle }}">{{ chapters.circle.btnLabel }}</button>
+          </section>
+
+          <!-- Ch 5 GDP -->
+          <section id="ch-gdp" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">05</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.gdp.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Ground Delay Programs & Convective Weather</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">Summer afternoons bring thunderstorms, flow programs, ground stops, and ground delay programs (GDPs) to our busy Florida and West Coast fields. Plan hold fuel where practicable, note any <strong>EDCT</strong> in the release remarks, keep crews updated, and watch the OIS page — programs frequently roll their times out.</p>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#EEF3FA; border-left:3px solid #4C7CC4; border-radius:0 8px 8px 0;">SFO is regularly in a GDP; when landing south the arrival rate drops sharply and program scope grows the later weather is forecast to clear. Phoenix's monsoon (Jun–Sep) adds dust storms and haboobs.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.gdp.airports }}" as="a" hint-placeholder-count="6"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.gdp.toggle }}" style="{{ chapters.gdp.btnStyle }}">{{ chapters.gdp.btnLabel }}</button>
+          </section>
+
+          <!-- Ch 6 Fog -->
+          <section id="ch-fog" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">06</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.fog.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Fog & Low Visibility</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">Coastal fields are prone to early-morning and late-night <strong>advection fog</strong> and marine-layer intrusions that can drop the airport below CAT I minimums. Plan alternates and fuel accordingly, and check nearby-airport METARs for a leading indicator of what's inbound.</p>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#EEF2F4; border-left:3px solid #64748B; border-radius:0 8px 8px 0;">At LAX, nearby stations (HHR, SMO, TOA, LGB) hint at approaching visibility. SFO's geography traps cold ocean air, making it especially fog-prone in summer.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.fog.airports }}" as="a" hint-placeholder-count="3"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.fog.toggle }}" style="{{ chapters.fog.btnStyle }}">{{ chapters.fog.btnLabel }}</button>
+          </section>
+
+          <!-- Ch 7 Runway/Aircraft -->
+          <section id="ch-runway" style="scroll-margin-top:80px; background:#fff; border:1px solid #E2E8E9; border-radius:18px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3FBFB8;">07</span><span style="height:1px; flex:1; background:#EBF0F0;"></span><span style="font-size:11.5px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ chapters.runway.countLabel }}</span></div>
+            <h2 style="margin:0 0 12px; font-size:23px; font-weight:800; color:#14284F; letter-spacing:-.3px;">Runway & Aircraft Restrictions</h2>
+            <p style="margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#3B455F;">Some fields limit which runways we may use, run construction closures, or apply <strong>aircraft-specific</strong> limits. Know the approved runways and any fleet difference before you plan — and remember that construction closures are frequently hard closures.</p>
+            <p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#3B455F; padding:12px 14px; background:#FBF2EC; border-left:3px solid #C8703C; border-radius:0 8px 8px 0;">At BDL, the A220-300 is day-VFR only on RWY 15 and cannot fly the RNAV 15 — E-Jets have no such limit. VRB and ORF each have only specific approved runways.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;">
+              <sc-for list="{{ chapters.runway.airports }}" as="a" hint-placeholder-count="5"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+            </div>
+            <button onClick="{{ chapters.runway.toggle }}" style="{{ chapters.runway.btnStyle }}">{{ chapters.runway.btnLabel }}</button>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <!-- ===== REFERENCE ===== -->
+  <sc-if value="{{ isReference }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;">
+    <div style="max-width:1200px; margin:0 auto; padding:32px 24px 64px; width:100%;">
+      <div style="margin-bottom:20px;">
+        <h1 style="margin:0 0 4px; font-size:30px; font-weight:800; color:#14284F; letter-spacing:-.5px;">Airport Reference</h1>
+        <p style="margin:0; font-size:14px; color:#6B7690;">Search or filter, then open a station for full characteristics.</p>
+      </div>
+
+      <div style="position:relative; margin-bottom:16px;">
+        <span style="position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:15px; color:#9AA4BC;">🔎</span>
+        <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Search by code, name, or city…" style="width:100%; padding:13px 16px 13px 42px; font-family:'Figtree'; font-size:14.5px; color:#17223B; background:#fff; border:1px solid #E2E8E9; border-radius:12px; outline:none;" style-focus="width:100%; padding:13px 16px 13px 42px; font-family:'Figtree'; font-size:14.5px; color:#17223B; background:#fff; border:1px solid #3FBFB8; border-radius:12px; outline:none; box-shadow:0 0 0 3px rgba(63,191,184,.15);">
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:22px;">
+        <div style="display:flex; flex-wrap:wrap; gap:7px; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1px; width:56px;">Show</span>
+          <sc-for list="{{ categoryPills }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.select }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:7px; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1px; width:56px;">Region</span>
+          <sc-for list="{{ regionPills }}" as="p" hint-placeholder-count="6"><button onClick="{{ p.select }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:7px; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1px; width:56px;">Type</span>
+          <sc-for list="{{ tagPills }}" as="p" hint-placeholder-count="8"><button onClick="{{ p.select }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+        </div>
+      </div>
+
+      <p style="margin:0 0 16px; font-size:13px; color:#8A94AC; font-family:'IBM Plex Mono',monospace;">{{ resultCountLabel }}</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px;">
+        <sc-for list="{{ filteredAirports }}" as="a" hint-placeholder-count="12"><div data-airport-nav="{{ a.icao }}" style="cursor:pointer; background:#FFFFFF; border:1px solid #E2E8E9; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(11,23,48,.04); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;" style-hover="cursor:pointer; background:#FFFFFF; border:1px solid #BFE7E4; border-radius:16px; padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateY(-2px); box-shadow:0 10px 24px rgba(11,23,48,.10);"><div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;"><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:.5px; color:#14284F; line-height:1;">{{ a.iata }}</span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8A94AC; letter-spacing:1px;">{{ a.icao }}</span></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;"><sc-if value="{{ a.isSpecial }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; letter-spacing:.4px; padding:3px 8px; border-radius:999px; background:#14284F; color:#7FD6D0; text-transform:uppercase; white-space:nowrap;">★ Special</span></sc-if><sc-if value="{{ a.reviewed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#3FBFB8; color:#FFFFFF; font-size:13px; flex:none;">✓</span></sc-if></div></div><div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:13.5px; font-weight:600; color:#17223B; line-height:1.25;">{{ a.name }}</span><span style="font-size:12px; color:#5B6884;">{{ a.cityState }}</span></div><div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ a.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.style }}">{{ chip.label }}</span></sc-for></div><p style="margin:0; font-size:12.5px; line-height:1.5; color:#6B7690; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ a.snippet }}</p></div></sc-for>
+      </div>
+      <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:60px; text-align:center; color:#8A94AC; font-size:14px;">No stations match those filters.</div>
+      </sc-if>
+    </div>
+  </main>
+  </sc-if>
+
+  <!-- ===== AIRPORT DETAIL ===== -->
+  <sc-if value="{{ isAirport }}" hint-placeholder-val="{{ false }}">
+  <main style="flex:1;" key="{{ current.icao }}">
+    <div style="max-width:920px; margin:0 auto; padding:24px 24px 72px; width:100%; animation:bzfade .25s ease;">
+      <button onClick="{{ back }}" style="cursor:pointer; border:none; background:transparent; color:#6B7690; font-family:'Figtree'; font-size:13.5px; font-weight:600; padding:6px 0; margin-bottom:12px; display:inline-flex; align-items:center; gap:6px;" style-hover="cursor:pointer; border:none; background:transparent; color:#14284F; font-family:'Figtree'; font-size:13.5px; font-weight:600; padding:6px 0; margin-bottom:12px; display:inline-flex; align-items:center; gap:6px;">← {{ backLabel }}</button>
+
+      <!-- header -->
+      <div style="background:linear-gradient(155deg,#14284F,#0B1730); border-radius:20px; padding:28px 30px; color:#fff; margin-bottom:20px; position:relative; overflow:hidden; min-height:320px; display:flex; flex-direction:column; justify-content:flex-end;">
+        <span style="position:absolute; right:-40px; bottom:-60px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,rgba(63,191,184,.18),transparent 70%);"></span>
+        <sc-if value="{{ current.hasPhoto }}" hint-placeholder-val="{{ false }}">
+          {{ current.photoImg }}
+          <span style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(9,19,40,.92) 0%, rgba(9,19,40,.72) 32%, rgba(9,19,40,.32) 66%, rgba(9,19,40,.08) 100%);"></span>
+          <span style="position:absolute; inset:0; background:linear-gradient(0deg, rgba(9,19,40,.4) 0%, transparent 52%);"></span>
+        </sc-if>
+        <sc-if value="{{ current.showRunways }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; top:0; bottom:0; right:0; width:62%; -webkit-mask-image:linear-gradient(to right, transparent 4%, #000 42%); mask-image:linear-gradient(to right, transparent 4%, #000 42%); pointer-events:none;">
+            <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100%; display:block;">
+              <g stroke="#4FC7C0" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.5">
+                <sc-for list="{{ current.runwayLines }}" as="ln" hint-placeholder-count="2"><line x1="{{ ln.x1 }}" y1="{{ ln.y1 }}" x2="{{ ln.x2 }}" y2="{{ ln.y2 }}"></line></sc-for>
+              </g>
+              <g stroke="#D7F6F3" stroke-width="1" stroke-dasharray="4 7" stroke-linecap="round" fill="none" opacity="0.55">
+                <sc-for list="{{ current.runwayLines }}" as="ln" hint-placeholder-count="2"><line x1="{{ ln.x1 }}" y1="{{ ln.y1 }}" x2="{{ ln.x2 }}" y2="{{ ln.y2 }}"></line></sc-for>
+              </g>
+            </svg>
+          </div>
+        </sc-if>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; position:relative;">
+          <div>
+            <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:48px; font-weight:600; letter-spacing:1px; line-height:1;">{{ current.iata }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:16px; color:#7FD6D0;">{{ current.icao }}</span>
+            </div>
+            <h1 style="margin:12px 0 2px; font-size:22px; font-weight:700;">{{ current.name }}</h1>
+            <p style="margin:0; font-size:14px; color:#C4CEDE;">{{ current.cityState }} · {{ current.region }}</p>
+          </div>
+          <button onClick="{{ current.toggleReviewed }}" style="{{ current.reviewBtnStyle }}">{{ current.reviewBtnLabel }}</button>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:16px; position:relative;">
+          <sc-for list="{{ current.tagChips }}" as="chip" hint-placeholder-count="2"><span style="{{ chip.styleDark }}">{{ chip.label }}</span></sc-for>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; gap:16px;">
+
+        <!-- Field & runway data -->
+        <sc-if value="{{ current.hasStats }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:16px;">
+            <h2 style="margin:0; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">Field &amp; Runway Data</h2>
+            <span style="font-size:11px; color:#B4BAC9;">{{ current.stats.runwayCountLabel }}</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="flex:1; min-width:150px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:12px; padding:14px 16px;">
+              <div style="font-size:11px; color:#8A94AC; text-transform:uppercase; letter-spacing:.6px; margin-bottom:5px;">Field Elevation</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:#14284F;">{{ current.stats.elevation }}</div>
+            </div>
+            <div style="flex:1; min-width:150px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:12px; padding:14px 16px;">
+              <div style="font-size:11px; color:#8A94AC; text-transform:uppercase; letter-spacing:.6px; margin-bottom:5px;">Longest Runway</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:#14284F;">{{ current.stats.longest }}</div>
+            </div>
+            <sc-if value="{{ current.stats.hasAsos }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1; min-width:150px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:12px; padding:14px 16px;">
+              <div style="font-size:11px; color:#8A94AC; text-transform:uppercase; letter-spacing:.6px; margin-bottom:5px;">Wx ASOS/AWOS</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:500; color:#14284F; display:flex; flex-direction:column; gap:2px;">
+                <span>{{ current.stats.asosFreq }}</span>
+                <sc-if value="{{ current.stats.hasAsosPhone }}" hint-placeholder-val="{{ false }}"><a href="{{ current.stats.asosTel }}" style="color:#1F9D96;">{{ current.stats.asosPhone }}</a></sc-if>
+              </div>
+            </div>
+            </sc-if>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ current.stats.runways }}" as="rw" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:#FBFDFD; border:1px solid #EBF0F0; border-radius:10px;">
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#14284F; min-width:78px;">{{ rw.id }}</span>
+                <span style="flex:1; height:1px; background:#EBF0F0;"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#3B455F;">{{ rw.dims }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ current.isSpecial }}" hint-placeholder-val="{{ true }}">
+        <!-- Special considerations -->
+        <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px; display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap;">
+          <div style="flex:1; min-width:290px;">
+            <h2 style="margin:0 0 16px; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">Special Considerations</h2>
+            <sc-if value="{{ current.hasConsiderations }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-direction:column; gap:18px;">
+                <sc-for list="{{ current.considerations }}" as="sec" hint-placeholder-count="2">
+                  <div>
+                    <sc-if value="{{ sec.hasHeading }}" hint-placeholder-val="{{ true }}"><h3 style="margin:0 0 6px; font-size:15px; font-weight:700; color:#14284F;">{{ sec.heading }}</h3></sc-if>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                      <sc-for list="{{ sec.body }}" as="line" hint-placeholder-count="2"><p style="margin:0; font-size:14px; line-height:1.6; color:#3B455F;">{{ line }}</p></sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ current.noConsiderations }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0; font-size:14px; color:#8A94AC;">No special considerations noted for this station.</p>
+            </sc-if>
+          </div>
+          <sc-if value="{{ current.hasChart }}" hint-placeholder-val="{{ false }}">
+            <div style="width:330px; max-width:100%; flex:none;">
+              <div style="font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:10px;">Airport Chart</div>
+              <a href="{{ current.chart }}" target="_blank" rel="noopener" style="display:block; border:1px solid #E2E8E9; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(11,23,48,.06);" style-hover="display:block; border:1px solid #BFE7E4; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 8px 20px rgba(11,23,48,.12);">
+                <canvas id="bz-chart" style="display:block; width:100%; height:auto;"></canvas>
+              </a>
+              <a href="{{ current.chart }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; margin-top:9px; font-size:12.5px; font-weight:600; color:#1F9D96;">Open full chart (PDF) →</a>
+            </div>
+          </sc-if>
+        </div>
+        </sc-if>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
+          <sc-if value="{{ current.isSpecial }}" hint-placeholder-val="{{ true }}">
+          <!-- Class G -->
+          <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+            <h2 style="margin:0 0 14px; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">Class G Airspace</h2>
+            <sc-if value="{{ current.classGApplicable }}" hint-placeholder-val="{{ true }}">
+              <p style="margin:0 0 14px; font-size:14px; line-height:1.6; color:#3B455F;">Operations may continue after the tower closes and the field reverts to Class G — provided the four IFR conditions are met.</p>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <sc-if value="{{ current.hasWeatherSource }}" hint-placeholder-val="{{ true }}"><div style="display:flex; gap:8px; align-items:center; font-size:13px;"><span style="color:#8A94AC; width:100px; flex:none;">Weather source</span><span style="font-family:'IBM Plex Mono',monospace; color:#14284F; font-weight:500;">{{ current.weatherSource }}</span></div></sc-if>
+                <sc-if value="{{ current.tcas }}" hint-placeholder-val="{{ true }}"><div style="display:flex; gap:8px; align-items:center; font-size:13px;"><span style="color:#8A94AC; width:100px; flex:none;">TCAS</span><span style="color:#1F9D96; font-weight:600;">Required</span></div></sc-if>
+              </div>
+              <sc-if value="{{ current.hasClassGNotes }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:14px; display:flex; flex-direction:column; gap:10px;">
+                  <sc-for list="{{ current.classGNotes }}" as="note" hint-placeholder-count="1"><p style="margin:0; font-size:13px; line-height:1.55; color:#8A4B2F; background:#FCF2EC; border-left:3px solid #D98A55; border-radius:0 8px 8px 0; padding:10px 12px;">{{ note }}</p></sc-for>
+                </div>
+              </sc-if>
+            </sc-if>
+            <sc-if value="{{ current.classGNotApplicable }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0; font-size:14px; color:#8A94AC; line-height:1.6;">No Class G tower-closure provision is listed for this station.</p>
+            </sc-if>
+          </div>
+          </sc-if>
+
+          <!-- Alternates -->
+          <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+            <h2 style="margin:0 0 14px; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">Preferred Alternates</h2>
+            <sc-if value="{{ current.hasAlternates }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <sc-for list="{{ current.alternates }}" as="alt" hint-placeholder-count="2"><button onClick="{{ alt.open }}" style="{{ alt.style }}">{{ alt.iata }}</button></sc-for>
+              </div>
+              <p style="margin:12px 0 0; font-size:12px; color:#9AA4BC;">Highlighted alternates are Breeze stations — tap to open.</p>
+            </sc-if>
+            <sc-if value="{{ current.noAlternates }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0; font-size:14px; color:#8A94AC;">No preferred alternates listed.</p>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Aircraft & C070 authorization -->
+        <sc-if value="{{ current.hasAcAuth }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:14px;">
+            <h2 style="margin:0; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">Aircraft &amp; C070 Authorization</h2>
+            <a href="{{ current.airnav }}" target="_blank" rel="noopener" style="font-size:12px; font-weight:600; color:#1F9D96;">AirNav →</a>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ current.acAuth }}" as="f" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; gap:14px; padding:12px 14px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:10px; flex-wrap:wrap;">
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#14284F; min-width:130px;">{{ f.fleet }}</span>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                  <sc-for list="{{ f.roles }}" as="r" hint-placeholder-count="2"><span style="font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; background:#E7F6F5; color:#1F9D96; border:1px solid #BFE7E4;">{{ r }}</span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin:12px 0 0; font-size:12px; color:#9AA4BC;">Regular · Refueling · Provisional · Alternate — per FAA OpSpec C070.</p>
+        </div>
+        </sc-if>
+
+        <!-- ATC contacts (C070) -->
+        <sc-if value="{{ current.showAtcC070 }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:14px;">
+            <h2 style="margin:0; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">ATC Contacts</h2>
+            <span style="font-size:11px; color:#B4BAC9;">Tower · TRACON/TMU · Center</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px;">
+            <sc-for list="{{ current.atcRows }}" as="row" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:2px; padding:12px 14px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:10px;">
+                <span style="font-size:11.5px; color:#8A94AC; text-transform:uppercase; letter-spacing:.5px;">{{ row.label }}</span>
+                <sc-if value="{{ row.isPhone }}" hint-placeholder-val="{{ true }}"><a href="{{ row.tel }}" style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:500; color:#14284F;">{{ row.value }}</a></sc-if>
+                <sc-if value="{{ row.plain }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:500; color:#3B455F;">{{ row.value }}</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- C070 network note -->
+        <sc-if value="{{ current.isC070 }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#F7FAFA; border:1px solid #E2E8E9; border-radius:16px; padding:20px 24px;">
+          <p style="margin:0 0 10px; font-size:14px; line-height:1.6; color:#3B455F;">Standard C070 network station. Field elevation, runway and ATC contact data below are sourced from the FAA / OurAirports dataset and the Breeze ATC phone list — verify weather (ASOS/AWOS) against the current Chart Supplement.</p>
+          <a href="{{ current.airnav }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:600; color:#1F9D96;">View full airport record on AirNav →</a>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ current.isSpecial }}" hint-placeholder-val="{{ true }}">
+        <!-- Phones -->
+        <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+          <h2 style="margin:0 0 14px; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">Important Phone Numbers</h2>
+          <sc-if value="{{ current.hasPhones }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px;">
+              <sc-for list="{{ current.phones }}" as="ph" hint-placeholder-count="2">
+                <div style="display:flex; flex-direction:column; gap:2px; padding:12px 14px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:10px;">
+                  <span style="font-size:11.5px; color:#8A94AC; text-transform:uppercase; letter-spacing:.5px;">{{ ph.label }}</span>
+                  <sc-if value="{{ ph.hasNumber }}" hint-placeholder-val="{{ true }}"><a href="{{ ph.tel }}" style="font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:500; color:#14284F;">{{ ph.number }}</a></sc-if>
+                  <sc-if value="{{ ph.noNumber }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#B4BAC9;">not listed</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ current.noPhones }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0; font-size:14px; color:#8A94AC;">No phone numbers listed.</p>
+          </sc-if>
+        </div>
+
+        <!-- ATC contacts -->
+        <div style="background:#fff; border:1px solid #E2E8E9; border-radius:16px; padding:24px 26px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:14px;">
+            <h2 style="margin:0; font-size:13px; font-weight:700; color:#8A94AC; text-transform:uppercase; letter-spacing:1.2px;">ATC Contacts</h2>
+            <span style="font-size:11px; color:#B4BAC9;">Tower · TRACON · Center</span>
+          </div>
+          <sc-if value="{{ current.hasAtc }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px;">
+              <sc-for list="{{ current.atcRows }}" as="row" hint-placeholder-count="4">
+                <div style="display:flex; flex-direction:column; gap:2px; padding:12px 14px; background:#F7FAFA; border:1px solid #EBF0F0; border-radius:10px;">
+                  <span style="font-size:11.5px; color:#8A94AC; text-transform:uppercase; letter-spacing:.5px;">{{ row.label }}</span>
+                  <sc-if value="{{ row.isPhone }}" hint-placeholder-val="{{ true }}"><a href="{{ row.tel }}" style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:500; color:#14284F;">{{ row.value }}</a></sc-if>
+                  <sc-if value="{{ row.plain }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:500; color:#3B455F;">{{ row.value }}</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ current.noAtc }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0; font-size:14px; color:#8A94AC;">No ATC contacts listed.</p>
+          </sc-if>
+        </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <footer style="border-top:1px solid #E2E8E9; background:#fff;">
+    <div style="max-width:1200px; margin:0 auto; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <span style="font-size:12px; color:#8A94AC;">Breeze Airways · Dispatch Airport Guidance · Training use</span>
+      <span style="font-size:12px; color:#B4BAC9; font-family:'IBM Plex Mono',monospace;">{{ stationCount }} stations</span>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    loaded:false, view:'home', selected:null, returnTo:'home',
+    search:'', regionFilter:'All', tagFilter:'All', catFilter:'All', mapSearch:'',
+    reviewed:{}, lessonsDone:{},
+  };
+  STORAGE='breeze_airport_course_v1';
+
+  componentDidMount(){
+    try{
+      const s=JSON.parse(localStorage.getItem(this.STORAGE)||'{}');
+      this.setState({reviewed:s.reviewed||{}, lessonsDone:s.lessonsDone||{}});
+    }catch(e){}
+    const tick=()=>{ if(window.AIRPORTS&&window.AIRPORTS.length){ this.setState({loaded:true}); } else setTimeout(tick,60); };
+    tick();
+    this._onResize=()=>{ if(this.state.view==='map') this.drawMap(); };
+    window.addEventListener('resize', this._onResize);
+    this._onDocClick=(e)=>{ const t=e.target.closest && e.target.closest('[data-airport-nav]'); if(t){ this.openAirport(t.getAttribute('data-airport-nav')); } };
+    document.addEventListener('click', this._onDocClick);
+  }
+  componentWillUnmount(){ if(this._onResize) window.removeEventListener('resize', this._onResize); if(this._onDocClick) document.removeEventListener('click', this._onDocClick); }
+  componentDidUpdate(pp, ps){
+    if(this.state.view==='map' && (ps.view!=='map' || ps.reviewed!==this.state.reviewed || ps.loaded!==this.state.loaded)){
+      this.drawMap();
+    }
+  }
+
+  get airports(){ return window.AIRPORTS||[]; }
+  get allAirports(){
+    const specials=this.airports;
+    const set=new Set(specials.map(a=>a.icao));
+    const rest=(window.C070||[]).filter(a=>!set.has(a.icao));
+    return specials.concat(rest);
+  }
+  c070rec(icao){ return (window.C070||[]).find(x=>x.icao===icao)||null; }
+  fleetAuth(rec){
+    if(!rec) return [];
+    const roleName={R:'Regular',F:'Refueling',P:'Provisional',A:'Alternate'};
+    const parse=c=>(c||'').split(',').map(s=>s.trim()).filter(Boolean).map(x=>roleName[x]||x);
+    return [{fleet:'A220-300', roles:parse(rec.acBD)},{fleet:'Embraer E-Jet', roles:parse(rec.acERJ)}].filter(x=>x.roles.length);
+  }
+  buildStats(s){
+    if(!s) return null;
+    const nf=n=>Number(n).toLocaleString('en-US');
+    const rws=(s.runways||[]).map(r=>({ id:r.id, dims: r.w? (nf(r.l)+' × '+r.w+' ft') : (nf(r.l)+' ft') }));
+    const longest=(s.runways||[]).reduce((m,r)=>r.l>m?r.l:m,0);
+    const asos=s.asos||{}; const asosPhone=asos.phone||''; const asosFreq=asos.freq||'';
+    return { elevation:nf(s.elevation)+' ft', runways:rws, runwayCountLabel:rws.length+(rws.length===1?' runway':' runways'), longest:nf(longest)+' ft', asosFreq, asosPhone, hasAsos:!!(asosFreq||asosPhone), hasAsosPhone:!!asosPhone, asosTel:'tel:'+asosPhone.replace(/[^0-9]/g,''), asosDisplay: asosFreq + (asosPhone? '  ·  '+asosPhone : '') };
+  }
+  save(){ try{ localStorage.setItem(this.STORAGE, JSON.stringify({reviewed:this.state.reviewed, lessonsDone:this.state.lessonsDone})); }catch(e){} }
+
+  // ---- palette helpers ----
+  regionHue(r){ return {Northeast:255, Southeast:155, Florida:65, Midwest:305, West:30}[r] ?? 200; }
+  regionChip(r){ const h=this.regionHue(r); return `display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; background:oklch(0.95 0.035 ${h}); color:oklch(0.42 0.11 ${h}); border:1px solid oklch(0.89 0.05 ${h});`; }
+  regionDot(r){ const h=this.regionHue(r); return `oklch(0.60 0.13 ${h})`; }
+  tagHue(t){ return {'Curfew':75,'Terrain':45,'Circle-to-land':300,'GDP / Flow':255,'Convective':25,'Fog / Low vis':230,'Runway restriction':55,'Uncontrolled':330,'Aircraft limit':285,'Class G ops':185}[t] ?? 200; }
+  tagChip(t){ const h=this.tagHue(t); return `display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:7px; background:oklch(0.95 0.045 ${h}); color:oklch(0.44 0.12 ${h});`; }
+  tagChipDark(t){ const h=this.tagHue(t); return `display:inline-block; font-size:11.5px; font-weight:600; padding:4px 11px; border-radius:8px; background:oklch(0.40 0.09 ${h} / .55); color:oklch(0.90 0.06 ${h}); border:1px solid oklch(0.60 0.10 ${h} / .4);`; }
+
+  snippet(a){
+    if(a.hasConsiderations && a.considerations && a.considerations.length){
+      const s=a.considerations[0];
+      const head=s.heading? s.heading+': ' : '';
+      return head + (s.body[0]||'');
+    }
+    if(a.classG && a.classG.notes && a.classG.notes.length) return a.classG.notes[0];
+    if(a.classG && a.classG.applicable) return 'Class G operations permitted when the tower is closed.';
+    if(a.roles && a.roles.length) return 'C070 network · '+a.roles.join(', ');
+    return 'C070 authorized station.';
+  }
+  roleChip(){ return 'display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:7px; background:#EEF2F4; color:#5B6884; border:1px solid #E2E8E9;'; }
+
+  cardVM(a){
+    const isSpecial=this.airports.some(x=>x.icao===a.icao);
+    const roleChips = isSpecial
+      ? (a.tags||[]).map(t=>({label:t, style:this.tagChip(t)}))
+      : (a.roles||[]).slice(0,3).map(r=>({label:r, style:this.roleChip()}));
+    return {
+      icao:a.icao, iata:a.iata, name:a.name, cityState:`${a.city}, ${a.state}`,
+      region:a.region, isSpecial, isNetwork:!isSpecial,
+      snippet:this.snippet(a),
+      reviewed:!!this.state.reviewed[a.icao],
+      tagChips:roleChips,
+      open:()=>this.openAirport(a.icao),
+    };
+  }
+
+  // ---- navigation ----
+  go(v){ this.setState({view:v}); window.scrollTo(0,0); if(v==='map'){ setTimeout(()=>this.drawMap(),90); setTimeout(()=>this.drawMap(),350); } }
+  openAirport(icao){ this.setState({view:'airport', selected:icao, returnTo:this.state.view==='airport'?this.state.returnTo:this.state.view}); window.scrollTo(0,0); setTimeout(()=>this.renderChart(),90); setTimeout(()=>this.renderChart(),400); }
+
+  renderChart(){
+    if(this.state.view!=='airport') return;
+    const chart = window.CHARTS && window.CHARTS[this.state.selected];
+    if(!chart) return;
+    if(!window.pdfjsLib){ setTimeout(()=>this.renderChart(),160); return; }
+    const canvas=document.getElementById('bz-chart'); if(!canvas){ setTimeout(()=>this.renderChart(),160); return; }
+    if(canvas.getAttribute('data-src')===chart) return;
+    window.pdfjsLib.getDocument(chart).promise
+      .then(doc=>doc.getPage(1))
+      .then(page=>{
+        const colW=(canvas.parentElement && canvas.parentElement.clientWidth) || 320;
+        const base=page.getViewport({scale:1});
+        const scale=Math.min(4,(colW*2)/base.width);
+        const vp=page.getViewport({scale});
+        canvas.width=Math.round(vp.width); canvas.height=Math.round(vp.height);
+        return page.render({canvasContext:canvas.getContext('2d'), viewport:vp}).promise.then(()=>canvas.setAttribute('data-src',chart));
+      }).catch(()=>{});
+  }
+  back(){ this.setState({view:this.state.returnTo||'home'}); window.scrollTo(0,0); }
+  toggleReviewed(icao){ const r={...this.state.reviewed}; if(r[icao]) delete r[icao]; else r[icao]=true; this.setState({reviewed:r}, ()=>this.save()); }
+  markChapter(id){ const d={...this.state.lessonsDone}; if(d[id]) delete d[id]; else d[id]=true; this.setState({lessonsDone:d}, ()=>this.save()); }
+  resetProgress(){ if(window.confirm('Reset all progress? This clears reviewed stations and completed lessons.')){ this.setState({reviewed:{}, lessonsDone:{}}, ()=>this.save()); } }
+
+  // ---- map ----
+  ensureTopo(){ if(this._topo) return Promise.resolve(this._topo); return fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r=>r.json()).then(j=>{ this._topo=j; return j; }); }
+  ensureWorld(){ if(this._world!==undefined) return Promise.resolve(this._world); return fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r=>r.json()).then(j=>{ this._world=j; return j; }).catch(()=>{ this._world=null; return null; }); }
+  drawMap(){
+    if(this.state.view!=='map') return;
+    if(!window.d3 || !window.topojson){ setTimeout(()=>this.drawMap(), 120); return; }
+    Promise.all([this.ensureTopo(), this.ensureWorld()]).then(([topo, world])=>{
+      const el=document.getElementById('bz-map'); if(!el){ return; }
+      const d3=window.d3, topojson=window.topojson;
+      const W=el.clientWidth||900; const H=Math.max(460, Math.round(W*0.68));
+      d3.select(el).selectAll('*').remove();
+      const svg=d3.select(el).append('svg').attr('width','100%').attr('height',H).attr('viewBox',`0 0 ${W} ${H}`).style('display','block').style('cursor','grab').style('overflow','hidden').style('background','#EEF5F6').style('border-radius','12px');
+      const fc=topojson.feature(topo, topo.objects.states);
+      const skip={'02':1,'15':1,'72':1,'60':1,'66':1,'69':1,'78':1};
+      const conus={type:'FeatureCollection', features:fc.features.filter(f=>!skip[String(f.id)])};
+      const fitPts={type:'Feature', properties:{}, geometry:{type:'MultiPoint', coordinates:this.allAirports.map(a=>[a.lon,a.lat])}};
+      const fitCollection={type:'FeatureCollection', features:[...conus.features, fitPts]};
+      const proj=d3.geoMercator().fitExtent([[16,16],[W-16,H-16]], fitCollection);
+      const path=d3.geoPath(proj);
+      const zoomG=svg.append('g');
+      if(world){ try{ const land=topojson.feature(world, world.objects.countries); zoomG.append('g').selectAll('path').data(land.features).join('path').attr('d',path).attr('fill','#E1EAEA').attr('stroke','#CBD6D6').attr('stroke-width',0.5); }catch(e){} }
+      zoomG.append('g').selectAll('path').data(conus.features).join('path').attr('d',path).attr('fill','#EAF1F1').attr('stroke','#D2DCDC').attr('stroke-width',0.7);
+      const nodesG=svg.append('g');
+      const tooltip=d3.select(el).append('div').attr('class','bz-tip').style('position','absolute').style('pointer-events','none').style('background','#0B1730').style('color','#fff').style('padding','6px 10px').style('border-radius','8px').style('font','600 12px Figtree,sans-serif').style('opacity','0').style('transition','opacity .12s').style('white-space','nowrap').style('z-index','5').style('box-shadow','0 4px 14px rgba(0,0,0,.25)');
+      const nodes=[];
+      const ordered=this.allAirports.slice().sort((a,b)=>(this.airports.some(x=>x.icao===a.icao)?1:0)-(this.airports.some(x=>x.icao===b.icao)?1:0));
+      ordered.forEach(a=>{
+        const p=proj([a.lon,a.lat]); if(!p) return;
+        const isSpecial=this.airports.some(x=>x.icao===a.icao);
+        const rev=!!this.state.reviewed[a.icao];
+        const baseR=isSpecial?7:5.2;
+        const fill=isSpecial? (rev? '#3FBFB8' : this.regionDot(a.region)) : '#93A1B3';
+        const g=nodesG.append('g').style('cursor','pointer');
+        g.append('circle').attr('r',baseR).attr('fill',fill).attr('stroke','#fff').attr('stroke-width',isSpecial?1.6:1).style('transition','r .12s');
+        if(isSpecial&&rev) g.append('text').text('✓').attr('text-anchor','middle').attr('dy',3.3).attr('font-size',8.5).attr('fill','#fff').style('pointer-events','none');
+        const label=nodesG.append('text').text(a.iata).attr('font-size',9.5).attr('font-family','IBM Plex Mono,monospace').attr('font-weight',600).attr('fill',isSpecial?'#3B4A66':'#7A879B').style('pointer-events','none').style('paint-order','stroke').attr('stroke','#F4F8F8').attr('stroke-width',2.4).attr('stroke-linejoin','round');
+        const n={a, x:p[0], y:p[1], rev, isSpecial, canLabel:isSpecial, baseR, iata:a.iata, g, label, px:p[0], py:p[1]};
+        g.on('mouseenter',()=>{ g.select('circle').attr('r',baseR+2.5); tooltip.style('opacity','1').html(`${a.iata} — ${a.city}, ${a.state}`+(isSpecial?'':' · C070')); n.label.style('display',null).attr('x',n.px+9).attr('y',n.py+3.4); })
+         .on('mousemove',(ev)=>{ const r=el.getBoundingClientRect(); tooltip.style('left',(ev.clientX-r.left+12)+'px').style('top',(ev.clientY-r.top-6)+'px'); })
+         .on('mouseleave',()=>{ g.select('circle').attr('r',baseR); tooltip.style('opacity','0'); if(!n.shown) n.label.style('display','none'); })
+         .on('click',()=>this.openAirport(a.icao));
+        nodes.push(n);
+      });
+      const redraw=(t)=>{
+        nodes.forEach(n=>{ const p=t.apply([n.x,n.y]); n.px=p[0]; n.py=p[1]; n.g.attr('transform',`translate(${p[0]},${p[1]})`); });
+        const placed=[]; const scale=t.k||1;
+        nodes.slice().sort((a,b)=>(b.rev?1:0)-(a.rev?1:0)).forEach(n=>{
+          const onscreen = n.px>-6 && n.px<W+6 && n.py>-6 && n.py<H+6;
+          // special always try; C070 only when zoomed in enough
+          const eligible = n.canLabel || scale>=3.2;
+          const w=n.iata.length*7.0+4, h=13, bx=n.px+9, by=n.py-6.5;
+          const hit = placed.some(q=> !(bx+w<q.x || bx>q.x+q.w || by+h<q.y || by>q.y+q.h));
+          if(onscreen && eligible && !hit){ n.label.style('display',null).attr('x',bx).attr('y',n.py+3.4); placed.push({x:bx,y:by,w,h}); n.shown=true; }
+          else { n.label.style('display','none'); n.shown=false; }
+        });
+      };
+      const zoom=d3.zoom().scaleExtent([1,8]).translateExtent([[0,0],[W,H]]).extent([[0,0],[W,H]])
+        .on('start',()=>svg.style('cursor','grabbing'))
+        .on('end',()=>svg.style('cursor','grab'))
+        .on('zoom',(ev)=>{ zoomG.attr('transform',ev.transform); redraw(ev.transform); });
+      svg.call(zoom).on('dblclick.zoom',null);
+      this._mapZoom=zoom; this._mapSvg=svg; this._mapNodes=nodes; this._mapW=W; this._mapH=H;
+      redraw(d3.zoomIdentity);
+      // zoom control buttons
+      const ctrl=document.createElement('div');
+      ctrl.style.cssText='position:absolute; top:14px; right:14px; z-index:6; display:flex; flex-direction:column; gap:6px;';
+      const mkBtn=(txt,title,fn)=>{ const b=document.createElement('button'); b.textContent=txt; b.title=title; b.style.cssText='width:34px; height:34px; border:1px solid #E2E8E9; background:#fff; border-radius:9px; font-size:18px; font-weight:600; color:#14284F; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(11,23,48,.08); line-height:1;'; b.onmouseenter=()=>b.style.background='#F1F5F5'; b.onmouseleave=()=>b.style.background='#fff'; b.onclick=fn; return b; };
+      ctrl.appendChild(mkBtn('+','Zoom in',()=>svg.transition().duration(250).call(zoom.scaleBy,1.6)));
+      ctrl.appendChild(mkBtn('\u2212','Zoom out',()=>svg.transition().duration(250).call(zoom.scaleBy,0.625)));
+      const rb=mkBtn('\u21ba','Reset',()=>svg.transition().duration(300).call(zoom.transform,d3.zoomIdentity)); rb.style.fontSize='16px';
+      ctrl.appendChild(rb);
+      el.appendChild(ctrl);
+    }).catch(()=>{});
+  }
+
+  focusMapAirport(icao){
+    this.setState({mapSearch:''});
+    const d3=window.d3;
+    const doFocus=(tries)=>{
+      const n=(this._mapNodes||[]).find(m=>m.a.icao===icao);
+      if(!n || !this._mapZoom || !this._mapSvg || !d3){ if(tries<25) setTimeout(()=>doFocus(tries+1),120); return; }
+      const W=this._mapW, H=this._mapH, k=4.5;
+      const t=d3.zoomIdentity.translate(W/2-k*n.x, H/2-k*n.y).scale(k);
+      this._mapSvg.transition().duration(700).call(this._mapZoom.transform, t);
+      setTimeout(()=>{
+        n.label.style('display',null).attr('x',n.px+9).attr('y',n.py+3.4); n.shown=true;
+        n.g.select('circle').attr('r',n.baseR+2);
+        const ring=n.g.append('circle').attr('r',n.baseR).attr('fill','none').attr('stroke','#E0A53B').attr('stroke-width',3).style('pointer-events','none');
+        ring.transition().duration(950).attr('r',n.baseR+18).style('opacity',0).on('end',()=>{ ring.remove(); n.g.select('circle').attr('r',n.baseR); });
+      },720);
+    };
+    doFocus(0);
+  }
+
+  runwayLines(icao){
+    const rw=(window.RUNWAYS && window.RUNWAYS[icao]) || [];
+    if(!rw.length) return [];
+    const groups={};
+    rw.forEach(s=>{ const base=parseInt(s,10); (groups[base]=groups[base]||[]).push(s); });
+    const cx0=200, cy0=150;
+    const lenBy=i=>[214,182,150,128][i] || 118;
+    const lines=[]; let gi=0; const r=v=>Math.round(v*10)/10;
+    Object.keys(groups).forEach(baseKey=>{
+      const arr=groups[baseKey]; const H=(parseInt(baseKey,10)*10)%360; const rad=H*Math.PI/180;
+      const dx=Math.sin(rad), dy=-Math.cos(rad), px=Math.cos(rad), py=Math.sin(rad);
+      const n=arr.length; const L=lenBy(gi);
+      arr.forEach((s,k)=>{
+        const off=(k-(n-1)/2)*19;
+        const cx=cx0+px*off, cy=cy0+py*off;
+        lines.push({ x1:r(cx-dx*L/2), y1:r(cy-dy*L/2), x2:r(cx+dx*L/2), y2:r(cy+dy*L/2) });
+      });
+      gi++;
+    });
+    return lines;
+  }
+
+  chapterVM(id, num, title, tagPred){
+    const list=this.airports.filter(tagPred).map(a=>this.cardVM(a));
+    const done=!!this.state.lessonsDone[id];
+    const btnBase='cursor:pointer; margin-top:18px; font-family:Figtree; font-weight:700; font-size:13.5px; padding:11px 20px; border-radius:11px;';
+    return {
+      num, title, airports:list,
+      countLabel:`${list.length} stations`,
+      done,
+      btnLabel: done? '✓ Chapter complete' : 'Mark chapter complete',
+      btnStyle: done
+        ? btnBase+'border:1px solid #3FBFB8; background:#E7F6F5; color:#1F9D96;'
+        : btnBase+'border:none; background:#14284F; color:#fff;',
+      toggle:()=>this.markChapter(id),
+    };
+  }
+
+  renderVals(){
+    const st=this.state;
+    const total=this.airports.length||33;
+    const stationCount=this.allAirports.length;
+    const reviewedCount=this.airports.filter(x=>st.reviewed[x.icao]).length;
+    const reviewedPct=total? Math.round(reviewedCount/total*100):0;
+    const ringCirc=2*Math.PI*52;
+    const ringOffset=ringCirc*(1-reviewedPct/100);
+    const lessonsTotal=7;
+    const lessonsDoneCount=Object.keys(st.lessonsDone).filter(k=>st.lessonsDone[k]).length;
+    const lessonsPct=Math.round(lessonsDoneCount/lessonsTotal*100);
+
+    // nav
+    const sectionOf = v => v==='airport'? this.state.returnTo : v;
+    const active = key => {
+      const cur=sectionOf(st.view);
+      return cur===key || (key==='reference'&&st.view==='airport'&&st.returnTo==='reference');
+    };
+    const navBase='cursor:pointer; border:none; background:transparent; font-family:Figtree; font-size:14px; padding:7px 13px; border-radius:9px; transition:all .15s;';
+    const mk=(key,label,v)=>({ key, label, go:()=>this.go(v),
+      style: active(key)? navBase+'font-weight:700; color:#14284F; background:#E7F6F5;' : navBase+'font-weight:500; color:#6B7690;' });
+    const navItems=[ mk('home','Home','home'), mk('map','Map','map'), mk('lessons','Lessons','lessons'), mk('reference','Reference','reference') ];
+
+    // chapters
+    const chapters={
+      classg: this.chapterVM('classg',1,'Class G', a=>a.classG&&a.classG.applicable),
+      curfew: this.chapterVM('curfew',2,'Curfews', a=>(a.tags||[]).includes('Curfew')),
+      terrain: this.chapterVM('terrain',3,'Terrain', a=>(a.tags||[]).includes('Terrain')),
+      circle: this.chapterVM('circle',4,'Circle-to-land', a=>(a.tags||[]).includes('Circle-to-land')),
+      gdp: this.chapterVM('gdp',5,'GDPs', a=>(a.tags||[]).includes('GDP / Flow')||(a.tags||[]).includes('Convective')),
+      fog: this.chapterVM('fog',6,'Fog', a=>(a.tags||[]).includes('Fog / Low vis')),
+      runway: this.chapterVM('runway',7,'Runways', a=>(a.tags||[]).includes('Runway restriction')||(a.tags||[]).includes('Aircraft limit')),
+    };
+    const chDefs=[['classg','01','Class G'],['curfew','02','Curfews'],['terrain','03','Terrain'],['circle','04','Circle-to-land'],['gdp','05','GDPs & Weather'],['fog','06','Fog & Low vis'],['runway','07','Runways']];
+    const railBase='display:flex; align-items:center; gap:8px; padding:8px 11px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none;';
+    const chapterNav=chDefs.map(([id,num,title])=>({ num, title, href:'#ch-'+id, done:!!st.lessonsDone[id],
+      style: railBase+(st.lessonsDone[id]?'color:#1F9D96;':'color:#4A5878;') }));
+
+    // reference filters
+    const regions=['All','Northeast','Southeast','Florida','Midwest','West','International'];
+    const pillBase='cursor:pointer; font-family:Figtree; font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:999px; transition:all .15s;';
+    const cats=[['All','All stations'],['Special','★ Special'],['Network','C070 network']];
+    const categoryPills=cats.map(([key,label])=>({ label, select:()=>this.setState({catFilter:key}),
+      style: st.catFilter===key? pillBase+'border:1px solid #14284F; background:#14284F; color:#fff;' : pillBase+'border:1px solid #E2E8E9; background:#fff; color:#6B7690;' }));
+    const regionPills=regions.map(r=>({ label:r, select:()=>this.setState({regionFilter:r}),
+      style: st.regionFilter===r? pillBase+'border:1px solid #14284F; background:#14284F; color:#fff;' : pillBase+'border:1px solid #E2E8E9; background:#fff; color:#6B7690;' }));
+    const allTags=['All','Class G ops','Curfew','Terrain','Circle-to-land','GDP / Flow','Convective','Fog / Low vis','Runway restriction','Aircraft limit','Uncontrolled'];
+    const tagPills=allTags.map(t=>({ label:t, select:()=>this.setState({tagFilter:t}),
+      style: st.tagFilter===t? pillBase+'border:1px solid #1F9D96; background:#E7F6F5; color:#1F9D96;' : pillBase+'border:1px solid #E2E8E9; background:#fff; color:#6B7690;' }));
+
+    const q=st.search.trim().toLowerCase();
+    const specialSet=new Set(this.airports.map(x=>x.icao));
+    let filtered=this.allAirports.filter(a=>{
+      const sp=specialSet.has(a.icao);
+      if(st.catFilter==='Special' && !sp) return false;
+      if(st.catFilter==='Network' && sp) return false;
+      if(st.regionFilter!=='All' && a.region!==st.regionFilter) return false;
+      if(st.tagFilter!=='All' && !(a.tags||[]).includes(st.tagFilter)) return false;
+      if(q){ const hay=`${a.iata} ${a.icao} ${a.name} ${a.city} ${a.state}`.toLowerCase(); if(!hay.includes(q)) return false; }
+      return true;
+    }).sort((a,b)=>a.iata.localeCompare(b.iata));
+    const filteredAirports=filtered.map(a=>this.cardVM(a));
+
+    // map search
+    const mq=st.mapSearch.trim().toLowerCase();
+    const mapMatches = mq ? this.allAirports.filter(a=>{
+      const hay=`${a.iata} ${a.icao} ${a.name} ${a.city} ${a.state}`.toLowerCase(); return hay.includes(mq);
+    }).sort((a,b)=>a.iata.localeCompare(b.iata)).slice(0,8).map(a=>({
+      icao:a.icao, iata:a.iata, name:a.name, cityState:`${a.city}, ${a.state}`, isSpecial:specialSet.has(a.icao),
+      focus:()=>this.focusMapAirport(a.icao),
+    })) : [];
+    const mapSearchTop = mapMatches[0]? mapMatches[0].icao : null;
+
+    // detail
+    const a=this.airports.find(x=>x.icao===st.selected);
+    let current=null;
+    if(a){
+      const rev=!!st.reviewed[a.icao];
+      const rbBase='cursor:pointer; font-family:Figtree; font-weight:700; font-size:13px; padding:10px 16px; border-radius:10px; flex:none; white-space:nowrap;';
+      current={
+        icao:a.icao, iata:a.iata, name:a.name, cityState:`${a.city}, ${a.state}`, region:a.region,
+        isSpecial:true, isC070:false,
+        acAuth:this.fleetAuth(this.c070rec(a.icao)), hasAcAuth:this.fleetAuth(this.c070rec(a.icao)).length>0,
+        airnav:'https://www.airnav.com/airport/'+a.icao,
+        tagChips:(a.tags||[]).map(t=>({label:t, styleDark:this.tagChipDark(t)})),
+        runwayLines:this.runwayLines(a.icao),
+        stats:this.buildStats((window.STATS&&window.STATS[a.icao])||null),
+        hasStats: !!(window.STATS&&window.STATS[a.icao]),
+        photo:(window.PHOTOS && window.PHOTOS[a.icao]) || null,
+        hasPhoto:!!(window.PHOTOS && window.PHOTOS[a.icao]),
+        photoImg:(window.PHOTOS && window.PHOTOS[a.icao]) ? React.createElement('img',{src:window.PHOTOS[a.icao], alt:'', style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'center'}}) : null,
+        chart:(window.CHARTS && window.CHARTS[a.icao]) || null,
+        hasChart:!!(window.CHARTS && window.CHARTS[a.icao]),
+        showRunways: this.runwayLines(a.icao).length>0 && !(window.PHOTOS && window.PHOTOS[a.icao]),
+        hasConsiderations: !!(a.hasConsiderations && a.considerations && a.considerations.length),
+        noConsiderations: !(a.hasConsiderations && a.considerations && a.considerations.length),
+        considerations:(a.considerations||[]).map(s=>({ heading:s.heading||'', hasHeading:!!s.heading, body:s.body||[] })),
+        classGApplicable: !!(a.classG&&a.classG.applicable),
+        classGNotApplicable: !(a.classG&&a.classG.applicable),
+        weatherSource: a.classG&&a.classG.weatherSource, hasWeatherSource: !!(a.classG&&a.classG.weatherSource),
+        tcas: !!(a.classG&&a.classG.tcas),
+        classGNotes:(a.classG&&a.classG.notes)||[], hasClassGNotes: !!(a.classG&&a.classG.notes&&a.classG.notes.length),
+        alternates:(a.alternates||[]).map(code=>{ const iata=code.replace(/^K/,''); const inNet=this.airports.some(x=>x.icao===code);
+          const chipBase='cursor:default; font-family:IBM Plex Mono,monospace; font-size:14px; font-weight:600; padding:8px 14px; border-radius:9px; border:1px solid #E2E8E9; background:#F7FAFA; color:#8A94AC;';
+          const netBase='cursor:pointer; font-family:IBM Plex Mono,monospace; font-size:14px; font-weight:600; padding:8px 14px; border-radius:9px; border:1px solid #BFE7E4; background:#E7F6F5; color:#1F9D96;';
+          return { code, iata, style: inNet?netBase:chipBase, open: inNet? ()=>this.openAirport(code) : ()=>{} }; }),
+        hasAlternates:(a.alternates||[]).length>0, noAlternates:(a.alternates||[]).length===0,
+        phones:(a.phones||[]).map(p=>({ label:p.label, number:p.number, hasNumber:!!p.number, noNumber:!p.number, tel:'tel:'+(p.number||'').replace(/[^0-9]/g,'') })),
+        hasPhones:(a.phones||[]).length>0, noPhones:(a.phones||[]).length===0,
+        atcRows:(()=>{ const atc=a.atc||{}; const defs=[['Tower','tower'],['TRACON','tracon'],['Center (ARTCC)','center'],['Center TMU','tmu'],['Flight Data','flightData'],['Flight Service','flightService']]; return defs.map(([label,key])=>{ const v=((atc[key]||'')+'').trim(); const isPhone=/\d/.test(v); return {label, value:v, has:!!v, isPhone, plain:!isPhone, tel:'tel:'+v.replace(/[^0-9]/g,'')}; }).filter(r=>r.has); })(),
+        hasAtc: !!(a.atc && Object.values(a.atc).some(v=>v && (''+v).trim())),
+        noAtc: !(a.atc && Object.values(a.atc).some(v=>v && (''+v).trim())),
+        reviewed:rev,
+        reviewBtnLabel: rev? '✓ Reviewed' : 'Mark reviewed',
+        reviewBtnStyle: rev? rbBase+'border:1px solid #3FBFB8; background:#3FBFB8; color:#0B1730;' : rbBase+'border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff;',
+        toggleReviewed:()=>this.toggleReviewed(a.icao),
+      };
+    } else {
+      const c=this.c070rec(st.selected);
+      if(c){
+        const rev=!!st.reviewed[c.icao];
+        const rbBase='cursor:pointer; font-family:Figtree; font-weight:700; font-size:13px; padding:10px 16px; border-radius:10px; flex:none; white-space:nowrap;';
+        current={
+          icao:c.icao, iata:c.iata, name:c.name, cityState:`${c.city}, ${c.state}`, region:c.region,
+          isSpecial:false, isC070:true,
+          acAuth:this.fleetAuth(c), hasAcAuth:this.fleetAuth(c).length>0,
+          airnav:'https://www.airnav.com/airport/'+c.icao,
+          tagChips:[],
+          stats:this.buildStats((window.C070STATS&&window.C070STATS[c.icao])||null),
+          hasStats: !!(window.C070STATS&&window.C070STATS[c.icao]),
+          atcRows:(()=>{ const atc=((window.C070STATS&&window.C070STATS[c.icao])||{}).atc||{}; const defs=[['Tower','tower'],['TRACON/TMU','tracon'],['Center (ARTCC)','center'],['Flight Data','flightData']]; return defs.filter(([,k])=>atc[k]&&(''+atc[k]).trim()).map(([label,k])=>{ const v=''+atc[k]; const isPhone=/\d{3}[-\s.]?\d{3}/.test(v); return {label, value:v, isPhone, plain:!isPhone, tel:'tel:'+v.replace(/[^0-9]/g,'')}; }); })(),
+          hasAtc:(()=>{ const atc=((window.C070STATS&&window.C070STATS[c.icao])||{}).atc||{}; return ['tower','tracon','center','flightData'].some(k=>atc[k]&&(''+atc[k]).trim()); })(),
+          showAtcC070:(()=>{ const atc=((window.C070STATS&&window.C070STATS[c.icao])||{}).atc||{}; return ['tower','tracon','center','flightData'].some(k=>atc[k]&&(''+atc[k]).trim()); })(),
+          noTower: !!(((window.C070STATS&&window.C070STATS[c.icao])||{}).atc||{}).noTower,
+          hasPhoto:false, hasChart:false, showRunways:false, runwayLines:[],
+          hasConsiderations:false, noConsiderations:false,
+          alternates:(c.alternates||[]).map(code=>{ const iata=code.replace(/^K/,''); const inNet=this.allAirports.some(x=>x.icao===code);
+            const chipBase='cursor:default; font-family:IBM Plex Mono,monospace; font-size:14px; font-weight:600; padding:8px 14px; border-radius:9px; border:1px solid #E2E8E9; background:#F7FAFA; color:#8A94AC;';
+            const netBase='cursor:pointer; font-family:IBM Plex Mono,monospace; font-size:14px; font-weight:600; padding:8px 14px; border-radius:9px; border:1px solid #BFE7E4; background:#E7F6F5; color:#1F9D96;';
+            return { code, iata, style: inNet?netBase:chipBase, open: inNet? ()=>this.openAirport(code) : ()=>{} }; }),
+          hasAlternates:(c.alternates||[]).length>0, noAlternates:(c.alternates||[]).length===0,
+          reviewed:rev,
+          reviewBtnLabel: rev? '✓ Reviewed' : 'Mark reviewed',
+          reviewBtnStyle: rev? rbBase+'border:1px solid #3FBFB8; background:#3FBFB8; color:#0B1730;' : rbBase+'border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff;',
+          toggleReviewed:()=>this.toggleReviewed(c.icao),
+        };
+      }
+    }
+
+    const regionLegend=['Northeast','Southeast','Florida','Midwest','West'].map(r=>({ label:r, dotStyle:`width:12px; height:12px; border-radius:50%; background:${this.regionDot(r)};` }));
+
+    const backLabels={home:'Back',map:'Back to map',lessons:'Back to lessons',reference:'Back to reference'};
+
+    return {
+      loaded:st.loaded, notLoaded:!st.loaded,
+      isHome:st.loaded&&st.view==='home', isMap:st.loaded&&st.view==='map',
+      isLessons:st.loaded&&st.view==='lessons', isReference:st.loaded&&st.view==='reference',
+      isAirport:st.loaded&&st.view==='airport'&&!!current,
+      navItems, goHome:()=>this.go('home'), goMap:()=>this.go('map'), goLessons:()=>this.go('lessons'), goRef:()=>this.go('reference'),
+      totalAirports:total, stationCount, reviewedCount, reviewedPct, ringCirc, ringOffset,
+      lessonsTotal, lessonsDoneCount, lessonsPct, lessonsPctStr:lessonsPct+'%',
+      resetProgress:()=>this.resetProgress(),
+      chapters, chapterNav,
+      categoryPills, regionPills, tagPills, search:st.search, onSearch:(e)=>this.setState({search:e.target.value}),
+      filteredAirports, noResults:filteredAirports.length===0,
+      resultCountLabel:`${filteredAirports.length} of ${stationCount} stations`,
+      regionLegend,
+      mapSearch:st.mapSearch, onMapSearch:(e)=>this.setState({mapSearch:e.target.value}),
+      onMapSearchKey:(e)=>{ if(e.key==='Enter' && mapSearchTop){ this.focusMapAirport(mapSearchTop); } },
+      mapMatches, hasMapMatches:mapMatches.length>0,
+      current, back:()=>this.back(), backLabel:backLabels[st.returnTo]||'Back',
+    };
+  }
+}
+</script>
+</body>
+</html>
