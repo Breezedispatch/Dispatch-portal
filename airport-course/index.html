@@ -627,7 +627,14 @@ class Component extends DCLogic {
   }
   componentWillUnmount(){ if(this._onResize) window.removeEventListener('resize', this._onResize); if(this._onDocClick) document.removeEventListener('click', this._onDocClick); }
   componentDidUpdate(pp, ps){
-    if(this.state.view==='map' && (ps.view!=='map' || ps.reviewed!==this.state.reviewed || ps.loaded!==this.state.loaded)){
+    // Redraw whenever we're on the map view. Guard against a missing/!well-formed
+    // prevState (the DC framework can invoke this without a normal prevState), which
+    // previously threw on ps.view and silently skipped the redraw when returning to the map.
+    const prevView = ps ? ps.view : undefined;
+    const prevReviewed = ps ? ps.reviewed : undefined;
+    const prevLoaded = ps ? ps.loaded : undefined;
+    if(this.state.view==='map' && (prevView!=='map' || prevReviewed!==this.state.reviewed || prevLoaded!==this.state.loaded)){
+      this._mapDrawTries = 0;
       this.drawMap();
     }
   }
