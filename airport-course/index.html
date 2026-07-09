@@ -726,9 +726,25 @@ class Component extends DCLogic {
     if(this.state.view!=='map') return;
     if(!window.d3 || !window.topojson){ setTimeout(()=>this.drawMap(), 120); return; }
     Promise.all([this.ensureTopo(), this.ensureWorld()]).then(([topo, world])=>{
-      const el=document.getElementById('bz-map'); if(!el){ return; }
+      const el=document.getElementById('bz-map');
+      if(!el){
+        // Container not re-inserted by the framework yet — retry shortly.
+        this._mapDrawTries = (this._mapDrawTries||0) + 1;
+        if(this._mapDrawTries < 40 && this.state.view==='map'){ setTimeout(()=>this.drawMap(), 60); }
+        return;
+      }
       const d3=window.d3, topojson=window.topojson;
-      const W=el.clientWidth||900; const H=Math.max(460, Math.round(W*0.68));
+      // On returning to the map view, the container may not be laid out yet (clientWidth 0).
+      // Drawing then would fit the map to a zero-size box and render nothing. Retry until the
+      // element has a real width, so the map reliably redraws every time you come back to it.
+      const cw = el.clientWidth;
+      if(!cw || cw < 50){
+        this._mapDrawTries = (this._mapDrawTries||0) + 1;
+        if(this._mapDrawTries < 40 && this.state.view==='map'){ setTimeout(()=>this.drawMap(), 60); }
+        return;
+      }
+      this._mapDrawTries = 0;
+      const W=cw; const H=Math.max(460, Math.round(W*0.68));
       d3.select(el).selectAll('*').remove();
       const svg=d3.select(el).append('svg').attr('width','100%').attr('height',H).attr('viewBox',`0 0 ${W} ${H}`).style('display','block').style('cursor','grab').style('overflow','hidden').style('background','#EEF5F6').style('border-radius','12px');
       const fc=topojson.feature(topo, topo.objects.states);
