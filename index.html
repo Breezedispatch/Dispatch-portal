@@ -153,6 +153,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .home-card-arrow{color:var(--blue);font-size:20px;margin-top:1rem;transition:transform .2s;}
 .home-card:hover .home-card-arrow{transform:translateX(5px);}
 .home-card-study{border-left:5px solid var(--cyan);}
+.home-card-course{border-left:5px solid var(--green);}
 .home-card-playbook{border-left:5px solid var(--navy);}
 .home-card-practice{border-left:5px solid var(--accent);}
 .home-card-ojt{border-left:5px solid var(--gold);background:linear-gradient(180deg,#FFFDF7,#fff);}
@@ -970,6 +971,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="home-card-icon">&#128218;</div>
         <div class="home-card-title">Study Materials</div>
         <div class="home-card-sub">Reference guides, module notes, and training resources.</div>
+        <div class="home-card-arrow">&#8594;</div>
+      </div>
+      <div class="home-card home-card-course" onclick="window.open('airport-course/index.html','_blank')">
+        <div class="home-card-icon">&#9992;</div>
+        <div class="home-card-title">Airport Characteristics Course</div>
+        <div class="home-card-sub">Module 8 &mdash; interactive tour of Breeze network airports: runways, ATC, charts, and C070 authorizations.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
       <!-- Dispatch Operations Playbook — hidden for launch; still under development.
@@ -3018,6 +3025,24 @@ function renderPortal() {
           </button>
         </div>
       </div>`;
+      // Module 8 — Airport Characteristics interactive course. It's an exploratory course
+      // (not a scored quiz), so it lives outside the QUIZZES array and renders as its own
+      // card here, positioned right after Module 7 in General Subjects.
+      if (q.id === 'mod7kc' && activeTab === 'kc') {
+        html += `<div class="quiz-card" id="card-aptcourse">
+          <div class="qc-mod">Module 8</div>
+          <div class="qc-name">Airport Characteristics Course</div>
+          <div class="qc-sub">Breeze network airports · runways · ATC · charts · C070 authorizations</div>
+          <div class="qc-meta">
+            <span class="qc-badge">Interactive course</span>
+            <span class="qc-badge">Self-paced</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">
+            <span class="type-badge type-kc">&#9992; Course</span>
+            <button class="start-btn" onclick="window.open('airport-course/index.html','_blank')">&#9654; Open course</button>
+          </div>
+        </div>`;
+      }
     });
     html += `</div></div>`;
   });
