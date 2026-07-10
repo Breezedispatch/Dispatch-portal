@@ -212,6 +212,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
     <div class="sidebar-section">
       <div class="sidebar-label">ATC / Flight Plans</div>
       <button class="sidebar-link" onclick="showPanel('fpl-guide')">ICAO FPL Quick Reference</button>
+      <button class="sidebar-link" onclick="showPanel('atc-centers')">&#9992; ARTCC Centers</button>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">International Ops</div>
@@ -1295,7 +1296,32 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
         </div>
       </div>
     </div>
-  </div><!-- /content -->
+    <!-- ── ARTCC CENTERS (interactive) ── -->
+    <div class="panel" id="panel-atc-centers">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#9992;</span>
+          <span class="guide-card-title">ARTCC Centers &mdash; The 20 CONUS Air Route Traffic Control Centers</span>
+        </div>
+        <div class="guide-card-body">
+          <p style="color:var(--ink2);line-height:1.6;margin:0 0 1rem;">
+            Learn the twenty Air Route Traffic Control Centers of the contiguous U.S. and roughly where each sits.
+            The <strong>Reference</strong> tab shows the labeled boundaries over faint state lines; the <strong>Practice</strong> tab
+            lets you drag each center code onto its region and check yourself. Drag a placed code to another region or back to
+            the code bank to change an answer.
+          </p>
+          <div style="position:relative;width:100%;height:900px;border-radius:12px;overflow:hidden;border:1px solid var(--gray);background:var(--white);">
+            <iframe id="atc-centers-frame" data-src="atc_centers_guide.html" title="ARTCC Centers"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block;"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div style="margin-top:.6rem;text-align:right;">
+            <button class="sidebar-link" style="display:inline-block;width:auto;"
+              onclick="window.open('atc_centers_guide.html','_blank')">&#8599; Open full screen</button>
+          </div>
+        </div>
+      </div>
+    </div>
 </div><!-- /page -->
 
 <script>
@@ -1311,6 +1337,10 @@ function showPanel(id) {
   if (id === 'rnp-explainer') {
     var fr = document.getElementById('rnp-explainer-frame');
     if (fr && !fr.src && fr.dataset.src) fr.src = fr.dataset.src;
+  }
+  if (id === 'atc-centers') {
+    var af = document.getElementById('atc-centers-frame');
+    if (af && !af.src && af.dataset.src) af.src = af.dataset.src;
   }
 }
 
