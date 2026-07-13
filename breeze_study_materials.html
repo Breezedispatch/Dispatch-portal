@@ -30,7 +30,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .hdr{position:relative;overflow:hidden;color:#fff;background:linear-gradient(120deg,#041C34,#0B3A6B 45%,#1E5BB8);background-size:200% 200%;animation:pearl 18s ease infinite;}
 .hdr::before{content:'';position:absolute;width:320px;height:320px;border-radius:50%;background:#F0457A;filter:blur(55px);opacity:.42;right:-50px;top:-120px;animation:float 15s ease-in-out infinite;}
 .hdr::after{content:'';position:absolute;width:260px;height:260px;border-radius:50%;background:#7FB0FF;filter:blur(55px);opacity:.42;right:160px;bottom:-130px;animation:float 15s ease-in-out infinite;animation-delay:-6s;}
-.hdr-inner{position:relative;z-index:2;max-width:1000px;margin:0 auto;padding:2.5rem 2rem 2.75rem;display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;}
+.hdr-inner{position:relative;z-index:2;max-width:1500px;margin:0 auto;padding:2.5rem 2.5rem 2.75rem;display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;}
 .hdr-left{}
 .hdr-badge{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);padding:6px 13px;border-radius:20px;margin-bottom:.75rem;}
 .hdr-title{font-family:var(--display);font-size:clamp(28px,5vw,44px);font-weight:800;color:#fff;line-height:1;letter-spacing:-.03em;}
@@ -38,7 +38,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .hdr-stripe{position:relative;z-index:2;height:0;}
 
 /* Layout */
-.page{max-width:1000px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:260px 1fr;gap:2rem;align-items:start;}
+.page{max-width:1500px;margin:0 auto;padding:2rem 2.5rem;display:grid;grid-template-columns:230px 1fr;gap:2.5rem;align-items:start;}
 @media(max-width:820px){.page{grid-template-columns:1fr;}}
 
 /* Sidebar */
@@ -74,21 +74,21 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .sm-noresults{font-family:var(--font);font-size:12.5px;color:var(--ink3);padding:.5rem .3rem;display:none;}
 .sm-item-tag{font-family:var(--display);font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin:0 0 .5rem;}
 
-/* Collapsible material cards */
-.modpanel.collapsible > .guide-card{overflow:hidden;}
-.modpanel.collapsible > .guide-card > .guide-card-header{cursor:pointer;user-select:none;position:relative;padding-right:2.2rem;}
-.modpanel.collapsible > .guide-card > .guide-card-header:hover{background:var(--surface);}
-.sm-caret{position:absolute;right:1rem;top:50%;transform:translateY(-50%) rotate(-90deg);transition:transform .2s ease;color:var(--ink3);font-size:.9rem;}
-.modpanel.open > .guide-card > .guide-card-header .sm-caret{transform:translateY(-50%) rotate(0deg);}
-.modpanel.collapsible > .guide-card > .guide-card-body{display:none;}
-.modpanel.open > .guide-card > .guide-card-body{display:block;}
+/* "Pick an item" prompt (shown when a module is selected) */
+.mod-picker-head{margin-bottom:1.4rem;}
+.mod-picker-eyebrow{font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:.35rem;}
+.mod-picker-title{font-family:var(--display);font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1.15;}
+.mod-picker-list{display:flex;flex-direction:column;gap:.7rem;}
+.mod-pick-item{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:#fff;border:1.5px solid var(--gray);border-radius:14px;padding:1.1rem 1.4rem;font-family:var(--display);font-size:1.05rem;font-weight:700;color:var(--navy);cursor:pointer;transition:all .15s;box-shadow:0 4px 14px rgba(4,28,52,.04);}
+.mod-pick-item:hover{border-color:var(--blue);background:var(--skysoft);transform:translateY(-1px);box-shadow:0 8px 22px rgba(37,102,204,.12);}
+.mod-pick-arrow{color:var(--blue);font-size:1.2rem;font-weight:700;}
 
 /* Sidebar sub-items (training under each module) */
 .sm-subwrap{overflow:hidden;max-height:0;transition:max-height .25s ease;}
 .sm-mod.expanded + .sm-subwrap{max-height:600px;}
 .sm-sub{display:block;width:100%;text-align:left;background:none;border:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink3);padding:5px 10px 5px 30px;border-radius:8px;cursor:pointer;transition:all .13s;margin-bottom:1px;line-height:1.3;}
 .sm-sub:hover{background:var(--skysoft);color:var(--blue);}
-.sm-sub.active{color:var(--blue);font-weight:700;}
+.sm-sub.active{color:var(--blue);font-weight:700;background:var(--skysoft);}
 .sm-mod .sm-mod-caret{display:inline-block;font-size:.7rem;color:var(--ink3);margin-left:.3rem;transition:transform .2s ease;transform:rotate(-90deg);}
 .sm-mod.expanded .sm-mod-caret{transform:rotate(0deg);}
 .sm-mod.coming .sm-mod-caret{display:none;}
@@ -294,12 +294,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
         </div>
       </div>
     </div>
-    <!-- Module header (shown above a module's materials) -->
-    <div class="panel" id="mod-header">
-      <div style="margin-bottom:1.2rem;">
-        <div style="font-family:var(--display);font-size:1.5rem;font-weight:800;color:var(--navy);" id="mod-header-title">Study Materials</div>
-        <div style="font-family:var(--font);font-size:.85rem;color:var(--ink3);margin-top:.2rem;">Course materials for this module</div>
+    <!-- Module picker: "pick an item" prompt shown when a module (not an item) is selected -->
+    <div class="panel" id="mod-picker">
+      <div class="mod-picker-head">
+        <div class="mod-picker-eyebrow">Select a training item</div>
+        <div class="mod-picker-title" id="mod-picker-title">Study Materials</div>
       </div>
+      <div class="mod-picker-list" id="mod-picker-list"></div>
     </div>
     <div class="panel modpanel" data-module="mod-5" data-item="Crew Escalation" id="panel-escalation">
       <div class="guide-card">
@@ -1427,80 +1428,72 @@ var SM_MODULE_TITLES = {
   'mod-20': 'Module 20 \u2014 Flight Planning & Flight Operations'
 };
 
-function showModule(mod, openItemId) {
-  smInit(); // ensure cards are collapsible + subnav is built (runs once)
+function showModule(mod) {
+  smInit();
 
-  // hide every panel + clear the home landing panel
+  // hide all panels
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.sm-mod').forEach(function(l){ l.classList.remove('active'); });
-
-  // collapse other modules' sidebar sub-lists; expand this one
-  document.querySelectorAll('.sm-mod').forEach(function(m){
-    if (m.getAttribute('data-mod-key') === mod) m.classList.add('expanded');
-    else m.classList.remove('expanded');
-  });
   document.querySelectorAll('.sm-sub').forEach(function(s){ s.classList.remove('active'); });
 
-  // set the module header
-  var hdr = document.getElementById('mod-header');
-  var titleEl = document.getElementById('mod-header-title');
-  if (titleEl) titleEl.textContent = SM_MODULE_TITLES[mod] || 'Study Materials';
-  if (hdr) hdr.classList.add('active');
-
-  // reveal every material panel that belongs to this module (cards stay collapsed)
-  var frames = [];
-  var panels = document.querySelectorAll('.modpanel[data-module="' + mod + '"]');
-  panels.forEach(function(p){
-    p.classList.add('active');
-    p.classList.remove('open'); // start collapsed
-    var af = p.querySelector('iframe[data-src]');
-    if (af) frames.push(af);
+  // expand this module's sidebar sub-list; collapse the others
+  document.querySelectorAll('.sm-mod').forEach(function(m){
+    m.classList.toggle('expanded', m.getAttribute('data-mod-key') === mod);
   });
-
-  // mark the active sidebar module
   var activeBtn = document.querySelector('.sm-mod[data-mod-key="' + mod + '"]');
   if (activeBtn) activeBtn.classList.add('active');
-  window.scrollTo({top:0, behavior:'smooth'});
 
-  // if a specific item was requested (from a sub-nav click), open + scroll to it
-  if (openItemId) {
-    var target = document.getElementById(openItemId);
-    if (target) {
-      openItem(target, true);
-      var subBtn = document.querySelector('.sm-sub[data-target="' + openItemId + '"]');
-      if (subBtn) subBtn.classList.add('active');
-      // lazy-load its iframe if it has one
-      var af2 = target.querySelector('iframe[data-src]');
-      if (af2 && !af2.src && af2.dataset.src) af2.src = af2.dataset.src;
-      setTimeout(function(){ target.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
-    }
+  // build + show the "pick an item" prompt (lists this module's items as a menu)
+  var picker = document.getElementById('mod-picker');
+  var titleEl = document.getElementById('mod-picker-title');
+  var listEl = document.getElementById('mod-picker-list');
+  if (titleEl) titleEl.textContent = SM_MODULE_TITLES[mod] || 'Study Materials';
+  if (listEl) {
+    listEl.innerHTML = '';
+    document.querySelectorAll('.modpanel[data-module="' + mod + '"]').forEach(function(p){
+      var b = document.createElement('button');
+      b.className = 'mod-pick-item';
+      b.innerHTML = '<span class="mod-pick-name">' + (p.getAttribute('data-item') || 'Course material') + '</span><span class="mod-pick-arrow">&#8594;</span>';
+      b.onclick = function(){ showItem(mod, p.id); };
+      listEl.appendChild(b);
+    });
   }
-  // Note: iframes only load when their card is expanded (see openItem), to keep the page light.
+  if (picker) picker.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
-// ── Collapsible cards + sidebar sub-nav (built once) ──────────────────────────
+// Show ONE item full-width; replaces whatever was showing
+function showItem(mod, itemId) {
+  smInit();
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.sm-sub').forEach(function(s){ s.classList.remove('active'); });
+
+  // keep the module marked active + its sub-list expanded
+  document.querySelectorAll('.sm-mod').forEach(function(m){
+    var isThis = m.getAttribute('data-mod-key') === mod;
+    m.classList.toggle('expanded', isThis);
+    m.classList.toggle('active', isThis);
+  });
+
+  var target = document.getElementById(itemId);
+  if (target) {
+    target.classList.add('active');
+    // lazy-load iframe if present
+    var af = target.querySelector('iframe[data-src]');
+    if (af && !af.src && af.dataset.src) af.src = af.dataset.src;
+  }
+  var subBtn = document.querySelector('.sm-sub[data-target="' + itemId + '"]');
+  if (subBtn) subBtn.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ── Sidebar sub-nav (built once) ──────────────────────────────────────────────
 var SM_INITED = false;
 function smInit() {
   if (SM_INITED) return;
   SM_INITED = true;
 
-  // 1) make each material panel a collapsible card
-  document.querySelectorAll('.modpanel').forEach(function(p){
-    var card = p.querySelector('.guide-card');
-    if (!card) return;
-    p.classList.add('collapsible');
-    var header = card.querySelector('.guide-card-header');
-    if (header && !header.querySelector('.sm-caret')) {
-      var caret = document.createElement('span');
-      caret.className = 'sm-caret';
-      caret.innerHTML = '&#9660;'; // down triangle
-      header.appendChild(caret);
-      header.addEventListener('click', function(){ toggleItem(p); });
-      header.dataset.smBound = '1';
-    }
-  });
-
-  // 2) build sidebar sub-items for every module that has panels
+  // build sidebar sub-items for every module that has panels
   var byMod = {};
   document.querySelectorAll('.modpanel').forEach(function(p){
     var m = p.getAttribute('data-module'); if (!m) return;
@@ -1528,22 +1521,10 @@ function smInit() {
       sub.className = 'sm-sub';
       sub.setAttribute('data-target', p.id);
       sub.textContent = p.getAttribute('data-item') || 'Course material';
-      sub.onclick = function(e){ e.stopPropagation(); showModule(m, p.id); };
+      sub.onclick = function(e){ e.stopPropagation(); showItem(m, p.id); };
       wrap.appendChild(sub);
     });
   });
-}
-
-function toggleItem(panel) {
-  var willOpen = !panel.classList.contains('open');
-  openItem(panel, willOpen);
-}
-function openItem(panel, open) {
-  panel.classList.toggle('open', open);
-  if (open) {
-    var af = panel.querySelector('iframe[data-src]');
-    if (af && !af.src && af.dataset.src) af.src = af.dataset.src; // lazy-load on expand
-  }
 }
 
 // ── Sidebar search: filters modules by title + full panel text ────────────────
@@ -2460,7 +2441,7 @@ function renderCustomSections(sections) {
 
   // refresh the search index so new content is searchable
   SM_INDEX = null; smBuildIndex();
-  // re-run init so new backend panels become collapsible + appear in the sub-nav
+  // re-run init so new backend panels appear in the sub-nav
   SM_INITED = false; smInit();
 }
 
@@ -2567,7 +2548,7 @@ if (document.readyState === 'complete') {
   window.addEventListener('load', startDrewPeek);
 }
 
-// Build collapsible cards + sidebar sub-nav as soon as the DOM is ready
+// Build sidebar sub-nav as soon as the DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', smInit);
 } else {
