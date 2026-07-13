@@ -38,16 +38,60 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 .hdr-stripe{position:relative;z-index:2;height:0;}
 
 /* Layout */
-.page{max-width:1000px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:230px 1fr;gap:2rem;align-items:start;}
+.page{max-width:1000px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:260px 1fr;gap:2rem;align-items:start;}
 @media(max-width:820px){.page{grid-template-columns:1fr;}}
 
 /* Sidebar */
-.sidebar{position:sticky;top:1.5rem;background:#fff;border:1.5px solid var(--gray);border-radius:18px;padding:1rem;box-shadow:0 12px 34px rgba(4,28,52,.06);}
+.sidebar{position:sticky;top:1.5rem;max-height:calc(100vh - 3rem);overflow-y:auto;background:#fff;border:1.5px solid var(--gray);border-radius:18px;padding:1rem;box-shadow:0 12px 34px rgba(4,28,52,.06);}
 .sidebar-section{margin-bottom:1rem;}
 .sidebar-label{font-family:var(--font);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:0 0 .4rem .4rem;}
 .sidebar-link{display:block;width:100%;text-align:left;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink2);padding:8px 12px;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:2px;}
 .sidebar-link:hover{background:var(--skysoft);color:var(--blue);}
 .sidebar-link.active{background:var(--navy);color:#fff;}
+
+/* Search box */
+.sm-search-wrap{position:relative;margin-bottom:1rem;}
+.sm-search{width:100%;font-family:var(--font);font-size:13px;color:var(--ink);background:var(--surface);border:1.5px solid var(--gray);border-radius:10px;padding:9px 12px 9px 32px;outline:none;transition:border-color .15s;}
+.sm-search:focus{border-color:var(--blue);}
+.sm-search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--ink3);pointer-events:none;}
+.sm-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--ink3);font-size:15px;cursor:pointer;padding:2px 5px;border-radius:6px;display:none;}
+.sm-search-clear:hover{background:var(--gray);color:var(--ink);}
+
+/* Section headers (Basic Indoc / General / Aircraft) */
+.sm-track{font-family:var(--display);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--navy);margin:1.1rem .3rem .5rem;padding-bottom:.35rem;border-bottom:2px solid var(--skysoft);}
+.sm-track:first-of-type{margin-top:.2rem;}
+
+/* Module rows */
+.sm-mod{display:block;width:100%;text-align:left;background:none;border:none;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--ink2);padding:8px 10px;border-radius:9px;cursor:pointer;transition:all .13s;margin-bottom:2px;line-height:1.3;}
+.sm-mod:hover{background:var(--skysoft);color:var(--blue);}
+.sm-mod.active{background:var(--navy);color:#fff;}
+.sm-mod .sm-mod-num{font-weight:800;opacity:.75;margin-right:.15rem;}
+.sm-mod.coming{color:var(--gray-dk);cursor:default;}
+.sm-mod.coming:hover{background:none;color:var(--gray-dk);}
+.sm-soon{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);background:var(--surface);border:1px solid var(--gray);border-radius:20px;padding:1px 7px;margin-left:.35rem;vertical-align:middle;}
+.sm-mod.hidden{display:none;}
+.sm-track.hidden{display:none;}
+.sm-noresults{font-family:var(--font);font-size:12.5px;color:var(--ink3);padding:.5rem .3rem;display:none;}
+.sm-item-tag{font-family:var(--display);font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin:0 0 .5rem;}
+
+/* Collapsible material cards */
+.modpanel.collapsible > .guide-card{overflow:hidden;}
+.modpanel.collapsible > .guide-card > .guide-card-header{cursor:pointer;user-select:none;position:relative;padding-right:2.2rem;}
+.modpanel.collapsible > .guide-card > .guide-card-header:hover{background:var(--surface);}
+.sm-caret{position:absolute;right:1rem;top:50%;transform:translateY(-50%) rotate(-90deg);transition:transform .2s ease;color:var(--ink3);font-size:.9rem;}
+.modpanel.open > .guide-card > .guide-card-header .sm-caret{transform:translateY(-50%) rotate(0deg);}
+.modpanel.collapsible > .guide-card > .guide-card-body{display:none;}
+.modpanel.open > .guide-card > .guide-card-body{display:block;}
+
+/* Sidebar sub-items (training under each module) */
+.sm-subwrap{overflow:hidden;max-height:0;transition:max-height .25s ease;}
+.sm-mod.expanded + .sm-subwrap{max-height:600px;}
+.sm-sub{display:block;width:100%;text-align:left;background:none;border:none;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink3);padding:5px 10px 5px 30px;border-radius:8px;cursor:pointer;transition:all .13s;margin-bottom:1px;line-height:1.3;}
+.sm-sub:hover{background:var(--skysoft);color:var(--blue);}
+.sm-sub.active{color:var(--blue);font-weight:700;}
+.sm-mod .sm-mod-caret{display:inline-block;font-size:.7rem;color:var(--ink3);margin-left:.3rem;transition:transform .2s ease;transform:rotate(-90deg);}
+.sm-mod.expanded .sm-mod-caret{transform:rotate(0deg);}
+.sm-mod.coming .sm-mod-caret{display:none;}
 
 /* Content + panels */
 .content{min-width:0;}
@@ -184,7 +228,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
     <div class="hdr-left">
       <div class="hdr-badge">✦ Breeze Airways · Dispatch Training</div>
       <div class="hdr-title">Study Materials</div>
-      <div class="hdr-sub">Reference guides for flight planning, dispatch releases, and procedures</div>
+      <div class="hdr-sub">Organized by training module &mdash; search or browse to find what you need</div>
     </div>
   </div>
   <div class="hdr-stripe"></div>
@@ -193,47 +237,71 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 <div class="page">
   <!-- Sidebar -->
   <nav class="sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-label">Flight Planning</div>
-      <button class="sidebar-link active" onclick="showPanel('fp-steps')">Step-by-Step Guide</button>
+    <div class="sm-search-wrap">
+      <span class="sm-search-ico">&#128269;</span>
+      <input type="text" id="sm-search" class="sm-search" placeholder="Search study materials&hellip;" autocomplete="off" oninput="smSearch(this.value)">
+      <button class="sm-search-clear" id="sm-search-clear" onclick="smClearSearch()" title="Clear">&times;</button>
     </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Dispatch Release</div>
-      <button class="sidebar-link" onclick="showPanel('release-guide')">Release Explanation Guide</button>
-      <button class="sidebar-link" onclick="showPanel('release-review')">Thorough Release Review</button>
-      <button class="sidebar-link" onclick="showPanel('remarks')">Required Remarks</button>
-      <button class="sidebar-link" onclick="showPanel('checklist')">Release Checklist</button>
-    </div>
+    <div class="sm-noresults" id="sm-noresults">No materials match your search.</div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-label">Procedures</div>
-      <button class="sidebar-link" onclick="showPanel('escalation')">&#9888; Crew Escalation</button>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">ATC / Flight Plans</div>
-      <button class="sidebar-link" onclick="showPanel('fpl-guide')">ICAO FPL Quick Reference</button>
-      <button class="sidebar-link" onclick="showPanel('atc-centers')">&#9992; ARTCC Centers</button>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">International Ops</div>
-      <button class="sidebar-link" onclick="showPanel('intl-supplemental')">International Supplemental</button>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Navigation</div>
-      <button class="sidebar-link" onclick="showPanel('rnp-explainer')">&#9992; RNP 4 / 10 Explainer</button>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Reference</div>
-      <button class="sidebar-link" onclick="showPanel('wind-decode')">Wind Decode Guide</button>
-      <button class="sidebar-link" onclick="showPanel('exemption22897')">Exemption 22897</button>
-      <button class="sidebar-link" onclick="window.open('breeze_flashcards.html','_blank')">&#9654; Flashcards</button>
-      <button class="sidebar-link" onclick="showPanel('airport-list')">&#9992; Airport Codes</button>
-    </div>
+    <!-- BASIC INDOCTRINATION -->
+    <div class="sm-track">Basic Indoctrination</div>
+    <button class="sm-mod coming" data-mod="1" data-mod-key="mod-1"><span class="sm-mod-num">M1</span> Company Introduction &amp; Orientation <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod coming" data-mod="2" data-mod-key="mod-2"><span class="sm-mod-num">M2</span> Company Operations Manuals <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod" data-mod="3" data-mod-key="mod-3" onclick="showModule('mod-3')"><span class="sm-mod-num">M3</span> Dispatch CFRs</button>
+    <button class="sm-mod coming" data-mod="4" data-mod-key="mod-4"><span class="sm-mod-num">M4</span> Operations Specifications <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod" data-mod="5" data-mod-key="mod-5" onclick="showModule('mod-5')"><span class="sm-mod-num">M5</span> Dispatcher Duties &amp; Responsibilities</button>
+
+    <!-- INITIAL GENERAL SUBJECTS -->
+    <div class="sm-track">Initial General Subjects</div>
+    <button class="sm-mod coming" data-mod="7" data-mod-key="mod-7"><span class="sm-mod-num">M7</span> NOTAMs <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod" data-mod="8" data-mod-key="mod-8" onclick="showModule('mod-8')"><span class="sm-mod-num">M8</span> Airport Characteristics</button>
+    <button class="sm-mod" data-mod="9" data-mod-key="mod-9" onclick="showModule('mod-9')"><span class="sm-mod-num">M9</span> Navigation Aids &amp; Publications</button>
+    <button class="sm-mod" data-mod="10" data-mod-key="mod-10" onclick="showModule('mod-10')"><span class="sm-mod-num">M10</span> Air Traffic Control</button>
+    <button class="sm-mod" data-mod="11-12" data-mod-key="mod-11-12" onclick="showModule('mod-11-12')"><span class="sm-mod-num">M11-12</span> Meteorology &amp; Prevailing Weather</button>
+    <button class="sm-mod coming" data-mod="13" data-mod-key="mod-13"><span class="sm-mod-num">M13</span> Communications <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod coming" data-mod="14" data-mod-key="mod-14"><span class="sm-mod-num">M14</span> Joint Pilot &amp; Dispatch Responsibility <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod coming" data-mod="15" data-mod-key="mod-15"><span class="sm-mod-num">M15</span> Dispatch Resource Management <span class="sm-soon">Coming soon</span></button>
+
+    <!-- INITIAL AIRCRAFT -->
+    <div class="sm-track">Initial Aircraft</div>
+    <button class="sm-mod coming" data-mod="6" data-mod-key="mod-6"><span class="sm-mod-num">M6</span> Tech Ops Procedures <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod coming" data-mod="16-18-19" data-mod-key="mod-16-18-19"><span class="sm-mod-num">M16,18,19</span> Aircraft Description, MEL/CDL <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod coming" data-mod="17" data-mod-key="mod-17"><span class="sm-mod-num">M17</span> Winter Operations (GDAP) <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod" data-mod="20" data-mod-key="mod-20" onclick="showModule('mod-20')"><span class="sm-mod-num">M20</span> Flight Planning &amp; Flight Operations</button>
+    <button class="sm-mod coming" data-mod="21" data-mod-key="mod-21"><span class="sm-mod-num">M21</span> Emergency Procedures <span class="sm-soon">Coming soon</span></button>
+
+    <!-- QUICK TOOLS -->
+    <div class="sm-track">Quick Tools</div>
+    <button class="sm-mod" data-mod="flashcards" data-mod-key="mod-flashcards" onclick="window.open('breeze_flashcards.html','_blank')"><span class="sm-mod-num">&#9654;</span> Flashcards</button>
   </nav>
 
   <!-- Content -->
   <div class="content">
-    <div class="panel" id="panel-escalation">
+    <!-- Landing panel -->
+    <div class="panel active" id="panel-home">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#128218;</span>
+          <span class="guide-card-title">Study Materials by Module</span>
+        </div>
+        <div class="guide-card-body">
+          <p style="color:var(--ink2);line-height:1.6;margin:0 0 1rem;">
+            Pick a module from the left, or use the search box to find a specific topic. Materials follow the new-hire
+            training flow &mdash; Basic Indoctrination, Initial General Subjects, then Initial Aircraft. Modules marked
+            <span class="sm-soon" style="margin:0;">Coming soon</span> don't have posted material yet; more is added as courses are built out.
+          </p>
+        </div>
+      </div>
+    </div>
+    <!-- Module header (shown above a module's materials) -->
+    <div class="panel" id="mod-header">
+      <div style="margin-bottom:1.2rem;">
+        <div style="font-family:var(--display);font-size:1.5rem;font-weight:800;color:var(--navy);" id="mod-header-title">Study Materials</div>
+        <div style="font-family:var(--font);font-size:.85rem;color:var(--ink3);margin-top:.2rem;">Course materials for this module</div>
+      </div>
+    </div>
+    <div class="panel modpanel" data-module="mod-5" data-item="Crew Escalation" id="panel-escalation">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9888;</span>
@@ -245,7 +313,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
       </div>
     </div>
     <!-- ── FLIGHT PLANNING STEPS ── -->
-    <div class="panel active" id="panel-fp-steps">
+    <div class="panel modpanel" data-module="mod-20" data-item="Step-by-Step Flight Planning Guide" id="panel-fp-steps">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
@@ -310,7 +378,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
     </div>
 
     <!-- ── RELEASE EXPLANATION GUIDE ── -->
-    <div class="panel" id="panel-release-guide">
+    <div class="panel modpanel" data-module="mod-5" data-item="Release Explanation Guide" id="panel-release-guide">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#128196;</span>
@@ -395,7 +463,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
     </div>
 
     <!-- ── RELEASE REVIEW ── -->
-    <div class="panel" id="panel-release-review">
+    <div class="panel modpanel" data-module="mod-5" data-item="Thorough Release Review" id="panel-release-review">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#128270;</span>
@@ -480,7 +548,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
     </div>
 
     <!-- ── REQUIRED REMARKS ── -->
-    <div class="panel" id="panel-remarks">
+    <div class="panel modpanel" data-module="mod-5" data-item="Required Remarks" id="panel-remarks">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#128221;</span>
@@ -589,7 +657,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
     </div>
 
     <!-- ── CHECKLIST ── -->
-    <div class="panel" id="panel-checklist">
+    <div class="panel modpanel" data-module="mod-5" data-item="Release Checklist" id="panel-checklist">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9989;</span>
@@ -604,7 +672,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
     </div>
 
     <!-- ── WIND DECODE ── -->
-    <div class="panel" id="panel-wind-decode">
+    <div class="panel modpanel" data-module="mod-11-12" data-item="Wind Decode Guide" id="panel-wind-decode">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#127788;</span>
@@ -657,7 +725,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
     </div>
 
     <!-- ── EXEMPTION 22897 ── -->
-    <div class="panel" id="panel-exemption22897">
+    <div class="panel modpanel" data-module="mod-3" data-item="Exemption 22897" id="panel-exemption22897">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9878;</span>
@@ -797,7 +865,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
     </div>
 
     <!-- ── ICAO FPL QUICK REFERENCE ── -->
-    <div class="panel" id="panel-fpl-guide">
+    <div class="panel modpanel" data-module="mod-10" data-item="ICAO FPL Quick Reference" id="panel-fpl-guide">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
@@ -1062,7 +1130,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
     </div>
 
     <!-- ── INTERNATIONAL SUPPLEMENTAL ── -->
-    <div class="panel" id="panel-intl-supplemental">
+    <div class="panel modpanel" data-module="mod-20" data-item="International Supplemental" id="panel-intl-supplemental">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#127758;</span>
@@ -1183,7 +1251,29 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
 
 
     <!-- ── AIRPORT CODES ── -->
-    <div class="panel" id="panel-airport-list">
+    <div class="panel modpanel" data-module="mod-8" data-item="Airport Characteristics Course" id="panel-airport-course">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#9992;</span>
+          <span class="guide-card-title">Airport Characteristics Course</span>
+        </div>
+        <div class="guide-card-body">
+          <p style="color:var(--ink2);line-height:1.6;margin:0 0 1rem;">
+            Interactive tour of Breeze network airports &mdash; runways, ATC, charts, and C070 authorizations.
+          </p>
+          <div style="position:relative;width:100%;height:900px;border-radius:12px;overflow:hidden;border:1px solid var(--gray);background:var(--white);">
+            <iframe id="airport-course-frame" data-src="airport-course/index.html" title="Airport Characteristics Course"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block;"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div style="margin-top:.6rem;text-align:right;">
+            <button class="sidebar-link" style="display:inline-block;width:auto;"
+              onclick="window.open('airport-course/index.html','_blank')">&#8599; Open full screen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel modpanel" data-module="mod-8" data-item="Airport Codes" id="panel-airport-list">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
@@ -1272,7 +1362,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       </div>
     </div>
     <!-- ── RNP 4 / 10 EXPLAINER (interactive) ── -->
-    <div class="panel" id="panel-rnp-explainer">
+    <div class="panel modpanel" data-module="mod-9" data-item="RNP 4 / 10 Explainer" id="panel-rnp-explainer">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
@@ -1297,7 +1387,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
       </div>
     </div>
     <!-- ── ARTCC CENTERS (interactive) ── -->
-    <div class="panel" id="panel-atc-centers">
+    <div class="panel modpanel" data-module="mod-10" data-item="ARTCC Centers" id="panel-atc-centers">
       <div class="guide-card">
         <div class="guide-card-header">
           <span class="guide-card-icon">&#9992;</span>
@@ -1326,22 +1416,191 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
 
 <script>
 // ── Panel navigation ─────────────────────────────────────────────────────────
-function showPanel(id) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-  document.getElementById('panel-' + id).classList.add('active');
-  event.currentTarget.classList.add('active');
+// Module titles for the header shown above each module's materials
+var SM_MODULE_TITLES = {
+  'mod-3':  'Module 3 \u2014 Dispatch CFRs',
+  'mod-5':  'Module 5 \u2014 Dispatcher Duties & Responsibilities',
+  'mod-8':  'Module 8 \u2014 Airport Characteristics',
+  'mod-9':  'Module 9 \u2014 Navigation Aids & Publications',
+  'mod-10': 'Module 10 \u2014 Air Traffic Control',
+  'mod-11-12': 'Module 11-12 \u2014 Meteorology & Prevailing Weather',
+  'mod-20': 'Module 20 \u2014 Flight Planning & Flight Operations'
+};
+
+function showModule(mod, openItemId) {
+  smInit(); // ensure cards are collapsible + subnav is built (runs once)
+
+  // hide every panel + clear the home landing panel
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.sm-mod').forEach(function(l){ l.classList.remove('active'); });
+
+  // collapse other modules' sidebar sub-lists; expand this one
+  document.querySelectorAll('.sm-mod').forEach(function(m){
+    if (m.getAttribute('data-mod-key') === mod) m.classList.add('expanded');
+    else m.classList.remove('expanded');
+  });
+  document.querySelectorAll('.sm-sub').forEach(function(s){ s.classList.remove('active'); });
+
+  // set the module header
+  var hdr = document.getElementById('mod-header');
+  var titleEl = document.getElementById('mod-header-title');
+  if (titleEl) titleEl.textContent = SM_MODULE_TITLES[mod] || 'Study Materials';
+  if (hdr) hdr.classList.add('active');
+
+  // reveal every material panel that belongs to this module (cards stay collapsed)
+  var frames = [];
+  var panels = document.querySelectorAll('.modpanel[data-module="' + mod + '"]');
+  panels.forEach(function(p){
+    p.classList.add('active');
+    p.classList.remove('open'); // start collapsed
+    var af = p.querySelector('iframe[data-src]');
+    if (af) frames.push(af);
+  });
+
+  // mark the active sidebar module
+  var activeBtn = document.querySelector('.sm-mod[data-mod-key="' + mod + '"]');
+  if (activeBtn) activeBtn.classList.add('active');
   window.scrollTo({top:0, behavior:'smooth'});
-  // Lazy-load the (large, self-contained) RNP explainer only the first time its panel opens,
-  // so it doesn't run on page load for users who never visit it.
-  if (id === 'rnp-explainer') {
-    var fr = document.getElementById('rnp-explainer-frame');
-    if (fr && !fr.src && fr.dataset.src) fr.src = fr.dataset.src;
+
+  // if a specific item was requested (from a sub-nav click), open + scroll to it
+  if (openItemId) {
+    var target = document.getElementById(openItemId);
+    if (target) {
+      openItem(target, true);
+      var subBtn = document.querySelector('.sm-sub[data-target="' + openItemId + '"]');
+      if (subBtn) subBtn.classList.add('active');
+      // lazy-load its iframe if it has one
+      var af2 = target.querySelector('iframe[data-src]');
+      if (af2 && !af2.src && af2.dataset.src) af2.src = af2.dataset.src;
+      setTimeout(function(){ target.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+    }
   }
-  if (id === 'atc-centers') {
-    var af = document.getElementById('atc-centers-frame');
-    if (af && !af.src && af.dataset.src) af.src = af.dataset.src;
+  // Note: iframes only load when their card is expanded (see openItem), to keep the page light.
+}
+
+// ── Collapsible cards + sidebar sub-nav (built once) ──────────────────────────
+var SM_INITED = false;
+function smInit() {
+  if (SM_INITED) return;
+  SM_INITED = true;
+
+  // 1) make each material panel a collapsible card
+  document.querySelectorAll('.modpanel').forEach(function(p){
+    var card = p.querySelector('.guide-card');
+    if (!card) return;
+    p.classList.add('collapsible');
+    var header = card.querySelector('.guide-card-header');
+    if (header && !header.querySelector('.sm-caret')) {
+      var caret = document.createElement('span');
+      caret.className = 'sm-caret';
+      caret.innerHTML = '&#9660;'; // down triangle
+      header.appendChild(caret);
+      header.addEventListener('click', function(){ toggleItem(p); });
+      header.dataset.smBound = '1';
+    }
+  });
+
+  // 2) build sidebar sub-items for every module that has panels
+  var byMod = {};
+  document.querySelectorAll('.modpanel').forEach(function(p){
+    var m = p.getAttribute('data-module'); if (!m) return;
+    (byMod[m] = byMod[m] || []).push(p);
+  });
+  Object.keys(byMod).forEach(function(m){
+    var modBtn = document.querySelector('.sm-mod[data-mod-key="' + m + '"]');
+    if (!modBtn) return;
+    // caret on the module row
+    if (!modBtn.querySelector('.sm-mod-caret')) {
+      var c = document.createElement('span');
+      c.className = 'sm-mod-caret'; c.innerHTML = '&#9660;';
+      modBtn.appendChild(c);
+    }
+    // sub-item wrapper right after the module button
+    var wrap = modBtn.nextElementSibling;
+    if (!wrap || !wrap.classList.contains('sm-subwrap')) {
+      wrap = document.createElement('div');
+      wrap.className = 'sm-subwrap';
+      modBtn.parentNode.insertBefore(wrap, modBtn.nextSibling);
+    }
+    wrap.innerHTML = '';
+    byMod[m].forEach(function(p){
+      var sub = document.createElement('button');
+      sub.className = 'sm-sub';
+      sub.setAttribute('data-target', p.id);
+      sub.textContent = p.getAttribute('data-item') || 'Course material';
+      sub.onclick = function(e){ e.stopPropagation(); showModule(m, p.id); };
+      wrap.appendChild(sub);
+    });
+  });
+}
+
+function toggleItem(panel) {
+  var willOpen = !panel.classList.contains('open');
+  openItem(panel, willOpen);
+}
+function openItem(panel, open) {
+  panel.classList.toggle('open', open);
+  if (open) {
+    var af = panel.querySelector('iframe[data-src]');
+    if (af && !af.src && af.dataset.src) af.src = af.dataset.src; // lazy-load on expand
   }
+}
+
+// ── Sidebar search: filters modules by title + full panel text ────────────────
+var SM_INDEX = null;
+function smBuildIndex() {
+  SM_INDEX = {};
+  document.querySelectorAll('.modpanel').forEach(function(p){
+    var mod = p.getAttribute('data-module');
+    if (!mod) return;
+    var txt = (p.textContent || '').toLowerCase();
+    SM_INDEX[mod] = (SM_INDEX[mod] || '') + ' ' + txt;
+  });
+}
+function smSearch(q) {
+  q = (q || '').trim().toLowerCase();
+  var clear = document.getElementById('sm-search-clear');
+  if (clear) clear.style.display = q ? 'block' : 'none';
+  if (!SM_INDEX) smBuildIndex();
+
+  var mods = document.querySelectorAll('.sm-mod');
+  var tracks = document.querySelectorAll('.sm-track');
+  var anyVisible = false;
+
+  if (!q) {
+    mods.forEach(function(m){ m.classList.remove('hidden'); });
+    tracks.forEach(function(t){ t.classList.remove('hidden'); });
+    document.getElementById('sm-noresults').style.display = 'none';
+    return;
+  }
+
+  mods.forEach(function(m){
+    var mod = m.getAttribute('data-mod');
+    var label = (m.textContent || '').toLowerCase();
+    var body = SM_INDEX['mod-' + mod] || '';
+    // match against the sidebar label OR the module's full content text
+    var hit = label.indexOf(q) !== -1 || body.indexOf(q) !== -1;
+    m.classList.toggle('hidden', !hit);
+    if (hit) anyVisible = true;
+  });
+
+  // hide a track header if all of its modules are hidden
+  tracks.forEach(function(t){
+    var el = t.nextElementSibling, show = false;
+    while (el && el.classList.contains('sm-mod')) {
+      if (!el.classList.contains('hidden')) { show = true; break; }
+      el = el.nextElementSibling;
+    }
+    t.classList.toggle('hidden', !show);
+  });
+
+  document.getElementById('sm-noresults').style.display = anyVisible ? 'none' : 'block';
+}
+function smClearSearch() {
+  var box = document.getElementById('sm-search');
+  if (box) box.value = '';
+  smSearch('');
+  box && box.focus();
 }
 
 
@@ -2158,42 +2417,70 @@ function loadCustomSections() {
 function smEsc(s){ return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function renderCustomSections(sections) {
-  const sidebar = document.querySelector('.sidebar');
   const content = document.querySelector('.content');
-  if (!sidebar || !content) return;
-
-  // sidebar group for custom sections
-  let group = document.getElementById('custom-sidebar-group');
-  if (!group) {
-    group = document.createElement('div');
-    group.className = 'sidebar-section';
-    group.id = 'custom-sidebar-group';
-    group.innerHTML = '<div class="sidebar-label">Notes &amp; References</div>';
-    sidebar.appendChild(group);
-  } else {
-    group.innerHTML = '<div class="sidebar-label">Notes &amp; References</div>';
-  }
+  if (!content) return;
 
   sections.forEach(function(sec){
+    // Backend can tag a section with the module it belongs to, e.g. sec.module = "10"
+    // (matching the data-mod on the sidebar). Falls back to a generic notes bucket.
+    var modNum = sec.module ? String(sec.module).trim() : null;
+    var modKey = modNum ? ('mod-' + modNum) : 'mod-notes';
     const pid = 'custom-' + sec.id;
-    // sidebar link
-    const btn = document.createElement('button');
-    btn.className = 'sidebar-link';
-    btn.setAttribute('onclick', "showPanel('" + pid + "')");
-    btn.innerHTML = (sec.icon ? sec.icon + ' ' : '') + smEsc(sec.title);
-    group.appendChild(btn);
-    // panel (remove old if re-rendering)
+
+    // panel (remove old if re-rendering) — tag as a modpanel so showModule/search pick it up
     const existing = document.getElementById('panel-' + pid);
     if (existing) existing.remove();
     const panel = document.createElement('div');
-    panel.className = 'panel';
+    panel.className = 'panel modpanel';
     panel.id = 'panel-' + pid;
+    panel.setAttribute('data-module', modKey);
+    panel.setAttribute('data-item', sec.title || 'Course material');
     panel.innerHTML = '<div class="guide-card">'
       + '<div class="guide-card-header"><span class="guide-card-icon">' + (sec.icon || '&#128221;') + '</span>'
       + '<span class="guide-card-title">' + smEsc(sec.title) + '</span></div>'
       + '<div class="guide-card-body">' + renderSectionBody(sec) + '</div></div>';
     content.appendChild(panel);
+
+    // If this content targets a real module, activate that sidebar row (un-grey it)
+    if (modNum) {
+      var modBtn = document.querySelector('.sm-mod[data-mod="' + modNum + '"]');
+      if (modBtn && modBtn.classList.contains('coming')) {
+        modBtn.classList.remove('coming');
+        var soon = modBtn.querySelector('.sm-soon');
+        if (soon) soon.remove();
+        modBtn.setAttribute('onclick', "showModule('" + modKey + "')");
+        SM_MODULE_TITLES[modKey] = SM_MODULE_TITLES[modKey] ||
+          ('Module ' + modNum + ' \u2014 ' + (modBtn.textContent || '').replace(/^M[\d,\-]+\s*/, '').trim());
+      }
+    } else {
+      // ungrouped notes: make sure a "Notes & References" track + row exists
+      ensureNotesTrack();
+    }
   });
+
+  // refresh the search index so new content is searchable
+  SM_INDEX = null; smBuildIndex();
+  // re-run init so new backend panels become collapsible + appear in the sub-nav
+  SM_INITED = false; smInit();
+}
+
+// Create (once) a "Notes & References" track + row for ungrouped backend content
+function ensureNotesTrack() {
+  if (document.getElementById('sm-notes-row')) return;
+  var nav = document.querySelector('.sidebar');
+  if (!nav) return;
+  var track = document.createElement('div');
+  track.className = 'sm-track';
+  track.textContent = 'Notes & References';
+  var row = document.createElement('button');
+  row.id = 'sm-notes-row';
+  row.className = 'sm-mod';
+  row.setAttribute('data-mod', 'notes');
+  row.setAttribute('onclick', "showModule('mod-notes')");
+  row.innerHTML = '<span class="sm-mod-num">&#128221;</span> Notes &amp; References';
+  nav.appendChild(track);
+  nav.appendChild(row);
+  SM_MODULE_TITLES['mod-notes'] = 'Notes & References';
 }
 
 function renderSectionBody(sec) {
@@ -2278,6 +2565,13 @@ if (document.readyState === 'complete') {
   startDrewPeek();
 } else {
   window.addEventListener('load', startDrewPeek);
+}
+
+// Build collapsible cards + sidebar sub-nav as soon as the DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', smInit);
+} else {
+  smInit();
 }
 
 </script>
