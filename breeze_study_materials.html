@@ -1500,6 +1500,11 @@ function showItem(mod, itemId) {
   var target = document.getElementById(itemId);
   if (target) {
     target.classList.add('active');
+    // The dynamic content backend can stamp an inline "display:none" onto the
+    // panel (seen as style="display: none;" alongside data-smbox/data-smid),
+    // which overrides the .panel.active CSS rule and leaves the panel blank.
+    // Clear any inline display override so the active panel is always visible.
+    target.style.removeProperty('display');
     // lazy-load iframe if present
     var af = target.querySelector('iframe[data-src]');
     if (af && !af.src && af.dataset.src) af.src = af.dataset.src;
