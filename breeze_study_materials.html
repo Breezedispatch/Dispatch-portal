@@ -246,7 +246,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);min-heig
 
     <!-- BASIC INDOCTRINATION -->
     <div class="sm-track">Basic Indoctrination</div>
-    <button class="sm-mod coming" data-mod="1" data-mod-key="mod-1"><span class="sm-mod-num">M1</span> Company Introduction &amp; Orientation <span class="sm-soon">Coming soon</span></button>
+    <button class="sm-mod" data-mod="1" data-mod-key="mod-1" onclick="showModule('mod-1')"><span class="sm-mod-num">M1</span> Company Introduction &amp; Orientation</button>
     <button class="sm-mod coming" data-mod="2" data-mod-key="mod-2"><span class="sm-mod-num">M2</span> Company Operations Manuals <span class="sm-soon">Coming soon</span></button>
     <button class="sm-mod" data-mod="3" data-mod-key="mod-3" onclick="showModule('mod-3')"><span class="sm-mod-num">M3</span> Dispatch CFRs</button>
     <button class="sm-mod coming" data-mod="4" data-mod-key="mod-4"><span class="sm-mod-num">M4</span> Operations Specifications <span class="sm-soon">Coming soon</span></button>
@@ -1274,6 +1274,29 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
 
 
     <!-- ── AIRPORT CODES ── -->
+    <div class="panel modpanel" data-module="mod-1" data-item="Company Introduction Course" id="panel-company-intro">
+      <div class="guide-card">
+        <div class="guide-card-header">
+          <span class="guide-card-icon">&#127970;</span>
+          <span class="guide-card-title">Company Introduction Course</span>
+        </div>
+        <div class="guide-card-body">
+          <p style="color:var(--ink2);line-height:1.6;margin:0 0 1rem;">
+            Interactive introduction to Breeze Airways &mdash; company overview, structure, and orientation for new dispatch hires.
+          </p>
+          <div style="position:relative;width:100%;height:900px;border-radius:12px;overflow:hidden;border:1px solid var(--gray);background:var(--white);">
+            <iframe id="company-intro-frame" data-src="Company_Introduction_Course.html" title="Company Introduction Course"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block;"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div style="margin-top:.6rem;text-align:right;">
+            <button class="sidebar-link" style="display:inline-block;width:auto;"
+              onclick="window.open('Company_Introduction_Course.html','_blank')">&#8599; Open full screen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel modpanel" data-module="mod-8" data-item="Airport Characteristics Course" id="panel-airport-course">
       <div class="guide-card">
         <div class="guide-card-header">
@@ -1441,6 +1464,7 @@ PLANNED WITHIN 2000LB BUFFER DUE TO [REASON]</div>
 // ── Panel navigation ─────────────────────────────────────────────────────────
 // Module titles for the header shown above each module's materials
 var SM_MODULE_TITLES = {
+  'mod-1':  'Module 1 \u2014 Company Introduction & Orientation',
   'mod-3':  'Module 3 \u2014 Dispatch CFRs',
   'mod-5':  'Module 5 \u2014 Dispatcher Duties & Responsibilities',
   'mod-8':  'Module 8 \u2014 Airport Characteristics',
