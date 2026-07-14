@@ -1505,6 +1505,11 @@ function showItem(mod, itemId) {
     // which overrides the .panel.active CSS rule and leaves the panel blank.
     // Clear any inline display override so the active panel is always visible.
     target.style.removeProperty('display');
+    // The backend can also hide descendant elements (e.g. the .guide-card
+    // inside the panel). Clear inline display:none on any descendants too.
+    target.querySelectorAll('[style*="display"]').forEach(function(el){
+      if (el.style.display === 'none') el.style.removeProperty('display');
+    });
     // lazy-load iframe if present
     var af = target.querySelector('iframe[data-src]');
     if (af && !af.src && af.dataset.src) af.src = af.dataset.src;
