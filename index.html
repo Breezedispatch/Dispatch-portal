@@ -205,6 +205,65 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .dash-prog-meta strong{color:var(--navy);font-weight:700;}
 .dash-prog-track{height:8px;background:var(--gray);border-radius:8px;overflow:hidden;}
 .dash-prog-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .6s cubic-bezier(.2,.8,.2,1);}
+/* Personalized student insights */
+.dash-insights-wrap{margin-top:1.25rem;display:flex;flex-direction:column;gap:1rem;}
+.dash-momentum{display:flex;align-items:center;gap:9px;background:linear-gradient(90deg,#fff4e6,#fff);border:1.5px solid #ffe0b8;border-radius:12px;padding:11px 16px;font-size:13.5px;color:var(--ink,#1c2b3a);}
+.dash-momentum-icon{font-size:19px;}
+.dash-insight{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:14px;padding:16px 18px;}
+.dash-insight-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:4px;}
+.dash-insight-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--ink,#12233b);}
+.dash-insight-sub{font-size:11.5px;color:var(--ink3,#8493a8);}
+.dash-focus-list{display:flex;flex-direction:column;gap:12px;}
+.dash-focus-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+.dash-focus-name{font-weight:600;font-size:13px;color:var(--ink,#1c2b3a);}
+.dash-focus-pct{font-weight:700;font-size:12px;}
+.dash-focus-pct.sev-hi{color:#c0392b;} .dash-focus-pct.sev-md{color:#b8860b;} .dash-focus-pct.sev-lo{color:#2a9d5c;}
+.dash-focus-bar{height:7px;background:#eef2f8;border-radius:8px;overflow:hidden;}
+.dash-focus-fill{height:100%;border-radius:8px;}
+.dash-focus-fill.sev-hi{background:#e8556d;} .dash-focus-fill.sev-md{background:#e0a83a;} .dash-focus-fill.sev-lo{background:#3fb27a;}
+.dash-focus-meta{font-size:11px;color:var(--ink3,#8493a8);margin-top:4px;}
+.dash-review-list{display:flex;flex-direction:column;gap:9px;}
+.dash-review-item{border-left:3px solid var(--blue,#2e75b6);background:#f7fafd;border-radius:0 8px 8px 0;padding:8px 12px;}
+.dash-review-q{font-size:12.5px;color:var(--ink,#1c2b3a);line-height:1.45;}
+.dash-review-src{font-size:10.5px;color:var(--ink3,#8493a8);margin-top:3px;}
+.dash-review-more{font-size:11.5px;color:var(--blue,#2e75b6);font-weight:600;margin-top:9px;text-align:center;}
+.dash-review-cta{margin-top:12px;width:100%;border:none;background:linear-gradient(90deg,var(--blue,#2e75b6),var(--cyan,#39a0c9));color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;padding:11px;border-radius:10px;cursor:pointer;transition:filter .15s;}
+.dash-review-cta:hover{filter:brightness(1.08);}
+/* Review session */
+.rv-wrap{max-width:680px;margin:0 auto;}
+.rv-progress{margin-bottom:18px;}
+.rv-progress-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--ink3,#8493a8);margin-bottom:6px;}
+.rv-score{font-weight:700;color:var(--green,#2a9d5c);}
+.rv-progress-track{height:7px;background:#eef2f8;border-radius:8px;overflow:hidden;}
+.rv-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue,#2e75b6),var(--cyan,#39a0c9));border-radius:8px;transition:width .3s;}
+.rv-card{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(27,58,107,.06);}
+.rv-card-src{font-size:11.5px;color:var(--blue,#2e75b6);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.rv-card-q{font-size:17px;font-weight:600;color:var(--ink,#12233b);line-height:1.5;margin-bottom:20px;font-family:'Syne',sans-serif;}
+.rv-opts{display:flex;flex-direction:column;gap:10px;}
+.rv-opt{display:flex;align-items:center;gap:12px;text-align:left;background:#f8fafc;border:1.5px solid var(--gray,#e2e8f0);border-radius:11px;padding:13px 15px;cursor:pointer;transition:all .12s;font-size:14px;color:var(--ink,#1c2b3a);}
+.rv-opt:hover:not(:disabled){border-color:var(--blue,#2e75b6);background:#f0f6fc;}
+.rv-opt:disabled{cursor:default;}
+.rv-opt-letter{flex:0 0 26px;width:26px;height:26px;border-radius:7px;background:#fff;border:1.5px solid var(--gray,#cdd9ea);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--ink2,#4a5a6a);}
+.rv-opt.is-correct{border-color:#2a9d5c;background:#eafaf1;}
+.rv-opt.is-correct .rv-opt-letter{background:#2a9d5c;border-color:#2a9d5c;color:#fff;}
+.rv-opt.is-wrong{border-color:#e8556d;background:#fdecef;}
+.rv-opt.is-wrong .rv-opt-letter{background:#e8556d;border-color:#e8556d;color:#fff;}
+.rv-feedback{margin-top:18px;}
+.rv-fb{font-size:13.5px;line-height:1.5;padding:11px 14px;border-radius:10px;margin-bottom:12px;}
+.rv-fb-right{background:#eafaf1;color:#1d7a45;} .rv-fb-right span{font-weight:700;}
+.rv-fb-wrong{background:#fdecef;color:#b0344c;} .rv-fb-wrong span{font-weight:700;}
+.rv-btn{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;padding:11px 22px;border-radius:10px;border:none;cursor:pointer;transition:filter .15s;}
+.rv-btn-primary{background:linear-gradient(90deg,var(--blue,#2e75b6),var(--cyan,#39a0c9));color:#fff;}
+.rv-btn-primary:hover{filter:brightness(1.08);}
+.rv-btn-ghost{background:#fff;border:1.5px solid var(--gray,#cdd9ea);color:var(--ink2,#4a5a6a);}
+.rv-empty,.rv-summary{max-width:520px;margin:40px auto;text-align:center;background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:16px;padding:40px 30px;}
+.rv-empty-icon,.rv-summary-icon{font-size:52px;margin-bottom:14px;}
+.rv-empty-title,.rv-summary-title{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--navy,#12233b);margin-bottom:8px;}
+.rv-empty-sub,.rv-summary-sub{font-size:14px;color:var(--ink3,#8493a8);line-height:1.6;margin-bottom:22px;}
+.rv-summary-score{font-size:20px;font-weight:700;color:var(--ink,#1c2b3a);margin-bottom:10px;}
+.rv-summary-pct{color:var(--ink3,#8493a8);font-weight:600;}
+.rv-summary-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.home-card-review .home-card-icon{color:var(--blue,#2e75b6);}
 .dash-alldone{display:flex;align-items:center;gap:.6rem;font-size:14px;font-weight:600;color:var(--green);}
 .dash-alldone-icon{width:32px;height:32px;border-radius:50%;background:var(--green-lt);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;}
 @media(max-width:560px){.dash-next-btn{width:100%;}.dash-next-top{flex-direction:column;align-items:stretch;}}
@@ -991,6 +1050,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="home-card-sub">Reference guides, module notes, and training resources.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
+      <div class="home-card home-card-review" id="home-card-review" style="display:none;" onclick="startReviewSession()">
+        <div class="home-card-icon">&#128260;</div>
+        <div class="home-card-title">Review Missed Questions</div>
+        <div class="home-card-sub" id="home-card-review-sub">Practice the questions you've missed, resurfaced on a smart schedule until you've got them down.</div>
+        <div class="home-card-arrow">&#8594;</div>
+      </div>
       <!-- Airport Characteristics Course moved into Study Materials → Module 8 -->
       <!-- Dispatch Operations Playbook — hidden for launch; still under development.
            To re-enable, remove the style="display:none;" below. All reader code + data remain intact. -->
@@ -1035,6 +1100,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     <!-- Practice Scenarios & Worksheets (hidden until card clicked) -->
     <div id="portal-practice" style="display:none;">
       <div id="practice-section-container"></div>
+    </div>
+
+    <!-- Spaced-repetition review session (hidden until card clicked) -->
+    <div id="portal-review" style="display:none;">
+      <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
+      <div id="review-section-container"></div>
     </div>
 
     <!-- OJT Mock Comp Check section (hidden until card clicked, gated to signed-off) -->
@@ -2684,6 +2755,74 @@ function scoreBadge(sc) {
 }
 
 // ── Dashboard strip (stats + up-next + progress) ───────────────────────────────
+// Compute a single student's personal insights: weak sections, most-missed
+// questions, and study momentum. Mirrors the admin analytics logic, scoped to one uid.
+function computeStudentInsights(uid) {
+  const scores = getScores(uid);
+  const quizById = {}; QUIZZES.forEach(q => quizById[q.id] = q);
+  const secStats = {};   // section -> {attempts, misses}
+  const missed = [];     // [{quizId, n, text, section, mod, name, selected, correct}]
+  const dates = [];      // finalized attempt dates for momentum
+
+  Object.entries(scores).forEach(([quizId, rec]) => {
+    const quiz = quizById[quizId];
+    if (!quiz) return;
+    if (rec.date) { const d = new Date(rec.date); if (!isNaN(d)) dates.push(d); }
+    if (!Array.isArray(rec.answers)) return;
+    const section = quiz.section || 'Other';
+    const defByN = {};
+    (quiz.questions || []).forEach(qq => { defByN[qq.n] = qq; });
+    rec.answers.forEach(a => {
+      const def = defByN[a.q] || {};
+      const isWritten = a.written === true || def.written;
+      let miss = null;
+      if (isWritten) {
+        const gp = rec.gradePoints || {};
+        const awarded = gp[a.q];
+        if (awarded === undefined || awarded === '' || awarded === null) return;
+        const max = Number(def.pts) || 0;
+        miss = max > 0 ? (Number(awarded) < max) : false;
+      } else {
+        miss = !(a.isCorrect === true || a.isCorrect === 'true');
+      }
+      if (miss === null) return;
+      if (!secStats[section]) secStats[section] = { attempts:0, misses:0 };
+      secStats[section].attempts++;
+      if (miss) {
+        secStats[section].misses++;
+        missed.push({
+          quizId, n: a.q,
+          text: def.text || ('Question ' + a.q),
+          section, mod: quiz.mod, name: quiz.name,
+          written: !!isWritten,
+          selected: isWritten ? null : (a.selected != null ? String(a.selected) : 'Not answered'),
+          correct: isWritten ? null : (a.correct != null ? String(a.correct) : ''),
+          model: def.model || ''
+        });
+      }
+    });
+  });
+
+  const weakSections = Object.entries(secStats)
+    .map(([sec, v]) => ({ sec, attempts: v.attempts, misses: v.misses, pct: v.attempts ? Math.round(v.misses/v.attempts*100) : 0 }))
+    .filter(s => s.misses > 0)
+    .sort((a,b) => b.pct - a.pct || b.misses - a.misses);
+
+  // Momentum: distinct study days, and current daily streak ending today/yesterday.
+  const dayKeys = Array.from(new Set(dates.map(d => d.toDateString()))).map(s => new Date(s));
+  dayKeys.sort((a,b) => b - a);
+  let streak = 0;
+  if (dayKeys.length) {
+    const oneDay = 86400000;
+    const today = new Date(); today.setHours(0,0,0,0);
+    let cursor = today.getTime();
+    const daySet = new Set(dayKeys.map(d => { const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }));
+    // allow the streak to count if the most recent day is today OR yesterday
+    if (!daySet.has(cursor) && daySet.has(cursor - oneDay)) cursor -= oneDay;
+    while (daySet.has(cursor)) { streak++; cursor -= oneDay; }
+  }
+  return { weakSections, missed, studyDays: dayKeys.length, streak };
+}
 function renderDashboard() {
   const el = document.getElementById('portal-dashboard');
   if (!el) return;
@@ -2801,9 +2940,263 @@ function renderDashboard() {
         <div class="dash-prog-meta"><span><strong>${pct}%</strong> of your training started</span><span>${touched} / ${total}</span></div>
         <div class="dash-prog-track"><div class="dash-prog-fill" data-target="${pct}" style="width:0%"></div></div>
       </div>
-    </div>`;
+    </div>
+    ${renderStudentInsights(currentUser)}`;
   animateCounters(el);
   animateProgressBars(el);
+  // Reveal the "Review Missed Questions" home card when the student has an active deck.
+  try {
+    const reviewCard = document.getElementById('home-card-review');
+    if (reviewCard) {
+      const active = srActiveCount(currentUser);
+      const due = srDue(currentUser).length;
+      reviewCard.style.display = active > 0 ? '' : 'none';
+      const sub = document.getElementById('home-card-review-sub');
+      if (sub && active > 0) {
+        sub.innerHTML = due > 0
+          ? `<strong>${due} question${due>1?'s':''} due for review</strong> — resurfaced on a smart schedule until you've got them down.`
+          : `${active} question${active>1?'s':''} in your rotation. Nothing due right now — check back later.`;
+      }
+    }
+  } catch(e){}
+}
+
+// Personalized "where do I stand / what to work on" panel for the student home.
+function renderStudentInsights(uid) {
+  const ins = computeStudentInsights(uid);
+  // Nothing to show until they've generated some answer data.
+  if (!ins.weakSections.length && !ins.missed.length && !ins.studyDays) return '';
+
+  let html = '';
+
+  // Momentum strip
+  if (ins.studyDays) {
+    const streakTxt = ins.streak >= 2
+      ? `<strong>${ins.streak}-day study streak</strong> — keep it going!`
+      : `You've studied on <strong>${ins.studyDays} day${ins.studyDays>1?'s':''}</strong> so far.`;
+    html += `<div class="dash-momentum"><span class="dash-momentum-icon">${ins.streak>=2?'\u{1F525}':'\u{1F4C8}'}</span> ${streakTxt}</div>`;
+  }
+
+  // Focus areas (weak sections)
+  if (ins.weakSections.length) {
+    const top = ins.weakSections.slice(0, 4);
+    html += `<div class="dash-insight">
+      <div class="dash-insight-head"><span class="dash-insight-title">Your focus areas</span><span class="dash-insight-sub">where you're missing the most</span></div>
+      <div class="dash-focus-list">`;
+    top.forEach(s => {
+      const sev = s.pct >= 40 ? 'hi' : (s.pct >= 20 ? 'md' : 'lo');
+      html += `<div class="dash-focus">
+        <div class="dash-focus-top"><span class="dash-focus-name">${escInsight(s.sec)}</span><span class="dash-focus-pct sev-${sev}">${s.pct}% missed</span></div>
+        <div class="dash-focus-bar"><div class="dash-focus-fill sev-${sev}" style="width:${s.pct}%"></div></div>
+        <div class="dash-focus-meta">${s.misses} of ${s.attempts} questions missed</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Questions to review (preview of the review queue)
+  if (ins.missed.length) {
+    const preview = ins.missed.slice(0, 5);
+    html += `<div class="dash-insight">
+      <div class="dash-insight-head"><span class="dash-insight-title">Questions to review</span><span class="dash-insight-sub">${ins.missed.length} you've missed</span></div>
+      <div class="dash-review-list">`;
+    preview.forEach(m => {
+      const qtxt = String(m.text).replace(/<[^>]*>/g,'').slice(0, 120);
+      html += `<div class="dash-review-item">
+        <div class="dash-review-q">${escInsight(qtxt)}</div>
+        <div class="dash-review-src">${escInsight((m.mod?m.mod+' · ':'') + (m.name||''))}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    if (ins.missed.length > 5) html += `<div class="dash-review-more">+ ${ins.missed.length - 5} more to review</div>`;
+    html += `<button class="dash-review-cta" onclick="startReviewSession()">&#128260; Start a review session</button>`;
+    html += `</div>`;
+  }
+
+  return html ? `<div class="dash-insights-wrap">${html}</div>` : '';
+}
+function escInsight(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ══ SPACED-REPETITION REVIEW ENGINE (Leitner boxes) ════════════════════════════
+// Per-student review cards live in localStorage: bz_review_<uid> = { "quizId#n": card }
+// card = { box:1..5, seen, correct, due:ISO, q:{quizId,n,text,options,correct,section,mod,name} }
+// Boxes → intervals in days: 1→0(now), 2→1, 3→3, 4→7, 5→graduated (14). Wrong resets to box 1.
+const SR_INTERVALS = { 1:0, 2:1, 3:3, 4:7, 5:14 };
+
+function srKey(uid){ return 'bz_review_' + uid; }
+function srLoad(uid){ try { return JSON.parse(localStorage.getItem(srKey(uid)) || '{}') || {}; } catch(e){ return {}; } }
+function srSave(uid, deck){ try { localStorage.setItem(srKey(uid), JSON.stringify(deck)); } catch(e){} }
+
+// Merge the student's currently-missed questions into their review deck (adds new,
+// leaves existing scheduling intact). Returns the deck.
+function srSeed(uid){
+  const deck = srLoad(uid);
+  const ins = computeStudentInsights(uid);
+  ins.missed.forEach(m => {
+    if (m.written) return;   // SR handles objective questions; written stay in instructor review
+    const k = m.quizId + '#' + m.n;
+    if (!deck[k]) {
+      // Look up options/correct from the live quiz definition for re-quizzing.
+      const quiz = QUIZZES.find(q => q.id === m.quizId);
+      const def = quiz && (quiz.questions||[]).find(qq => String(qq.n) === String(m.n));
+      deck[k] = {
+        box: 1, seen: 0, correct: 0, due: new Date().toISOString(),
+        q: {
+          quizId: m.quizId, n: m.n,
+          text: m.text, section: m.section, mod: m.mod, name: m.name,
+          options: def && Array.isArray(def.options) ? def.options : [],
+          correct: def ? def.correct : m.correct
+        }
+      };
+    }
+  });
+  srSave(uid, deck);
+  return deck;
+}
+
+// Cards due now (box interval elapsed), hardest first.
+function srDue(uid){
+  const deck = srSeed(uid);
+  const now = Date.now();
+  return Object.entries(deck)
+    .filter(([k,c]) => c.q && Array.isArray(c.q.options) && c.q.options.length && new Date(c.due).getTime() <= now)
+    .map(([k,c]) => Object.assign({ key:k }, c))
+    .sort((a,b) => a.box - b.box || new Date(a.due) - new Date(b.due));
+}
+// Total not-yet-graduated cards (box < 5 or overdue) for the badge.
+function srActiveCount(uid){
+  const deck = srSeed(uid);
+  return Object.values(deck).filter(c => c.q && Array.isArray(c.q.options) && c.q.options.length && c.box < 5).length;
+}
+
+// Grade one card: correct advances a box, wrong resets to box 1. Reschedules "due".
+function srGrade(uid, key, wasCorrect){
+  const deck = srLoad(uid);
+  const c = deck[key];
+  if (!c) return;
+  c.seen = (c.seen||0) + 1;
+  if (wasCorrect){ c.correct = (c.correct||0) + 1; c.box = Math.min(5, (c.box||1) + 1); }
+  else { c.box = 1; }
+  const days = SR_INTERVALS[c.box] != null ? SR_INTERVALS[c.box] : 0;
+  c.due = new Date(Date.now() + days*86400000).toISOString();
+  deck[key] = c;
+  srSave(uid, deck);
+}
+
+// ── Review session UI ──────────────────────────────────────────────────────────
+let _srSession = null;   // { queue:[cards], idx, right, wrong }
+
+function startReviewSession(){
+  const due = srDue(currentUser);
+  showReviewScreen();
+  if (!due.length){
+    document.getElementById('review-section-container').innerHTML = `
+      <div class="rv-empty">
+        <div class="rv-empty-icon">&#127881;</div>
+        <div class="rv-empty-title">Nothing due right now</div>
+        <div class="rv-empty-sub">You're caught up on your review questions. New misses will show up here, and questions you've gotten right will come back on a schedule so they stick.</div>
+        <button class="rv-btn rv-btn-primary" onclick="showPortalHome()">Back to home</button>
+      </div>`;
+    return;
+  }
+  _srSession = { queue: due, idx: 0, right: 0, wrong: 0 };
+  srRenderCard();
+}
+
+function srRenderCard(){
+  const s = _srSession;
+  const el = document.getElementById('review-section-container');
+  if (!s || s.idx >= s.queue.length){ srRenderSummary(); return; }
+  const card = s.queue[s.idx];
+  const q = card.q;
+  const total = s.queue.length;
+  const qtext = String(q.text).replace(/<[^>]*>/g,'');
+  const opts = q.options || [];
+  const letters = ['A','B','C','D','E','F'];
+
+  let optsHtml = opts.map((opt, i) => {
+    const letter = letters[i];
+    return `<button class="rv-opt" data-letter="${letter}" onclick="srAnswer('${letter}')">
+      <span class="rv-opt-letter">${letter}</span><span class="rv-opt-text">${escInsight(String(opt).replace(/<[^>]*>/g,''))}</span></button>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="rv-wrap">
+      <div class="rv-progress">
+        <div class="rv-progress-meta"><span>Review · question ${s.idx+1} of ${total}</span><span class="rv-score">${s.right} correct</span></div>
+        <div class="rv-progress-track"><div class="rv-progress-fill" style="width:${Math.round(s.idx/total*100)}%"></div></div>
+      </div>
+      <div class="rv-card">
+        <div class="rv-card-src">${escInsight((q.mod?q.mod+' · ':'') + (q.name||''))}</div>
+        <div class="rv-card-q">${escInsight(qtext)}</div>
+        <div class="rv-opts" id="rv-opts">${optsHtml}</div>
+        <div class="rv-feedback" id="rv-feedback"></div>
+      </div>
+    </div>`;
+}
+
+function srAnswer(letter){
+  const s = _srSession;
+  if (!s) return;
+  const card = s.queue[s.idx];
+  const correctLetter = String(card.q.correct || '').trim().toUpperCase();
+  const chosen = String(letter).trim().toUpperCase();
+  const isRight = chosen === correctLetter;
+
+  // Lock options, color them
+  document.querySelectorAll('#rv-opts .rv-opt').forEach(btn => {
+    btn.disabled = true;
+    const L = btn.getAttribute('data-letter');
+    if (L === correctLetter) btn.classList.add('is-correct');
+    if (L === chosen && !isRight) btn.classList.add('is-wrong');
+  });
+
+  if (isRight) s.right++; else s.wrong++;
+  srGrade(currentUser, card.key, isRight);
+
+  const fb = document.getElementById('rv-feedback');
+  if (fb){
+    fb.innerHTML = isRight
+      ? `<div class="rv-fb rv-fb-right"><span>&#10003; Correct</span> ${card.box>=4?'— you\'ve got this one down!':'— it\'ll come back later to lock it in.'}</div>
+         <button class="rv-btn rv-btn-primary" onclick="srNext()">Next &#8594;</button>`
+      : `<div class="rv-fb rv-fb-wrong"><span>&#10007; Not quite.</span> The correct answer is <strong>${correctLetter}</strong>. We'll bring this one back soon.</div>
+         <button class="rv-btn rv-btn-primary" onclick="srNext()">Next &#8594;</button>`;
+  }
+}
+
+function srNext(){
+  if (!_srSession) return;
+  _srSession.idx++;
+  srRenderCard();
+}
+
+function srRenderSummary(){
+  const s = _srSession;
+  const el = document.getElementById('review-section-container');
+  const total = s.right + s.wrong;
+  const pct = total ? Math.round(s.right/total*100) : 0;
+  const remaining = srActiveCount(currentUser);
+  el.innerHTML = `
+    <div class="rv-summary">
+      <div class="rv-summary-icon">${pct>=80?'\u{1F3AF}':(pct>=50?'\u{1F4AA}':'\u{1F4DA}')}</div>
+      <div class="rv-summary-title">Review complete</div>
+      <div class="rv-summary-score">${s.right} / ${total} correct <span class="rv-summary-pct">(${pct}%)</span></div>
+      <div class="rv-summary-sub">${remaining>0
+        ? `${remaining} question${remaining>1?'s':''} still in your review rotation. Questions you got right will resurface later; ones you missed will come back soon.`
+        : `You've cleared your whole review deck — nicely done.`}</div>
+      <div class="rv-summary-actions">
+        ${srDue(currentUser).length ? `<button class="rv-btn rv-btn-primary" onclick="startReviewSession()">Keep going (${srDue(currentUser).length} more due)</button>` : ''}
+        <button class="rv-btn rv-btn-ghost" onclick="showPortalHome()">Back to home</button>
+      </div>
+    </div>`;
+  _srSession = null;
+}
+
+// Show the review screen (hide others), mirroring showPortalSection's screen toggling.
+function showReviewScreen(){
+  ['portal-home','portal-content','portal-study','portal-playbook','portal-practice','portal-ojt','portal-review'].forEach(id => {
+    const n = document.getElementById(id); if (n) n.style.display = (id === 'portal-review') ? '' : 'none';
+  });
 }
 // Count numbers up from 0 for a polished dashboard reveal (respects reduced-motion).
 function animateCounters(scope){
