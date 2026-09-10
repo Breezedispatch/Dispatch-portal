@@ -3752,6 +3752,7 @@ function mpSendFeedbackReply(quizId, qn, anchorId){
 // Count messages from students that no trainer has read yet (for the tab badge).
 function unreadStudentMessageCount(){
   return SHEET_MESSAGES.filter(m => m.from === 'student' &&
+    !(typeof isSignedOff === 'function' && isSignedOff(m.studentId)) &&
     String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer') === -1).length;
 }
 function updateMsgInboxBadge(){
@@ -3789,7 +3790,11 @@ function renderMessagesInbox(){
   if (!list) return;
 
   const byStudent = {};
-  SHEET_MESSAGES.forEach(m => { (byStudent[m.studentId] = byStudent[m.studentId] || []).push(m); });
+  SHEET_MESSAGES.forEach(m => {
+    // Signed-off students are done with classroom training — drop them from the inbox.
+    if (typeof isSignedOff === 'function' && isSignedOff(m.studentId)) return;
+    (byStudent[m.studentId] = byStudent[m.studentId] || []).push(m);
+  });
   const students = Object.keys(byStudent);
   if (!students.length){
     if (summary) summary.innerHTML = '';
@@ -3885,8 +3890,11 @@ function trainerReply(studentId, parentId, kind, context){
                 author: (typeof currentTrainerName==='function' ? currentTrainerName() : (currentUser||'Trainer')), text, replyTo: parentId });
   toast('Reply sent', 'ok');
   if (document.getElementById('admin-messages') && document.getElementById('admin-messages').classList.contains('active')) renderMessagesInbox();
-  // if a trainee modal is open, refresh it too
-  if (window._openTraineeUid) openTrainee(window._openTraineeUid);
+  // Refresh the trainee modal ONLY if it's actually open on screen right now
+  // (so replying from the Messages inbox doesn't pop the trainee record open).
+  const traineeModal = document.getElementById('trainee-modal');
+  const modalOpen = traineeModal && getComputedStyle(traineeModal).display !== 'none';
+  if (modalOpen && window._openTraineeUid) openTrainee(window._openTraineeUid);
 }
 // Safe escape helpers (reuse existing if present).
 function escHtmlSafe(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -5979,6 +5987,7 @@ function signOffStudent(uid) {
   setSignoff(uid, true);
   renderAdmin();
   if (window._adminView === 'analytics') renderAnalytics();
+  try { updateMsgInboxBadge(); if (window._adminView === 'messages') renderMessagesInbox(); computeAlerts(); } catch(e){}
   toast(nm + ' signed off', 'ok');
 }
 
@@ -6142,6 +6151,7 @@ function computeAlerts(){
 
     // 5) Unread student messages — requests + feedback replies a trainer hasn't read.
     const unreadMsgs = (SHEET_MESSAGES || []).filter(m => m.from === 'student' &&
+      !(typeof isSignedOff === 'function' && isSignedOff(m.studentId)) &&
       String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer') === -1);
     if (unreadMsgs.length){
       const whoSet = {}; unreadMsgs.forEach(m => whoSet[m.studentId] = true);
@@ -8332,6 +8342,7 @@ function openTrainee(uid) {
 
 function closeTrainee() {
   document.getElementById('trainee-modal').style.display = 'none';
+  window._openTraineeUid = null;
 }
 
 // Toggle a single module's sign-off, then re-render the trainee view in place.
@@ -8400,6 +8411,9 @@ function deleteTrainee(uid) {
 
   // 3) Remove from in-memory sheet results so the UI updates immediately
   SHEET_RESULTS = SHEET_RESULTS.filter(r => String(r.id||'').toUpperCase() !== String(uid).toUpperCase());
+  // Remove their messages from the in-memory list too (backend clears the sheet on deleteStudent).
+  SHEET_MESSAGES = (SHEET_MESSAGES || []).filter(m => String(m.studentId||'').toUpperCase() !== String(uid).toUpperCase());
+  try { updateMsgInboxBadge(); } catch(e){}
 
   closeTrainee();
   // Re-pull from sheet after a moment so the roster reflects the deletion
