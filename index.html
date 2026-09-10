@@ -336,6 +336,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .mp-msg-send{align-self:flex-end;background:linear-gradient(90deg,var(--blue,#2e75b6),var(--cyan,#39a0c9));color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;transition:filter .15s;}
 .mp-msg-send:hover{filter:brightness(1.08);}
 .mp-thread-list{display:flex;flex-direction:column;gap:8px;}
+.mp-chat{display:flex;flex-direction:column;gap:8px;background:#f7fafc;border:1.5px solid var(--gray,#e8eef6);border-radius:14px;padding:16px;max-height:460px;overflow-y:auto;}
 .mp-msg{border-radius:12px;padding:11px 14px;max-width:82%;}
 .mp-msg.from-student{background:#e5f0fa;border:1.5px solid #cfe3f5;align-self:flex-end;margin-left:auto;}
 .mp-msg.from-trainer{background:#fff;border:1.5px solid var(--gray,#e2e8f0);align-self:flex-start;}
@@ -367,6 +368,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .msg-student-unread{flex:0 0 auto;background:var(--coral,#ff527b);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
 .msg-student-open{flex:0 0 auto;font-size:12px;color:var(--blue,#2e75b6);font-weight:600;}
 .msg-student-threads{padding:14px 18px;display:flex;flex-direction:column;gap:12px;}
+.msg-chat{padding:16px 18px;display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;background:#fafcfe;}
+.msg-ctx-divider{align-self:center;font-size:11px;color:var(--ink2,#4a5a6a);background:#eef2f8;border-radius:20px;padding:3px 12px;margin:6px 0 2px;}
 .msg-thread{border:1.5px solid var(--gray,#eef2f8);border-radius:12px;padding:12px 14px;background:#fafcfe;}
 .msg-thread.unread{border-left:3px solid var(--coral,#ff527b);}
 .msg-thread-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;}
@@ -3817,58 +3820,58 @@ function renderMessagesInbox(){
   students.forEach(sid => {
     const name = studentDisplayName(sid);
     const initials = name.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() || '?';
-    const threads = threadMessages(byStudent[sid]).sort((a,b) => {
-      const la = Math.max.apply(null, [a.msg].concat(a.replies).map(m=>new Date(m.date).getTime()||0));
-      const lb = Math.max.apply(null, [b.msg].concat(b.replies).map(m=>new Date(m.date).getTime()||0));
-      return lb - la;
-    });
     const studentUnread = byStudent[sid].filter(m => m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1).length;
 
-    // One panel per student, with their threads inside.
+    // ALL of this student's messages in one chronological chat feed.
+    const feed = byStudent[sid].slice().sort((a,b) => (new Date(a.date).getTime()||0) - (new Date(b.date).getTime()||0));
+    // The reply attaches to the newest message so the conversation continues from where it left off.
+    const newest = feed[feed.length - 1];
+    const replyKind = (newest && newest.kind) || 'request';
+    const replyContext = (newest && newest.context) || '';
+    const anchorId = 'am-reply-' + sid;
+
     h += `<div class="msg-student ${studentUnread?'has-unread':''}">
       <div class="msg-student-head" onclick="setAdminView('roster'); openTrainee('${escAttr(sid)}')">
         <div class="msg-avatar">${escHtmlSafe(initials)}</div>
         <div class="msg-student-id">
           <div class="msg-student-name">${escHtmlSafe(name)}</div>
-          <div class="msg-student-sub">ID ${escHtmlSafe(sid)} · ${threads.length} conversation${threads.length!==1?'s':''}</div>
+          <div class="msg-student-sub">ID ${escHtmlSafe(sid)} · ${feed.length} message${feed.length!==1?'s':''}</div>
         </div>
         ${studentUnread?`<span class="msg-student-unread">${studentUnread} new</span>`:''}
         <span class="msg-student-open">View trainee →</span>
       </div>
-      <div class="msg-student-threads">`;
+      <div class="msg-chat">`;
 
-    threads.forEach(t => {
-      const all = [t.msg].concat(t.replies);
-      const kind = t.msg.kind || 'request';
-      let ctxLabel = '';
-      if (kind === 'feedback' && t.msg.context){
-        const [qid, qn] = t.msg.context.split('#');
+    // Render the feed, inserting a small context divider only when a message is a
+    // feedback reply that references a quiz question (keeps the info without boxing).
+    let lastCtx = '__none__';
+    feed.forEach(m => {
+      if (m.kind === 'feedback' && m.context && m.context !== lastCtx){
+        const [qid, qn] = m.context.split('#');
         const quiz = QUIZZES.find(q => q.id === qid);
-        ctxLabel = quiz ? `On ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `On feedback · Q${qn||''}`;
+        const label = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
+        h += `<div class="msg-ctx-divider">${label}</div>`;
+        lastCtx = m.context;
+      } else if (m.kind !== 'feedback'){
+        lastCtx = '__none__';
       }
-      const threadUnread = all.some(m => m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1);
-      h += `<div class="msg-thread ${threadUnread?'unread':''}">
-        <div class="msg-thread-top">
-          <span class="am-msg-kind ${kind}">${kind==='feedback'?'Feedback reply':'Help request'}</span>
-          ${ctxLabel?`<span class="msg-thread-ctx">${ctxLabel}</span>`:''}
-        </div>
-        <div class="msg-thread-body">`;
-      all.forEach(m => { h += amMsgBubble(m); });
-      h += `</div>
-        <div class="am-reply-row">
-          <input id="am-reply-${t.msg.msgId}" class="am-reply-input" placeholder="Reply to ${escHtmlSafe(name.split(' ')[0])}…" onkeydown="if(event.key==='Enter'){trainerReply('${escAttr(sid)}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')}">
-          <button class="am-reply-btn" onclick="trainerReply('${escAttr(sid)}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')">Reply</button>
-        </div>
-      </div>`;
-      // mark this thread's student messages read by trainers
-      all.forEach(m => {
-        if (m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1){
-          m.readBy = (m.readBy?m.readBy+',':'') + 'trainer';
-          postBoardAction({ action:'markMessageRead', msgId:m.msgId, readBy:'trainer' });
-        }
-      });
+      h += amMsgBubble(m);
     });
-    h += `</div></div>`;
+
+    h += `</div>
+      <div class="am-reply-row">
+        <input id="${anchorId}" class="am-reply-input" placeholder="Message ${escHtmlSafe(name.split(' ')[0])}…" onkeydown="if(event.key==='Enter'){trainerReplyToStudent('${escAttr(sid)}')}">
+        <button class="am-reply-btn" onclick="trainerReplyToStudent('${escAttr(sid)}')">Send</button>
+      </div>
+    </div>`;
+
+    // mark this student's messages read by trainers
+    byStudent[sid].forEach(m => {
+      if (m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1){
+        m.readBy = (m.readBy?m.readBy+',':'') + 'trainer';
+        postBoardAction({ action:'markMessageRead', msgId:m.msgId, readBy:'trainer' });
+      }
+    });
   });
   list.innerHTML = h;
   updateMsgInboxBadge();
@@ -3881,14 +3884,36 @@ function amMsgBubble(m){
     <div class="mp-msg-body">${escHtmlSafe(m.text)}</div>
   </div>`;
 }
+// Trainer replies from the single per-student chat box — continues the conversation
+// by attaching to the student's most recent message (its thread + context).
+function trainerReplyToStudent(studentId){
+  const inp = document.getElementById('am-reply-' + studentId);
+  const text = inp ? inp.value.trim() : '';
+  if (!text){ if(inp) inp.focus(); return; }
+  const mine = messagesForStudent(studentId).slice().sort((a,b)=>(new Date(a.date).getTime()||0)-(new Date(b.date).getTime()||0));
+  const newest = mine[mine.length-1];
+  // Thread onto the root of the newest message's conversation (so replies stay grouped),
+  // carrying its kind/context forward.
+  let parentId = '', kind = 'request', context = '';
+  if (newest){
+    kind = newest.kind || 'request';
+    context = newest.context || '';
+    parentId = newest.replyTo || newest.msgId;
+  }
+  sendMessage({ studentId, kind, context, from:'trainer',
+                author: (typeof currentTrainerName==='function' ? currentTrainerName() : (currentUser||'Trainer')), text, replyTo: parentId });
+  toast('Message sent', 'ok');
+  renderMessagesInbox();
+  const modal = document.getElementById('trainee-modal');
+  if (modal && getComputedStyle(modal).display !== 'none' && window._openTraineeUid) openTrainee(window._openTraineeUid);
+}
 // Trainer replies to a student thread (from inbox or trainee page).
 function trainerReply(studentId, parentId, kind, context){
   const inp = document.getElementById('am-reply-' + parentId) || document.getElementById('tr-reply-' + parentId);
   const text = inp ? inp.value.trim() : '';
   if (!text){ if(inp) inp.focus(); return; }
   sendMessage({ studentId, kind: kind||'request', context: context||'', from:'trainer',
-                author: (typeof currentTrainerName==='function' ? currentTrainerName() : (currentUser||'Trainer')), text, replyTo: parentId });
-  toast('Reply sent', 'ok');
+                author: (typeof currentTrainerName==='function' ? currentTrainerName() : (currentUser||'Trainer')), text, replyTo: parentId });  toast('Reply sent', 'ok');
   if (document.getElementById('admin-messages') && document.getElementById('admin-messages').classList.contains('active')) renderMessagesInbox();
   // Refresh the trainee modal ONLY if it's actually open on screen right now
   // (so replying from the Messages inbox doesn't pop the trainee record open).
@@ -3936,7 +3961,6 @@ function mpAnalytics(uid){
 function mpMessages(uid){
   // General requests are kind='request'. Feedback replies live in the feedback tab.
   const mine = messagesForStudent(uid).filter(m => m.kind === 'request');
-  const threads = threadMessages(mine);
   let h = `<div class="mp-msg-intro">
     Need to go over something again, want clarification, or have a question for your trainers? Send a message here.
     Your trainers will see it and reply — their responses show up in this tab.
@@ -3946,21 +3970,19 @@ function mpMessages(uid){
     <button class="mp-msg-send" onclick="mpSendRequest()">&#10148; Send to trainers</button>
   </div>`;
 
-  if (!threads.length){
+  if (!mine.length){
     h += `<div class="mp-empty" style="margin-top:16px;">No messages yet. Anything you send will appear here with your trainers' replies.</div>`;
     return h;
   }
-  h += `<div class="mp-section-title">Your conversations</div><div class="mp-thread-list">`;
-  threads.forEach(t => {
-    h += mpMsgBubble(t.msg, uid);
-    t.replies.forEach(rep => { h += mpMsgBubble(rep, uid); });
-    // reply box under each thread so the student can continue it
-    h += `<div class="mp-reply-row">
-      <input id="mp-reply-${t.msg.msgId}" class="mp-reply-input" placeholder="Reply…">
-      <button class="mp-reply-btn" onclick="mpSendReply('${t.msg.msgId}','request','')">Reply</button>
+  // One continuous conversation, chronological, with a single reply box at the bottom.
+  const feed = mine.slice().sort((a,b)=>(new Date(a.date).getTime()||0)-(new Date(b.date).getTime()||0));
+  h += `<div class="mp-section-title">Your conversation</div><div class="mp-chat">`;
+  feed.forEach(m => { h += mpMsgBubble(m, uid); });
+  h += `</div>
+    <div class="mp-reply-row" style="margin-top:12px;">
+      <input id="mp-chat-reply" class="mp-reply-input" placeholder="Message your trainers…" onkeydown="if(event.key==='Enter'){mpSendChatReply()}">
+      <button class="mp-reply-btn" onclick="mpSendChatReply()">Send</button>
     </div>`;
-  });
-  h += `</div>`;
   return h;
 }
 // One message bubble (student vs trainer styled differently).
@@ -3981,6 +4003,19 @@ function mpSendRequest(){
   sendMessage({ studentId: currentUser, kind:'request', from:'student', author: getName(currentUser)||currentUser, text });
   if (ta) ta.value = '';
   toast('Message sent to your trainers', 'ok');
+  renderMyProgress('messages');
+}
+// Student continues their conversation from the single chat box (threads onto newest request).
+function mpSendChatReply(){
+  const inp = document.getElementById('mp-chat-reply');
+  const text = inp ? inp.value.trim() : '';
+  if (!text){ if(inp) inp.focus(); return; }
+  const mine = messagesForStudent(currentUser).filter(m => m.kind==='request').slice()
+    .sort((a,b)=>(new Date(a.date).getTime()||0)-(new Date(b.date).getTime()||0));
+  const newest = mine[mine.length-1];
+  const parentId = newest ? (newest.replyTo || newest.msgId) : '';
+  sendMessage({ studentId: currentUser, kind:'request', from:'student', author: getName(currentUser)||currentUser, text, replyTo: parentId });
+  toast('Message sent', 'ok');
   renderMyProgress('messages');
 }
 // Student replies within a thread (general request OR feedback).
@@ -8303,37 +8338,30 @@ function openTrainee(uid) {
     });
   });
 
-  // ── Messages from this student (requests + feedback replies) ──
+  // ── Messages from this student (single continuous chat) ──
   const stuMsgs = messagesForStudent(uid);
   if (stuMsgs.length){
-    const threads = threadMessages(stuMsgs).sort((a,b)=>{
-      const la = Math.max.apply(null,[a.msg].concat(a.replies).map(m=>new Date(m.date).getTime()||0));
-      const lb = Math.max.apply(null,[b.msg].concat(b.replies).map(m=>new Date(m.date).getTime()||0));
-      return lb-la;
+    const feed = stuMsgs.slice().sort((a,b)=>(new Date(a.date).getTime()||0)-(new Date(b.date).getTime()||0));
+    body += `<div class="tr-section-title">Messages from ${name||uid} <span style="font-weight:400;color:var(--ink3);font-size:12px;">${stuMsgs.length}</span></div>
+      <div class="msg-student" style="margin-bottom:1rem;">
+        <div class="msg-chat">`;
+    let lastCtx = '__none__';
+    feed.forEach(m => {
+      if (m.kind === 'feedback' && m.context && m.context !== lastCtx){
+        const [qid, qn] = m.context.split('#');
+        const quiz = QUIZZES.find(q => q.id === qid);
+        const label = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
+        body += `<div class="msg-ctx-divider">${label}</div>`;
+        lastCtx = m.context;
+      } else if (m.kind !== 'feedback'){ lastCtx = '__none__'; }
+      body += amMsgBubble(m);
     });
-    body += `<div class="tr-section-title">Messages from ${name||uid} <span style="font-weight:400;color:var(--ink3);font-size:12px;">${stuMsgs.length}</span></div><div class="am-inbox" style="margin-bottom:1rem;">`;
-    threads.forEach(t => {
-      const all = [t.msg].concat(t.replies);
-      const kind = t.msg.kind || 'request';
-      let ctxLabel = '';
-      if (kind==='feedback' && t.msg.context){
-        const [qid,qn] = t.msg.context.split('#');
-        const quiz = QUIZZES.find(q=>q.id===qid);
-        ctxLabel = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
-      }
-      body += `<div class="am-msg-card">
-        <div class="am-msg-top"><span class="am-msg-kind ${kind}">${kind==='feedback'?'Feedback reply':'Help request'}</span></div>
-        ${ctxLabel?`<div class="am-msg-ctx">${ctxLabel}</div>`:''}
-        <div class="am-msg-thread">`;
-      all.forEach(m => { body += amMsgBubble(m); });
-      body += `</div>
+    body += `</div>
         <div class="am-reply-row">
-          <input id="tr-reply-${t.msg.msgId}" class="am-reply-input" placeholder="Reply…">
-          <button class="am-reply-btn" onclick="trainerReply('${uid}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')">Reply</button>
+          <input id="am-reply-${uid}" class="am-reply-input" placeholder="Message ${escHtmlSafe((name||uid).split(' ')[0])}…" onkeydown="if(event.key==='Enter'){trainerReplyToStudent('${escAttr(uid)}')}">
+          <button class="am-reply-btn" onclick="trainerReplyToStudent('${escAttr(uid)}')">Send</button>
         </div>
       </div>`;
-    });
-    body += `</div>`;
   }
 
   document.getElementById('trainee-body').innerHTML = body;
