@@ -328,6 +328,45 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .mp-ptsbadge.ok{background:#e3f7ea;color:#1d7a45;}
 .mp-ptsbadge.partial{background:#fff2cc;color:#8a5a00;}
 .mp-ptsbadge.pending{background:#eef2f8;color:#5a6a80;}
+/* Messaging */
+.mp-msg-intro{font-size:13.5px;color:var(--ink2,#4a5a6a);line-height:1.55;background:#f0f6fc;border:1.5px solid #d4e6f7;border-radius:12px;padding:13px 16px;margin-bottom:14px;}
+.mp-msg-compose{display:flex;flex-direction:column;gap:10px;}
+.mp-msg-input{width:100%;border:1.5px solid var(--gray,#cdd9ea);border-radius:12px;padding:12px 14px;font-family:var(--font);font-size:14px;color:var(--ink,#1c2b3a);resize:vertical;box-sizing:border-box;}
+.mp-msg-input:focus{outline:none;border-color:var(--blue,#2e75b6);}
+.mp-msg-send{align-self:flex-end;background:linear-gradient(90deg,var(--blue,#2e75b6),var(--cyan,#39a0c9));color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;transition:filter .15s;}
+.mp-msg-send:hover{filter:brightness(1.08);}
+.mp-thread-list{display:flex;flex-direction:column;gap:8px;}
+.mp-msg{border-radius:12px;padding:11px 14px;max-width:82%;}
+.mp-msg.from-student{background:#e5f0fa;border:1.5px solid #cfe3f5;align-self:flex-end;margin-left:auto;}
+.mp-msg.from-trainer{background:#fff;border:1.5px solid var(--gray,#e2e8f0);align-self:flex-start;}
+.mp-msg.is-reply{max-width:76%;}
+.mp-msg-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px;}
+.mp-msg-who{font-weight:700;font-size:12px;color:var(--navy,#1b3a6b);}
+.mp-msg.from-trainer .mp-msg-who{color:var(--blue,#2e75b6);}
+.mp-msg-date{font-size:10.5px;color:var(--ink3,#8493a8);}
+.mp-msg-body{font-size:13.5px;color:var(--ink,#1c2b3a);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;}
+.mp-reply-row{display:flex;gap:8px;margin:4px 0 14px;}
+.mp-reply-input{flex:1 1 auto;border:1.5px solid var(--gray,#cdd9ea);border-radius:9px;padding:9px 12px;font-family:var(--font);font-size:13px;box-sizing:border-box;}
+.mp-reply-input:focus{outline:none;border-color:var(--blue,#2e75b6);}
+.mp-reply-btn{flex:0 0 auto;background:#fff;border:1.5px solid var(--blue,#2e75b6);color:var(--blue,#2e75b6);border-radius:9px;padding:9px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12.5px;cursor:pointer;transition:all .12s;}
+.mp-reply-btn:hover{background:var(--blue,#2e75b6);color:#fff;}
+/* Admin messages inbox */
+.am-inbox{display:flex;flex-direction:column;gap:12px;}
+.am-msg-card{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:14px;padding:16px 18px;}
+.am-msg-card.unread{border-left:4px solid var(--coral,#ff527b);}
+.am-msg-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+.am-msg-student{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--navy,#1b3a6b);cursor:pointer;}
+.am-msg-student:hover{text-decoration:underline;}
+.am-msg-kind{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 9px;border-radius:20px;}
+.am-msg-kind.request{background:#e5f0fa;color:#1a5a8a;} .am-msg-kind.feedback{background:#fff2cc;color:#8a5a00;}
+.am-msg-ctx{font-size:11.5px;color:var(--ink3,#8493a8);margin-bottom:6px;}
+.am-msg-thread{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.am-reply-row{display:flex;gap:8px;}
+.am-reply-input{flex:1 1 auto;border:1.5px solid var(--gray,#cdd9ea);border-radius:9px;padding:9px 12px;font-size:13px;box-sizing:border-box;}
+.am-reply-input:focus{outline:none;border-color:var(--blue,#2e75b6);}
+.am-reply-btn{flex:0 0 auto;background:var(--blue,#2e75b6);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12.5px;cursor:pointer;}
+.am-reply-btn:hover{filter:brightness(1.08);}
+.am-viewtab-badge{display:inline-block;min-width:17px;height:17px;line-height:17px;text-align:center;background:var(--coral,#ff527b);color:#fff;border-radius:9px;font-size:10.5px;font-weight:700;padding:0 5px;margin-left:5px;}
 .mp-ans-line,.mp-ans-correct,.mp-ans-model,.mp-ans-fb{margin-top:3px;color:var(--ink2,#4a5a6a);}
 .mp-ans-correct{color:#1d7a45;} .mp-ans-fb{color:#1a4d7a;background:#e5f0fa;border-radius:6px;padding:6px 9px;margin-top:6px;}
 .mp-ans-note{font-size:12.5px;color:var(--ink3,#8493a8);}
@@ -656,8 +695,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .admin-viewtabs{display:inline-flex;gap:4px;background:var(--gray);border-radius:12px;padding:4px;margin-bottom:1.5rem;}
 .admin-viewtab{font-family:var(--font);font-weight:700;font-size:12px;letter-spacing:.03em;padding:9px 18px;border-radius:9px;border:none;background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
 .admin-viewtab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(4,28,52,.08);}
-#admin-roster,#admin-analytics,#admin-applicants,#admin-worksheets,#admin-prepcheck,#admin-reports{display:none;}
-#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-worksheets.active,#admin-prepcheck.active,#admin-reports.active{display:block;}
+#admin-roster,#admin-analytics,#admin-applicants,#admin-messages,#admin-worksheets,#admin-prepcheck,#admin-reports{display:none;}
+#admin-roster.active,#admin-analytics.active,#admin-applicants.active,#admin-messages.active,#admin-worksheets.active,#admin-prepcheck.active,#admin-reports.active{display:block;}
 .rep-summary{display:flex;gap:14px;margin:0 0 1.3rem;flex-wrap:wrap;}
 .rep-refresh-btn{margin-left:auto;border:1.5px solid var(--blue);background:var(--skysoft);color:var(--blue);border-radius:9px;padding:9px 16px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--font);}
 .rep-refresh-btn:hover{background:#dcebff;}
@@ -1250,6 +1289,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <button class="admin-viewtab active" id="viewtab-roster" onclick="setAdminView('roster')">&#128203; Roster</button>
       <button class="admin-viewtab" id="viewtab-analytics" onclick="setAdminView('analytics')">&#128200; Analytics</button>
       <button class="admin-viewtab" id="viewtab-applicants" onclick="setAdminView('applicants')">&#128188; Applicants</button>
+      <button class="admin-viewtab" id="viewtab-messages" onclick="setAdminView('messages')">&#9993; Messages <span id="msg-inbox-badge" class="am-viewtab-badge" style="display:none;">0</span></button>
       <button class="admin-viewtab" id="viewtab-worksheets" onclick="setAdminView('worksheets')">&#9998; New Hire Worksheets</button>
       <button class="admin-viewtab" id="viewtab-prepcheck" onclick="setAdminView('prepcheck')">&#9745; Class Prep Checklist</button>
       <button class="admin-viewtab" id="viewtab-reports" onclick="setAdminView('reports')">&#128196; Reports</button>
@@ -1338,6 +1378,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       </div>
       <div class="an-section-note">Shared across trainers — each placement is tagged with who made it. Drag applicants into a tier, and reorder within a tier to set preference (1 = highest).</div>
       <div class="rank-board" id="rank-board"></div>
+    </div>
+
+    <!-- STUDENT MESSAGES INBOX VIEW -->
+    <div id="admin-messages">
+      <div class="admin-summary" id="msg-inbox-summary"></div>
+      <div class="am-inbox" id="msg-inbox-list"></div>
     </div>
 
     <!-- NEW HIRE WORKSHEETS VIEW -->
@@ -2052,7 +2098,7 @@ function loadResults(done) {
   const cb = 'rcb_' + Math.random().toString(36).slice(2);
   const s = document.createElement('script');
   let finished = false;
-  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); loadSignoffs(function(){ loadModuleSignoffs(function(){ done && done(ok); }); }); }
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); loadSignoffs(function(){ loadModuleSignoffs(function(){ loadMessages(function(){ done && done(ok); }); }); }); }
   window[cb] = function(res){
     try {
       if (res && res.status === 'ok' && Array.isArray(res.results)) {
@@ -2184,6 +2230,69 @@ function loadNotes(done) {
 function notesFor(uid){
   const u = String(uid).toUpperCase();
   return SHEET_NOTES.filter(n => String(n.applicantId).toUpperCase() === u);
+}
+
+// ══ STUDENT ↔ TRAINER MESSAGES ═════════════════════════════════════════════════
+var SHEET_MESSAGES = [];
+function loadMessages(done) {
+  if (!QUESTIONS_URL || QUESTIONS_URL.indexOf('PASTE_') === 0) { done && done(false); return; }
+  const cb = 'msg_' + Math.random().toString(36).slice(2);
+  const s = document.createElement('script');
+  let finished = false;
+  function finish(ok){ if(finished) return; finished = true; delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); done && done(ok); }
+  window[cb] = function(res){
+    try {
+      if (res && res.status === 'ok' && Array.isArray(res.messages)) { SHEET_MESSAGES = res.messages; finish(true); }
+      else { finish(false); }
+    } catch(e) { finish(false); }
+  };
+  s.onerror = function(){ finish(false); };
+  s.src = QUESTIONS_URL + (QUESTIONS_URL.indexOf('?')>-1?'&':'?') + 'mode=messages&callback=' + cb + '&t=' + Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ finish(false); }, 20000);
+}
+function messagesForStudent(uid){
+  const u = String(uid).toUpperCase();
+  return SHEET_MESSAGES.filter(m => String(m.studentId).toUpperCase() === u);
+}
+// Send a message (student request, trainer reply, feedback reply). Optimistically
+// updates the local list, then posts to the sheet via the shared board queue.
+function sendMessage(opts){
+  const msgId = 'm' + Date.now() + Math.floor(Math.random()*1000);
+  const rec = {
+    msgId,
+    studentId: String(opts.studentId||'').toUpperCase(),
+    kind: opts.kind || 'request',
+    context: opts.context || '',
+    from: opts.from || 'student',
+    author: opts.author || '',
+    text: String(opts.text||'').trim(),
+    date: new Date().toLocaleString(),
+    replyTo: opts.replyTo || '',
+    readBy: (opts.from === 'trainer') ? '' : String(opts.studentId||'').toUpperCase()
+  };
+  if (!rec.studentId || !rec.text) return null;
+  SHEET_MESSAGES.push(rec);
+  postBoardAction({ action:'addMessage', studentId:rec.studentId, kind:rec.kind, context:rec.context,
+                    from:rec.from, author:rec.author, text:rec.text, date:rec.date, replyTo:rec.replyTo });
+  return rec;
+}
+function deleteMessage(msgId){
+  SHEET_MESSAGES = SHEET_MESSAGES.filter(m => m.msgId !== msgId && m.replyTo !== msgId);
+  postBoardAction({ action:'deleteMessage', msgId });
+}
+// Build threaded structure: top-level messages with their replies nested (one level shown flat-threaded).
+function threadMessages(list){
+  const byParent = {};
+  list.forEach(m => { const p = m.replyTo || '__root__'; (byParent[p] = byParent[p] || []).push(m); });
+  const sortByDate = arr => arr.sort((a,b)=> new Date(a.date) - new Date(b.date));
+  const roots = sortByDate(byParent['__root__'] || []);
+  return roots.map(r => ({ msg:r, replies: sortByDate(collectReplies(r.msgId, byParent)) }));
+}
+function collectReplies(id, byParent){
+  let out = [];
+  (byParent[id] || []).forEach(c => { out.push(c); out = out.concat(collectReplies(c.msgId, byParent)); });
+  return out;
 }
 // Shared hidden-iframe POST for board actions (rankings + notes).
 // Board writes go through a small queue so rapid saves don't cancel each other
@@ -3339,7 +3448,8 @@ function renderMyProgress(tab){
     { id:'overview', label:'Overview', icon:'\u{1F4CA}' },
     { id:'results',  label:'My Results', icon:'\u{1F4DD}' },
     { id:'feedback', label:'Instructor Feedback', icon:'\u{1F4AC}' },
-    { id:'analytics',label:'My Analytics', icon:'\u{1F4C8}' }
+    { id:'analytics',label:'My Analytics', icon:'\u{1F4C8}' },
+    { id:'messages', label:'Message a Trainer', icon:'\u{2709}\u{FE0F}' }
   ];
   let html = `<button class="back-home-btn mp-back" onclick="showPortalHome()">&#8592; Back to home</button>
     <div class="mp-header">
@@ -3354,6 +3464,7 @@ function renderMyProgress(tab){
   else if (_myProgTab === 'results')   html += mpResults(uid);
   else if (_myProgTab === 'feedback')  html += mpFeedback(uid);
   else if (_myProgTab === 'analytics') html += mpAnalytics(uid);
+  else if (_myProgTab === 'messages')  html += mpMessages(uid);
 
   html += `</div>`;
   el.innerHTML = html;
@@ -3528,17 +3639,158 @@ function mpFeedback(uid){
   });
   if (!items.length) return `<div class="mp-empty">No instructor feedback yet. When an instructor grades your written answers and leaves comments, they'll appear here.</div>`;
   items.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
-  let h = `<div class="mp-section-title">${items.length} note${items.length>1?'s':''} from your instructors</div><div class="mp-fb-list">`;
+  const allMsgs = messagesForStudent(uid).filter(m => m.kind === 'feedback');
+  let h = `<div class="mp-section-title">${items.length} note${items.length>1?'s':''} from your instructors</div>
+    <div class="mp-msg-intro" style="margin-bottom:14px;">You can reply to any feedback below — your trainers will see your reply and can respond.</div>
+    <div class="mp-fb-list">`;
   items.forEach(it => {
+    const ctx = it.quiz.id + '#' + it.n;
+    // Conversation attached to this specific feedback item (by context).
+    const convo = threadMessages(allMsgs.filter(m => m.context === ctx));
+    const anchorId = 'fbc-' + it.quiz.id + '-' + it.n;
     h += `<div class="mp-fb-item">
       <div class="mp-fb-src">${escInsight((it.quiz.mod?it.quiz.mod+' · ':'') + it.quiz.name)} · Q${it.n}${it.date?` · ${new Date(it.date).toLocaleDateString()}`:''}</div>
       <div class="mp-fb-q">${escInsight(String(it.qText).replace(/<[^>]*>/g,'').slice(0,160))}</div>
-      <div class="mp-fb-note">${escInsight(it.fb)}</div>
+      <div class="mp-fb-note"><strong>Instructor:</strong> ${escInsight(it.fb)}</div>`;
+    // existing replies
+    convo.forEach(t => {
+      h += mpMsgBubble(t.msg, uid);
+      t.replies.forEach(rep => { h += mpMsgBubble(rep, uid); });
+    });
+    // reply box (replies keyed by a synthetic parent = the feedback context)
+    h += `<div class="mp-reply-row">
+      <input id="mp-reply-${anchorId}" class="mp-reply-input" placeholder="Reply to this feedback…">
+      <button class="mp-reply-btn" onclick="mpSendFeedbackReply('${it.quiz.id}','${it.n}','${anchorId}')">Reply</button>
     </div>`;
+    h += `</div>`;
   });
   h += `</div>`;
   return h;
 }
+// Student replies to a specific piece of instructor feedback.
+function mpSendFeedbackReply(quizId, qn, anchorId){
+  const inp = document.getElementById('mp-reply-' + anchorId);
+  const text = inp ? inp.value.trim() : '';
+  if (!text){ if(inp) inp.focus(); return; }
+  const ctx = quizId + '#' + qn;
+  // Thread under the earliest message in this context, or start a new thread.
+  const existing = messagesForStudent(currentUser).filter(m => m.kind==='feedback' && m.context===ctx && !m.replyTo);
+  const parentId = existing.length ? existing[0].msgId : '';
+  sendMessage({ studentId: currentUser, kind:'feedback', context: ctx, from:'student',
+                author: getName(currentUser)||currentUser, text, replyTo: parentId });
+  toast('Reply sent to your trainers', 'ok');
+  renderMyProgress('feedback');
+}
+
+// ══ ADMIN: student messages inbox ══════════════════════════════════════════════
+// Count messages from students that no trainer has read yet (for the tab badge).
+function unreadStudentMessageCount(){
+  const me = (currentUser || 'trainer');
+  return SHEET_MESSAGES.filter(m => m.from === 'student' &&
+    String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer') === -1).length;
+}
+function updateMsgInboxBadge(){
+  const badge = document.getElementById('msg-inbox-badge');
+  if (!badge) return;
+  const n = unreadStudentMessageCount();
+  if (n > 0){ badge.textContent = n; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+// Render the global inbox: one card per student conversation, newest activity first.
+function renderMessagesInbox(){
+  updateMsgInboxBadge();
+  const list = document.getElementById('msg-inbox-list');
+  const summary = document.getElementById('msg-inbox-summary');
+  if (!list) return;
+  // Group all messages by student.
+  const byStudent = {};
+  SHEET_MESSAGES.forEach(m => { (byStudent[m.studentId] = byStudent[m.studentId] || []).push(m); });
+  const students = Object.keys(byStudent);
+  if (!students.length){
+    if (summary) summary.innerHTML = '';
+    list.innerHTML = `<div class="mp-empty">No student messages yet. When a trainee sends a request or replies to feedback, it shows up here.</div>`;
+    return;
+  }
+  // Sort students by most recent message.
+  students.sort((a,b) => {
+    const la = Math.max.apply(null, byStudent[a].map(m=>new Date(m.date).getTime()||0));
+    const lb = Math.max.apply(null, byStudent[b].map(m=>new Date(m.date).getTime()||0));
+    return lb - la;
+  });
+  const totalUnread = unreadStudentMessageCount();
+  if (summary) summary.innerHTML = `<strong>${SHEET_MESSAGES.length}</strong> message${SHEET_MESSAGES.length>1?'s':''} from <strong>${students.length}</strong> student${students.length>1?'s':''}${totalUnread?` · <span style="color:var(--coral,#ff527b);font-weight:700;">${totalUnread} unread</span>`:''}`;
+
+  let h = '';
+  students.forEach(sid => {
+    const msgs = byStudent[sid];
+    const name = getName(sid) || sid;
+    // Split into threads (requests + feedback), newest thread first.
+    const threads = threadMessages(msgs);
+    threads.sort((a,b) => {
+      const la = Math.max.apply(null, [a.msg].concat(a.replies).map(m=>new Date(m.date).getTime()||0));
+      const lb = Math.max.apply(null, [b.msg].concat(b.replies).map(m=>new Date(m.date).getTime()||0));
+      return lb - la;
+    });
+    threads.forEach(t => {
+      const all = [t.msg].concat(t.replies);
+      const unread = all.some(m => m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1);
+      const kind = t.msg.kind || 'request';
+      // context label for feedback threads
+      let ctxLabel = '';
+      if (kind === 'feedback' && t.msg.context){
+        const [qid, qn] = t.msg.context.split('#');
+        const quiz = QUIZZES.find(q => q.id === qid);
+        ctxLabel = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
+      }
+      h += `<div class="am-msg-card ${unread?'unread':''}">
+        <div class="am-msg-top">
+          <span class="am-msg-student" onclick="setAdminView('roster'); openTrainee('${sid}')">${escHtmlSafe(name)} <span style="font-weight:400;color:var(--ink3,#8493a8);font-size:12px;">${escHtmlSafe(sid)}</span></span>
+          <span class="am-msg-kind ${kind}">${kind==='feedback'?'Feedback reply':'Help request'}</span>
+        </div>
+        ${ctxLabel?`<div class="am-msg-ctx">${ctxLabel}</div>`:''}
+        <div class="am-msg-thread">`;
+      all.forEach(m => { h += amMsgBubble(m); });
+      h += `</div>
+        <div class="am-reply-row">
+          <input id="am-reply-${t.msg.msgId}" class="am-reply-input" placeholder="Reply to ${escHtmlSafe(name.split(' ')[0])}…">
+          <button class="am-reply-btn" onclick="trainerReply('${sid}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')">Reply</button>
+        </div>
+      </div>`;
+      // mark this thread's student messages as read by trainers
+      all.forEach(m => {
+        if (m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1){
+          m.readBy = (m.readBy?m.readBy+',':'') + 'trainer';
+          postBoardAction({ action:'markMessageRead', msgId:m.msgId, readBy:'trainer' });
+        }
+      });
+    });
+  });
+  list.innerHTML = h;
+  updateMsgInboxBadge();
+}
+function amMsgBubble(m){
+  const isTrainer = m.from === 'trainer';
+  const who = isTrainer ? (m.author || 'Trainer') : 'Student';
+  return `<div class="mp-msg ${isTrainer?'from-trainer':'from-student'}" style="max-width:100%;${isTrainer?'':'margin-left:0;'}">
+    <div class="mp-msg-head"><span class="mp-msg-who">${escHtmlSafe(who)}</span><span class="mp-msg-date">${escHtmlSafe(m.date||'')}</span></div>
+    <div class="mp-msg-body">${escHtmlSafe(m.text)}</div>
+  </div>`;
+}
+// Trainer replies to a student thread (from inbox or trainee page).
+function trainerReply(studentId, parentId, kind, context){
+  const inp = document.getElementById('am-reply-' + parentId) || document.getElementById('tr-reply-' + parentId);
+  const text = inp ? inp.value.trim() : '';
+  if (!text){ if(inp) inp.focus(); return; }
+  sendMessage({ studentId, kind: kind||'request', context: context||'', from:'trainer',
+                author: (typeof currentTrainerName==='function' ? currentTrainerName() : (currentUser||'Trainer')), text, replyTo: parentId });
+  toast('Reply sent', 'ok');
+  if (document.getElementById('admin-messages') && document.getElementById('admin-messages').classList.contains('active')) renderMessagesInbox();
+  // if a trainee modal is open, refresh it too
+  if (window._openTraineeUid) openTrainee(window._openTraineeUid);
+}
+// Safe escape helpers (reuse existing if present).
+function escHtmlSafe(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return String(s==null?'':s).replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
 
 // ── My Analytics: focus areas + review deck status ──
 function mpAnalytics(uid){
@@ -3570,6 +3822,68 @@ function mpAnalytics(uid){
     h += `</div>`;
   }
   return h;
+}
+
+// ── Message a Trainer: general requests + threaded conversation ──
+function mpMessages(uid){
+  // General requests are kind='request'. Feedback replies live in the feedback tab.
+  const mine = messagesForStudent(uid).filter(m => m.kind === 'request');
+  const threads = threadMessages(mine);
+  let h = `<div class="mp-msg-intro">
+    Need to go over something again, want clarification, or have a question for your trainers? Send a message here.
+    Your trainers will see it and reply — their responses show up in this tab.
+  </div>
+  <div class="mp-msg-compose">
+    <textarea id="mp-msg-text" class="mp-msg-input" rows="3" placeholder="e.g. Can we review holdover time calculations again? I want to make sure I've got the intensity table right."></textarea>
+    <button class="mp-msg-send" onclick="mpSendRequest()">&#10148; Send to trainers</button>
+  </div>`;
+
+  if (!threads.length){
+    h += `<div class="mp-empty" style="margin-top:16px;">No messages yet. Anything you send will appear here with your trainers' replies.</div>`;
+    return h;
+  }
+  h += `<div class="mp-section-title">Your conversations</div><div class="mp-thread-list">`;
+  threads.forEach(t => {
+    h += mpMsgBubble(t.msg, uid);
+    t.replies.forEach(rep => { h += mpMsgBubble(rep, uid); });
+    // reply box under each thread so the student can continue it
+    h += `<div class="mp-reply-row">
+      <input id="mp-reply-${t.msg.msgId}" class="mp-reply-input" placeholder="Reply…">
+      <button class="mp-reply-btn" onclick="mpSendReply('${t.msg.msgId}','request','')">Reply</button>
+    </div>`;
+  });
+  h += `</div>`;
+  return h;
+}
+// One message bubble (student vs trainer styled differently).
+function mpMsgBubble(m, uid){
+  const isTrainer = m.from === 'trainer';
+  const who = isTrainer ? (m.author || 'Trainer') : 'You';
+  const isReply = !!m.replyTo;
+  return `<div class="mp-msg ${isTrainer?'from-trainer':'from-student'} ${isReply?'is-reply':''}">
+    <div class="mp-msg-head"><span class="mp-msg-who">${escInsight(who)}</span><span class="mp-msg-date">${escInsight(m.date||'')}</span></div>
+    <div class="mp-msg-body">${escInsight(m.text)}</div>
+  </div>`;
+}
+// Student sends a new general request.
+function mpSendRequest(){
+  const ta = document.getElementById('mp-msg-text');
+  const text = ta ? ta.value.trim() : '';
+  if (!text){ if(ta) ta.focus(); return; }
+  sendMessage({ studentId: currentUser, kind:'request', from:'student', author: getName(currentUser)||currentUser, text });
+  if (ta) ta.value = '';
+  toast('Message sent to your trainers', 'ok');
+  renderMyProgress('messages');
+}
+// Student replies within a thread (general request OR feedback).
+function mpSendReply(parentId, kind, context){
+  const inp = document.getElementById('mp-reply-' + parentId);
+  const text = inp ? inp.value.trim() : '';
+  if (!text){ if(inp) inp.focus(); return; }
+  sendMessage({ studentId: currentUser, kind: kind||'request', context: context||'', from:'student',
+                author: getName(currentUser)||currentUser, text, replyTo: parentId });
+  toast('Reply sent', 'ok');
+  renderMyProgress(_myProgTab);
 }
 // Count numbers up from 0 for a polished dashboard reveal (respects reduced-motion).
 function animateCounters(scope){
@@ -3977,6 +4291,8 @@ function showPortalHome() {
   var pbv = document.getElementById('portal-playbook'); if (pbv) pbv.style.display = 'none';
   document.getElementById('portal-practice').style.display = 'none';
   var ojt = document.getElementById('portal-ojt'); if (ojt) ojt.style.display = 'none';
+  var prg = document.getElementById('portal-progress'); if (prg) prg.style.display = 'none';
+  var rvw = document.getElementById('portal-review'); if (rvw) rvw.style.display = 'none';
 }
 
 // ── Render the OJT comp-check section (gated start + instructions + result) ─────
@@ -5608,10 +5924,14 @@ function setAdminView(view) {
   if (pcEl) pcEl.classList.toggle('active', view === 'prepcheck');
   var repEl = document.getElementById('admin-reports');
   if (repEl) repEl.classList.toggle('active', view === 'reports');
+  var msgEl = document.getElementById('admin-messages');
+  if (msgEl) msgEl.classList.toggle('active', view === 'messages');
   document.getElementById('viewtab-roster').classList.toggle('active', view === 'roster');
   document.getElementById('viewtab-analytics').classList.toggle('active', view === 'analytics');
   var appTab = document.getElementById('viewtab-applicants');
   if (appTab) appTab.classList.toggle('active', view === 'applicants');
+  var msgTab = document.getElementById('viewtab-messages');
+  if (msgTab) msgTab.classList.toggle('active', view === 'messages');
   var wsTab = document.getElementById('viewtab-worksheets');
   if (wsTab) wsTab.classList.toggle('active', view === 'worksheets');
   var pcTab = document.getElementById('viewtab-prepcheck');
@@ -5619,6 +5939,9 @@ function setAdminView(view) {
   var repTab = document.getElementById('viewtab-reports');
   if (repTab) repTab.classList.toggle('active', view === 'reports');
   if (view === 'analytics') renderAnalytics();
+  if (view === 'messages') {
+    loadMessages(function(){ renderMessagesInbox(); });
+  }
   if (view === 'reports') {
     // Pull the latest questions so the report reflects current content.
     refreshReportData();
@@ -7729,6 +8052,7 @@ function anToggle(domId, rowEl) {
 
 // ── Per-trainee detail view (proficiency tracker) ──────────────────────────────
 function openTrainee(uid) {
+  window._openTraineeUid = uid;
   const allStudents = getAllStudentScores();
   const scores = allStudents[uid] || {};
   const name = getName(uid) || '';
@@ -7855,6 +8179,39 @@ function openTrainee(uid) {
       <div class="tr-detail" id="${rowId}" style="display:none;">${detail}</div>`;
     });
   });
+
+  // ── Messages from this student (requests + feedback replies) ──
+  const stuMsgs = messagesForStudent(uid);
+  if (stuMsgs.length){
+    const threads = threadMessages(stuMsgs).sort((a,b)=>{
+      const la = Math.max.apply(null,[a.msg].concat(a.replies).map(m=>new Date(m.date).getTime()||0));
+      const lb = Math.max.apply(null,[b.msg].concat(b.replies).map(m=>new Date(m.date).getTime()||0));
+      return lb-la;
+    });
+    body += `<div class="tr-section-title">Messages from ${name||uid} <span style="font-weight:400;color:var(--ink3);font-size:12px;">${stuMsgs.length}</span></div><div class="am-inbox" style="margin-bottom:1rem;">`;
+    threads.forEach(t => {
+      const all = [t.msg].concat(t.replies);
+      const kind = t.msg.kind || 'request';
+      let ctxLabel = '';
+      if (kind==='feedback' && t.msg.context){
+        const [qid,qn] = t.msg.context.split('#');
+        const quiz = QUIZZES.find(q=>q.id===qid);
+        ctxLabel = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
+      }
+      body += `<div class="am-msg-card">
+        <div class="am-msg-top"><span class="am-msg-kind ${kind}">${kind==='feedback'?'Feedback reply':'Help request'}</span></div>
+        ${ctxLabel?`<div class="am-msg-ctx">${ctxLabel}</div>`:''}
+        <div class="am-msg-thread">`;
+      all.forEach(m => { body += amMsgBubble(m); });
+      body += `</div>
+        <div class="am-reply-row">
+          <input id="tr-reply-${t.msg.msgId}" class="am-reply-input" placeholder="Reply…">
+          <button class="am-reply-btn" onclick="trainerReply('${uid}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')">Reply</button>
+        </div>
+      </div>`;
+    });
+    body += `</div>`;
+  }
 
   document.getElementById('trainee-body').innerHTML = body;
   document.getElementById('trainee-modal').style.display = 'flex';
