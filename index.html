@@ -323,7 +323,11 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .mp-ans-right{background:#eafaf1;border-left:3px solid #2a9d5c;}
 .mp-ans-wrong{background:#fdecef;border-left:3px solid #e8556d;}
 .mp-ans-written{background:#f0f6fc;border-left:3px solid var(--blue,#2e75b6);}
-.mp-ans-q{font-weight:600;color:var(--ink,#12233b);margin-bottom:5px;}
+.mp-ans-q{font-weight:600;color:var(--ink,#12233b);margin-bottom:5px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.mp-ptsbadge{flex:0 0 auto;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+.mp-ptsbadge.ok{background:#e3f7ea;color:#1d7a45;}
+.mp-ptsbadge.partial{background:#fff2cc;color:#8a5a00;}
+.mp-ptsbadge.pending{background:#eef2f8;color:#5a6a80;}
 .mp-ans-line,.mp-ans-correct,.mp-ans-model,.mp-ans-fb{margin-top:3px;color:var(--ink2,#4a5a6a);}
 .mp-ans-correct{color:#1d7a45;} .mp-ans-fb{color:#1a4d7a;background:#e5f0fa;border-radius:6px;padding:6px 9px;margin-top:6px;}
 .mp-ans-note{font-size:12.5px;color:var(--ink3,#8493a8);}
@@ -2280,35 +2284,6 @@ function setSignoff(uid, on) {
 // Canonical DTM 13-02 module master (A220 fleet). These always appear with correct
 // names. Quiz-derived modules (below) are merged in by number, so anything numbered in
 // your quizzes that ISN'T in this master (e.g. Modules 1–5 Basic Indoc) also shows up.
-const DTM_MODULE_MASTER = [
-  { num:1,  label:'Module 01: Company Introduction & Orientation', section:'Basic Indoctrination' },
-  { num:2,  label:'Module 02: Company Manuals', section:'Basic Indoctrination' },
-  { num:3,  label:'Module 03: Dispatch CFRs', section:'Basic Indoctrination' },
-  { num:4,  label:'Module 04: Operations Specifications', section:'Basic Indoctrination' },
-  { num:5,  label:'Module 05: Dispatcher Duties & Responsibilities', section:'Basic Indoctrination' },
-  { num:6,  label:'Module 06: Technical Operations Procedures', section:'General Subjects' },
-  { num:7,  label:'Module 07: NOTAMs', section:'General Subjects' },
-  { num:8,  label:'Module 08: Airport Characteristics', section:'General Subjects' },
-  { num:9,  label:'Module 09: Navigation Aids & Publications', section:'General Subjects' },
-  { num:10, label:'Module 10: Air Traffic Control & Instrument Approaches', section:'General Subjects' },
-  { num:11, label:'Module 11: Meteorology', section:'General Subjects' },
-  { num:12, label:'Module 12: Prevailing Weather & Information Sources', section:'General Subjects' },
-  { num:13, label:'Module 13: Communications', section:'General Subjects' },
-  { num:14, label:'Module 14: Joint Pilot/Dispatch Responsibility', section:'General Subjects' },
-  { num:15, label:'Module 15: Dispatch Resource Management', section:'General Subjects' },
-  { num:16, label:'Module 16: Aircraft Description & MEL/CDL Considerations', section:'Group II Aircraft' },
-  { num:17, label:'Module 17: Deice/Anti-Ice Program (GDAP) & Procedures', section:'Group II Aircraft' },
-  { num:18, label:'Module 18: Aircraft Performance Dispatch Requirements', section:'Group II Aircraft' },
-  { num:19, label:'Module 19: Weight & Balance', section:'Group II Aircraft' },
-  { num:20, label:'Module 20: Flight Planning & Flight Operation Procedures', section:'Group II Aircraft' },
-  { num:21, label:'Module 21: Emergencies Procedures', section:'Group II Aircraft' },
-  { num:22, label:'Module 22: Aviation Security', section:'General Subjects' },
-  { num:23, label:'Module 23: Hazardous Materials', section:'General Subjects' },
-  { num:24, label:'Module 24: Differences (if required)', section:'Group II Aircraft' },
-  { num:32, label:'Module 32: Fatigue Education & Awareness', section:'General Subjects' },
-  { num:33, label:'Module 33: 14 CFR Part 117 Flight/Duty/Rest', section:'General Subjects' }
-];
-
 function moduleKeyFromMod(mod){
   const s = String(mod || '').trim();
   const m = s.match(/module\s*([0-9]+(?:\s*[-/]\s*[0-9]+)*)/i);
@@ -2319,7 +2294,7 @@ function moduleKeyFromMod(mod){
   }
   return ('m-' + s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) || 'm-other';
 }
-// First module number in a mod string (for keying/sorting): "Module 16/18/19" → 16.
+// First module number in a mod string (for sorting): "Module 16/18/19" → 16.
 function firstModuleNum(mod){
   const m = String(mod||'').match(/module\s*([0-9]+)/i) || String(mod||'').match(/([0-9]+)/);
   return m ? parseInt(m[1],10) : 9999;
@@ -2329,51 +2304,29 @@ function isFinalQuiz(q){
   return (q.type === 'test') || /final|exam/i.test(String(q.mod||'') + ' ' + String(q.name||''));
 }
 
-// All module numbers referenced in a mod string: "Module 16/18/19" → [16,18,19].
-function allModuleNums(mod){
-  const s = String(mod||'');
-  const m = s.match(/module\s*([0-9]+(?:\s*[-/]\s*[0-9]+)*)/i);
-  if (!m) { const n = s.match(/([0-9]+)/); return n ? [parseInt(n[1],10)] : []; }
-  return m[1].split(/[-/]/).map(x => parseInt(x.trim(),10)).filter(n => !isNaN(n));
-}
-
-// Merge DTM master + quiz-derived modules → the student's module list.
-// Only modules with a quiz OR a DTM entry appear. Finals are returned separately.
-// Combined-module quizzes (e.g. "Module 16/18/19") attach to EACH individual module
-// rather than creating a separate duplicate row.
+// Build the student's module list PURELY from the content editor (the live QUIZZES
+// array). No hardcoded module master — whatever quizzes/tests exist are the modules.
+// Add a quiz in the editor → it appears here. Delete it → it's gone. Each distinct
+// module (grouped by its `mod` label) is one row; quizzes sharing a mod label group
+// together and the row uses the best/most-complete attempt. Finals are separate.
 function getTrainingModules(){
   const byKey = {};
+  const order = [];
   const SECTION_ORDER = ['Basic Indoctrination','General Subjects','Group II Aircraft','All Sections','Other'];
 
-  // 1) Seed from the DTM master (canonical names, correct order).
-  DTM_MODULE_MASTER.forEach(dm => {
-    const key = 'm' + dm.num;
-    byKey[key] = { key, label:dm.label, section:dm.section, quizzes:[], sortV:dm.num, fromDTM:true, num:dm.num };
-  });
-
-  // 2) Attach quizzes. For each module number a quiz references, attach it to that
-  //    module (creating a new row only if that number isn't in the master).
   QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated && !isFinalQuiz(q)).forEach(q => {
-    const nums = allModuleNums(q.mod || q.name || '');
-    if (!nums.length) {
-      // Non-numbered module → its own slug row.
-      const key = moduleKeyFromMod(q.mod || q.name || 'Other');
-      if (!byKey[key]) byKey[key] = { key, label:(q.mod||q.name||'Other'), section:(q.section||'Other'), quizzes:[], sortV:9999, fromDTM:false };
-      byKey[key].quizzes.push(q.id);
-      return;
+    const modStr = (q.mod && String(q.mod).trim()) || (q.name && String(q.name).trim()) || 'Other';
+    const key = moduleKeyFromMod(modStr);
+    if (!byKey[key]) {
+      byKey[key] = { key, label:modStr, section:(q.section||'Other'), quizzes:[], sortV:firstModuleNum(modStr) };
+      order.push(key);
     }
-    nums.forEach(num => {
-      const key = 'm' + num;
-      if (!byKey[key]) {
-        // Numbered module not in the master → create it (label from quiz, best-effort).
-        byKey[key] = { key, label:'Module ' + (num<10?('0'+num):num), section:(q.section||'Other'), quizzes:[], sortV:num, fromDTM:false, num };
-      }
-      if (byKey[key].quizzes.indexOf(q.id) === -1) byKey[key].quizzes.push(q.id);
-    });
+    // Prefer a fuller label if another quiz names the module more completely.
+    if (modStr.length > byKey[key].label.length) byKey[key].label = modStr;
+    if (byKey[key].quizzes.indexOf(q.id) === -1) byKey[key].quizzes.push(q.id);
   });
 
-  // 3) Keep only modules with real backing: a quiz attached, or a DTM entry.
-  const list = Object.values(byKey).filter(m => m.quizzes.length > 0 || m.fromDTM);
+  const list = order.map(k => byKey[k]);
   list.sort((a,b) => {
     const sa = SECTION_ORDER.indexOf(a.section), sb = SECTION_ORDER.indexOf(b.section);
     return (sa<0?98:sa) - (sb<0?98:sb) || a.sortV - b.sortV || String(a.label).localeCompare(String(b.label));
@@ -3513,14 +3466,29 @@ function mpAnswerDetail(q, sc){
   const answers = Array.isArray(sc.answers) ? sc.answers : [];
   if (!answers.length) return `<div class="mp-ans-note">No per-question detail was recorded for this attempt.</div>`;
   const qLookup = {}; (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
-  const notes = sc.gradeNotes || {};
+  // Grade notes + awarded points live in the SA-grades store, keyed by quiz id — NOT on the
+  // score record. Read them the same way the exam results screen does.
+  const allGrades = getSAGrades(currentUser);
+  const notes = (allGrades[q.id + '_notes']) || {};
+  const points = (allGrades[q.id]) || {};
   return answers.map(a => {
     const qq = qLookup[a.q] || {};
     const qText = qq.text || ('Question ' + a.q);
     if (a.written){
       const fb = notes[a.q];
+      const awarded = points[a.q];
+      const maxPts = qq.pts != null ? Number(qq.pts) : null;
+      const graded = awarded !== undefined && awarded !== '' && awarded !== null;
+      // partial-credit badge
+      let ptsBadge = '';
+      if (graded && maxPts != null) {
+        const full = Number(awarded) >= maxPts;
+        ptsBadge = `<span class="mp-ptsbadge ${full?'ok':'partial'}">${awarded} / ${maxPts} pts</span>`;
+      } else if (!graded) {
+        ptsBadge = `<span class="mp-ptsbadge pending">Awaiting grade</span>`;
+      }
       return `<div class="mp-ans mp-ans-written">
-        <div class="mp-ans-q">Q${a.q}. ${escInsight(String(qText).replace(/<[^>]*>/g,''))}</div>
+        <div class="mp-ans-q"><span>Q${a.q}. ${escInsight(String(qText).replace(/<[^>]*>/g,''))}</span>${ptsBadge}</div>
         <div class="mp-ans-line"><strong>Your answer:</strong> ${(a.selected&&String(a.selected).trim())?escInsight(a.selected):'<em>Not answered</em>'}</div>
         ${qq.model?`<div class="mp-ans-model"><strong>Model answer:</strong> ${escInsight(String(qq.model).replace(/<[^>]*>/g,''))}</div>`:''}
         ${fb?`<div class="mp-ans-fb"><strong>Instructor feedback:</strong> ${escInsight(fb)}</div>`:''}
@@ -3545,10 +3513,12 @@ function mpToggle(rowId){
 // ── Instructor Feedback: all written-answer feedback across attempts ──
 function mpFeedback(uid){
   const scores = getScores(uid);
+  const allGrades = getSAGrades(uid);
   const items = [];
   Object.entries(scores).forEach(([quizId, sc]) => {
     const q = QUIZZES.find(x => x.id === quizId); if (!q) return;
-    const notes = sc.gradeNotes || {};
+    // Notes live in the SA-grades store, keyed by quizId + '_notes'.
+    const notes = (allGrades[quizId + '_notes']) || {};
     const qLookup = {}; (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
     Object.entries(notes).forEach(([n, fb]) => {
       if (fb == null || String(fb).trim() === '') return;
