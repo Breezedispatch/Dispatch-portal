@@ -369,6 +369,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .msg-student-sub{font-size:12px;color:var(--ink3,#8493a8);margin-top:1px;}
 .msg-student-unread{flex:0 0 auto;background:var(--coral,#ff527b);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
 .msg-student-open{flex:0 0 auto;font-size:12px;color:var(--blue,#2e75b6);font-weight:600;}
+.msg-del-btn{flex:0 0 auto;background:none;border:1.5px solid transparent;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;color:var(--ink3,#8493a8);transition:all .12s;}
+.msg-del-btn:hover{background:#fdecef;border-color:#f5b8c4;color:var(--coral,#ff527b);}
 .msg-student-threads{padding:14px 18px;display:flex;flex-direction:column;gap:12px;}
 .msg-chat{padding:16px 18px;display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;background:#fafcfe;}
 .msg-ctx-divider{align-self:center;font-size:11px;color:var(--ink2,#4a5a6a);background:#eef2f8;border-radius:20px;padding:3px 12px;margin:6px 0 2px;}
@@ -1205,7 +1207,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="home-card-sub" id="home-card-review-sub">Practice the questions you've missed, resurfaced on a smart schedule until you've got them down.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
-      <div class="home-card home-card-progress" onclick="showPortalSection('progress')">
+      <div class="home-card home-card-progress" id="home-card-progress" onclick="showPortalSection('progress')">
         <div class="home-card-icon">&#128202;</div>
         <div class="home-card-title">My Progress</div>
         <div class="home-card-sub">Your results, instructor feedback, module sign-offs, and personal analytics — all in one place.</div>
@@ -2316,6 +2318,23 @@ function sendMessage(opts){
 function deleteMessage(msgId){
   SHEET_MESSAGES = SHEET_MESSAGES.filter(m => m.msgId !== msgId && m.replyTo !== msgId);
   postBoardAction({ action:'deleteMessage', msgId });
+}
+// Delete an ENTIRE conversation with a student (all their messages + replies).
+// Trainer-only action, invoked from the inbox.
+function deleteConversation(studentId){
+  const u = String(studentId||'').toUpperCase();
+  const name = studentDisplayName(u) || u;
+  if (!confirm('Delete the entire conversation with ' + name + '?\n\nThis removes all messages both ways and cannot be undone.')) return;
+  // Post a delete for each root message (backend cascades replies), then any strays.
+  const mine = (SHEET_MESSAGES || []).filter(m => String(m.studentId).toUpperCase() === u);
+  mine.forEach(m => { postBoardAction({ action:'deleteMessage', msgId: m.msgId }); });
+  // Clear locally so the UI updates immediately.
+  SHEET_MESSAGES = (SHEET_MESSAGES || []).filter(m => String(m.studentId).toUpperCase() !== u);
+  toast('Conversation with ' + name + ' deleted', 'ok');
+  try { renderMessagesInbox(); updateMsgInboxBadge(); computeAlerts(); } catch(e){}
+  // If the trainee modal is open on this student, refresh it too.
+  const modal = document.getElementById('trainee-modal');
+  if (modal && getComputedStyle(modal).display !== 'none' && window._openTraineeUid) openTrainee(window._openTraineeUid);
 }
 // Build threaded structure: top-level messages with their replies nested (one level shown flat-threaded).
 function threadMessages(list){
@@ -3857,14 +3876,14 @@ function renderMessagesInbox(){
     const anchorId = 'am-reply-' + sid;
 
     h += `<div class="msg-student ${studentUnread?'has-unread':''}">
-      <div class="msg-student-head" onclick="setAdminView('roster'); openTrainee('${escAttr(sid)}')">
-        <div class="msg-avatar">${escHtmlSafe(initials)}</div>
-        <div class="msg-student-id">
+      <div class="msg-student-head">
+        <div class="msg-avatar" onclick="setAdminView('roster'); openTrainee('${escAttr(sid)}')" style="cursor:pointer;">${escHtmlSafe(initials)}</div>
+        <div class="msg-student-id" onclick="setAdminView('roster'); openTrainee('${escAttr(sid)}')" style="cursor:pointer;">
           <div class="msg-student-name">${escHtmlSafe(name)}</div>
           <div class="msg-student-sub">ID ${escHtmlSafe(sid)} · ${feed.length} message${feed.length!==1?'s':''}</div>
         </div>
         ${studentUnread?`<span class="msg-student-unread">${studentUnread} new</span>`:''}
-        <span class="msg-student-open">View trainee →</span>
+        <button class="msg-del-btn" title="Delete this conversation" onclick="event.stopPropagation(); deleteConversation('${escAttr(sid)}')">&#128465;</button>
       </div>
       <div class="msg-chat">`;
 
