@@ -266,6 +266,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .home-card-review .home-card-icon{color:var(--blue,#2e75b6);}
 /* My Progress */
 .mp-header{margin-bottom:18px;}
+.mp-back{margin-bottom:16px;}
+.mp-group-label{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--blue,#2e75b6);margin:18px 0 8px;padding-bottom:5px;border-bottom:1.5px solid var(--gray,#e8eef6);}
 .mp-header-name{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--navy,#12233b);}
 .mp-header-sub{font-size:14px;color:var(--ink3,#8493a8);margin-top:2px;}
 .mp-tabs{display:flex;gap:6px;border-bottom:2px solid var(--gray,#e2e8f0);margin-bottom:20px;flex-wrap:wrap;}
@@ -1169,7 +1171,6 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
     <!-- My Progress (student's own results, feedback, analytics) -->
     <div id="portal-progress" style="display:none;">
-      <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
       <div id="progress-section-container"></div>
     </div>
 
@@ -2261,30 +2262,97 @@ function setSignoff(uid, on) {
 // DTM 13-02 module list (A220-only fleet — no E190/195 aircraft-type splits).
 // key = stable module key; label = display; quiz = mapped quiz/KC id for competency
 // flags (null where no knowledge check exists yet).
-const TRAINING_MODULES = [
-  { key:'m06', label:'Module 06: Technical Operations Procedures', quiz:null },
-  { key:'m07', label:'Module 07: NOTAMs', quiz:'mod7kc' },
-  { key:'m08', label:'Module 08: Airport Characteristics', quiz:'mod8kc' },
-  { key:'m09', label:'Module 09: Navigation Aids & Publications', quiz:'mod9kc' },
-  { key:'m10', label:'Module 10: Air Traffic Control & Instrument Approaches', quiz:'mod10kc' },
-  { key:'m11', label:'Module 11: Meteorology', quiz:'mod1112kc' },
-  { key:'m12', label:'Module 12: Prevailing Weather & Information Sources', quiz:'mod1112kc' },
-  { key:'m13', label:'Module 13: Communications', quiz:null },
-  { key:'m14', label:'Module 14: Joint Pilot/Dispatch Responsibility', quiz:'mod14kc' },
-  { key:'m15', label:'Module 15: Dispatch Resource Management', quiz:null },
-  { key:'m16', label:'Module 16: Aircraft Description & MEL/CDL Considerations', quiz:'mod161819kc' },
-  { key:'m17', label:'Module 17: Deice/Anti-Ice Program (GDAP) & Procedures', quiz:'mod17kc' },
-  { key:'m18', label:'Module 18: Aircraft Performance Dispatch Requirements', quiz:'mod161819kc' },
-  { key:'m19', label:'Module 19: Weight & Balance', quiz:'mod161819kc' },
-  { key:'m20', label:'Module 20: Flight Planning & Flight Operation Procedures', quiz:'mod20kc' },
-  { key:'m21', label:'Module 21: Emergencies Procedures', quiz:'mod21kc' },
-  { key:'m22', label:'Module 22: Aviation Security', quiz:null },
-  { key:'m23', label:'Module 23: Hazardous Materials', quiz:null },
-  { key:'m24', label:'Module 24: Differences (if required)', quiz:null },
-  { key:'m32', label:'Module 32: Fatigue Education & Awareness', quiz:null },
-  { key:'m33', label:'Module 33: 14 CFR Part 117 Flight/Duty/Rest', quiz:null },
-  { key:'exam', label:'Review and Exam', quiz:'comp_final' }
+// Canonical DTM 13-02 module master (A220 fleet). These always appear with correct
+// names. Quiz-derived modules (below) are merged in by number, so anything numbered in
+// your quizzes that ISN'T in this master (e.g. Modules 1–5 Basic Indoc) also shows up.
+const DTM_MODULE_MASTER = [
+  { num:1,  label:'Module 01: Company Introduction & Orientation', section:'Basic Indoctrination' },
+  { num:2,  label:'Module 02: Company Manuals', section:'Basic Indoctrination' },
+  { num:3,  label:'Module 03: Dispatch CFRs', section:'Basic Indoctrination' },
+  { num:4,  label:'Module 04: Operations Specifications', section:'Basic Indoctrination' },
+  { num:5,  label:'Module 05: Dispatcher Duties & Responsibilities', section:'Basic Indoctrination' },
+  { num:6,  label:'Module 06: Technical Operations Procedures', section:'General Subjects' },
+  { num:7,  label:'Module 07: NOTAMs', section:'General Subjects' },
+  { num:8,  label:'Module 08: Airport Characteristics', section:'General Subjects' },
+  { num:9,  label:'Module 09: Navigation Aids & Publications', section:'General Subjects' },
+  { num:10, label:'Module 10: Air Traffic Control & Instrument Approaches', section:'General Subjects' },
+  { num:11, label:'Module 11: Meteorology', section:'General Subjects' },
+  { num:12, label:'Module 12: Prevailing Weather & Information Sources', section:'General Subjects' },
+  { num:13, label:'Module 13: Communications', section:'General Subjects' },
+  { num:14, label:'Module 14: Joint Pilot/Dispatch Responsibility', section:'General Subjects' },
+  { num:15, label:'Module 15: Dispatch Resource Management', section:'General Subjects' },
+  { num:16, label:'Module 16: Aircraft Description & MEL/CDL Considerations', section:'Group II Aircraft' },
+  { num:17, label:'Module 17: Deice/Anti-Ice Program (GDAP) & Procedures', section:'Group II Aircraft' },
+  { num:18, label:'Module 18: Aircraft Performance Dispatch Requirements', section:'Group II Aircraft' },
+  { num:19, label:'Module 19: Weight & Balance', section:'Group II Aircraft' },
+  { num:20, label:'Module 20: Flight Planning & Flight Operation Procedures', section:'Group II Aircraft' },
+  { num:21, label:'Module 21: Emergencies Procedures', section:'Group II Aircraft' },
+  { num:22, label:'Module 22: Aviation Security', section:'General Subjects' },
+  { num:23, label:'Module 23: Hazardous Materials', section:'General Subjects' },
+  { num:24, label:'Module 24: Differences (if required)', section:'Group II Aircraft' },
+  { num:32, label:'Module 32: Fatigue Education & Awareness', section:'General Subjects' },
+  { num:33, label:'Module 33: 14 CFR Part 117 Flight/Duty/Rest', section:'General Subjects' }
 ];
+
+function moduleKeyFromMod(mod){
+  const s = String(mod || '').trim();
+  const m = s.match(/module\s*([0-9]+(?:\s*[-/]\s*[0-9]+)*)/i);
+  if (m) {
+    const norm = m[1].replace(/\s+/g,'').replace(/\//g,'-')
+      .split('-').map(n => String(parseInt(n,10))).join('-');
+    return 'm' + norm;
+  }
+  return ('m-' + s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) || 'm-other';
+}
+// First module number in a mod string (for keying/sorting): "Module 16/18/19" → 16.
+function firstModuleNum(mod){
+  const m = String(mod||'').match(/module\s*([0-9]+)/i) || String(mod||'').match(/([0-9]+)/);
+  return m ? parseInt(m[1],10) : 9999;
+}
+// Is this quiz a final/exam (goes in the Finals group, not the module list)?
+function isFinalQuiz(q){
+  return (q.type === 'test') || /final|exam/i.test(String(q.mod||'') + ' ' + String(q.name||''));
+}
+
+// Merge DTM master + quiz-derived modules → the student's module list.
+// Only modules with a quiz OR a DTM entry appear. Finals are returned separately.
+function getTrainingModules(){
+  const byKey = {};
+  const SECTION_ORDER = ['Basic Indoctrination','General Subjects','Group II Aircraft','All Sections','Other'];
+
+  // 1) Seed from the DTM master (canonical names, correct order).
+  DTM_MODULE_MASTER.forEach(dm => {
+    const key = 'm' + dm.num;
+    byKey[key] = { key, label:dm.label, section:dm.section, quizzes:[], sortV:dm.num, fromDTM:true };
+  });
+
+  // 2) Merge in quiz-derived modules. Attach quizzes to existing DTM modules by number;
+  //    create new module rows for numbered modules not in the master.
+  QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated && !isFinalQuiz(q)).forEach(q => {
+    const modStr = q.mod || q.name || 'Other';
+    const key = moduleKeyFromMod(modStr);
+    if (!byKey[key]) {
+      byKey[key] = { key, label:modStr, section:(q.section||'Other'), quizzes:[], sortV:firstModuleNum(modStr), fromDTM:false };
+    }
+    byKey[key].quizzes.push(q.id);
+  });
+
+  // 3) Keep only modules that have real backing: a quiz attached, or a DTM entry.
+  const list = Object.values(byKey).filter(m => m.quizzes.length > 0 || m.fromDTM);
+  list.sort((a,b) => {
+    const sa = SECTION_ORDER.indexOf(a.section), sb = SECTION_ORDER.indexOf(b.section);
+    return (sa<0?98:sa) - (sb<0?98:sb) || a.sortV - b.sortV || String(a.label).localeCompare(String(b.label));
+  });
+  list.forEach(m => { m.quiz = m.quizzes[0] || null; });
+  return list;
+}
+
+// The Finals group (Comprehensive + Section finals), separate from modules.
+function getFinalsList(){
+  return QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated && isFinalQuiz(q))
+    .map(q => ({ key:'final-'+q.id, label:q.name || q.mod || 'Final', quizzes:[q.id], quiz:q.id, section:q.section||'' }))
+    .sort((a,b) => String(a.label).localeCompare(String(b.label)));
+}
 
 let SHEET_MODULE_SIGNOFFS = [];   // array of {id, module, date, by} from the sheet
 
@@ -2359,13 +2427,27 @@ function moduleCompetency(uid, scores, mod) {
   const so = getModuleSignoff(uid, mod.key);
   const out = { key:mod.key, label:mod.label, signedOff:!!so, by:(so&&so.by)||'', date:(so&&so.date)||'',
                 quiz:mod.quiz, score:null, pass:null, writtenPending:0, flags:[] };
-  if (mod.quiz && scores && scores[mod.quiz]) {
-    const sc = scores[mod.quiz];
-    out.score = (sc.score != null ? sc.score : null);
-    out.pass = !!sc.pass;
-    out.writtenPending = sc.writtenPending || 0;
+  // A module may map to several quizzes; use the best (highest-scoring finalized) attempt,
+  // and surface a pending-grade state if any mapped quiz is awaiting grading.
+  const quizIds = Array.isArray(mod.quizzes) && mod.quizzes.length ? mod.quizzes : (mod.quiz ? [mod.quiz] : []);
+  let best = null, anyPending = 0;
+  quizIds.forEach(qid => {
+    const sc = scores && scores[qid];
+    if (!sc) return;
+    if (sc.writtenPending) anyPending += sc.writtenPending;
+    if (typeof sc.score === 'number') {
+      if (!best || sc.score > best.score) best = sc;
+    }
+  });
+  if (best) {
+    out.score = best.score;
+    out.pass = !!best.pass;
+    out.writtenPending = anyPending;
     if (out.score != null && !out.pass) out.flags.push('Failed/low quiz score');
-    if (out.writtenPending) out.flags.push('Written question(s) below full marks');
+    if (anyPending) out.flags.push('Written question(s) below full marks');
+  } else if (anyPending) {
+    out.writtenPending = anyPending;
+    out.flags.push('Written question(s) below full marks');
   }
   if (!out.signedOff) out.flags.push('Not signed off');
   return out;
@@ -3271,7 +3353,8 @@ function renderMyProgress(tab){
     { id:'feedback', label:'Instructor Feedback', icon:'\u{1F4AC}' },
     { id:'analytics',label:'My Analytics', icon:'\u{1F4C8}' }
   ];
-  let html = `<div class="mp-header">
+  let html = `<button class="back-home-btn mp-back" onclick="showPortalHome()">&#8592; Back to home</button>
+    <div class="mp-header">
       <div class="mp-header-name">${escInsight(name)}</div>
       <div class="mp-header-sub">Your training progress</div>
     </div>
@@ -3301,7 +3384,8 @@ function mpOverview(uid){
   const passRate = completed ? Math.round(passed/completed*100) : null;
 
   // Module sign-off progress (their DTM record)
-  const comps = TRAINING_MODULES.map(m => moduleCompetency(uid, scores, m));
+  const mods = getTrainingModules();
+  const comps = mods.map(m => moduleCompetency(uid, scores, m));
   const signed = comps.filter(c => c.signedOff).length;
   const modPct = comps.length ? Math.round(signed/comps.length*100) : 0;
 
@@ -3316,21 +3400,40 @@ function mpOverview(uid){
     <div class="mp-modbar-meta"><span><strong>${signed}</strong> of ${comps.length} modules signed off by an instructor</span><span>${modPct}%</span></div>
     <div class="mp-modbar-track"><div class="mp-modbar-fill dash-prog-fill" data-target="${modPct}" style="width:0%"></div></div>`;
 
-  h += `<div class="mp-modlist">`;
-  comps.forEach(c => {
-    h += `<div class="mp-modrow ${c.signedOff?'is-signed':''}">
-      <div class="mp-modcheck">${c.signedOff?'&#10003;':''}</div>
-      <div class="mp-modmain">
-        <div class="mp-modlabel">${escInsight(c.label)}</div>
-        <div class="mp-modmeta">${c.signedOff
-          ? `Signed off by ${escInsight(c.by||'instructor')}${c.date?` · ${escInsight(c.date)}`:''}`
-          : `<span style="color:var(--ink3,#8493a8);">Awaiting sign-off</span>`}</div>
-      </div>
-      ${c.score!=null?`<span class="mp-modscore ${c.pass?'ok':'no'}">${c.score}%</span>`:''}
-    </div>`;
+  // Modules grouped by their section.
+  const bySection = {}; const secOrder = [];
+  comps.forEach((c, i) => {
+    const sec = mods[i].section || 'Other';
+    if (!bySection[sec]) { bySection[sec] = []; secOrder.push(sec); }
+    bySection[sec].push(c);
   });
-  h += `</div>`;
+  secOrder.forEach(sec => {
+    h += `<div class="mp-group-label">${escInsight(sec)}</div><div class="mp-modlist">`;
+    bySection[sec].forEach(c => { h += mpModRow(c); });
+    h += `</div>`;
+  });
+
+  // Finals group (separate from modules).
+  const finals = getFinalsList().map(f => moduleCompetency(uid, scores, f));
+  if (finals.length) {
+    h += `<div class="mp-group-label">Finals &amp; Exams</div><div class="mp-modlist">`;
+    finals.forEach(c => { h += mpModRow(c); });
+    h += `</div>`;
+  }
   return h;
+}
+// One module/final row for the overview list.
+function mpModRow(c){
+  return `<div class="mp-modrow ${c.signedOff?'is-signed':''}">
+    <div class="mp-modcheck">${c.signedOff?'&#10003;':''}</div>
+    <div class="mp-modmain">
+      <div class="mp-modlabel">${escInsight(c.label)}</div>
+      <div class="mp-modmeta">${c.signedOff
+        ? `Signed off by ${escInsight(c.by||'instructor')}${c.date?` · ${escInsight(c.date)}`:''}`
+        : `<span style="color:var(--ink3,#8493a8);">Awaiting sign-off</span>`}</div>
+    </div>
+    ${c.score!=null?`<span class="mp-modscore ${c.pass?'ok':'no'}">${c.score}%</span>`:''}
+  </div>`;
 }
 
 // ── My Results: every attempt, expandable to per-question detail ──
@@ -5803,7 +5906,7 @@ function computeAnalytics() {
   // Per-trainee module completion record (DTM 13-02 style, A220-only).
   const moduleRecords = Object.keys(allStudents).map(uid => {
     const scores = allStudentsRaw[uid] || {};
-    const comps = TRAINING_MODULES.map(m => moduleCompetency(uid, scores, m));
+    const comps = getTrainingModules().map(m => moduleCompetency(uid, scores, m));
     const signed = comps.filter(c => c.signedOff).length;
     const flagged = comps.filter(c => c.flags.some(f => f !== 'Not signed off'));
     return {
@@ -7644,7 +7747,7 @@ function openTrainee(uid) {
     </div>`;
 
   // ── Module Sign-Off Record (DTM 13-02 style, A220-only) ──
-  const comps = TRAINING_MODULES.map(m => moduleCompetency(uid, scores, m));
+  const comps = getTrainingModules().map(m => moduleCompetency(uid, scores, m));
   const signedCount = comps.filter(c => c.signedOff).length;
   const flaggedCount = comps.filter(c => c.flags.length && !(c.flags.length===1 && c.flags[0]==='Not signed off')).length;
   body += `<div class="tr-section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -7765,13 +7868,13 @@ function toggleModuleSignoff(uid, moduleKey) {
 // Sign off every module for this student at once.
 function signOffAllModules(uid) {
   if (!confirm('Sign off ALL modules for ' + (getName(uid)||uid) + '?')) return;
-  TRAINING_MODULES.forEach(m => { if (!getModuleSignoff(uid, m.key)) setModuleSignoff(uid, m.key, true); });
+  getTrainingModules().forEach(m => { if (!getModuleSignoff(uid, m.key)) setModuleSignoff(uid, m.key, true); });
   openTrainee(uid);
 }
 // Clear every module sign-off for this student.
 function clearAllModules(uid) {
   if (!confirm('Clear ALL module sign-offs for ' + (getName(uid)||uid) + '?')) return;
-  TRAINING_MODULES.forEach(m => { if (getModuleSignoff(uid, m.key)) setModuleSignoff(uid, m.key, false); });
+  getTrainingModules().forEach(m => { if (getModuleSignoff(uid, m.key)) setModuleSignoff(uid, m.key, false); });
   openTrainee(uid);
 }
 
