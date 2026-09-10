@@ -264,6 +264,59 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .rv-summary-pct{color:var(--ink3,#8493a8);font-weight:600;}
 .rv-summary-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 .home-card-review .home-card-icon{color:var(--blue,#2e75b6);}
+/* My Progress */
+.mp-header{margin-bottom:18px;}
+.mp-header-name{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--navy,#12233b);}
+.mp-header-sub{font-size:14px;color:var(--ink3,#8493a8);margin-top:2px;}
+.mp-tabs{display:flex;gap:6px;border-bottom:2px solid var(--gray,#e2e8f0);margin-bottom:20px;flex-wrap:wrap;}
+.mp-tab{background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;color:var(--ink3,#8493a8);cursor:pointer;transition:color .15s;white-space:nowrap;}
+.mp-tab:hover{color:var(--blue,#2e75b6);}
+.mp-tab.active{color:var(--navy,#12233b);border-bottom-color:var(--blue,#2e75b6);}
+.mp-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px;}
+.mp-stat{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:14px;padding:16px 18px;}
+.mp-stat-num{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--navy,#12233b);line-height:1;}
+.mp-stat-den{font-size:16px;color:var(--ink3,#8493a8);font-weight:700;}
+.mp-stat-lbl{font-size:11.5px;color:var(--ink3,#8493a8);text-transform:uppercase;letter-spacing:.03em;margin-top:6px;}
+.mp-section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--navy,#12233b);margin:24px 0 12px;}
+.mp-modbar-meta{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2,#4a5a6a);margin-bottom:6px;}
+.mp-modbar-track{height:9px;background:#eef2f8;border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.mp-modbar-fill{height:100%;border-radius:8px;}
+.mp-modlist{display:flex;flex-direction:column;gap:6px;}
+.mp-modrow{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:11px;padding:10px 14px;}
+.mp-modrow.is-signed{background:#f4fbf7;border-color:#c7ead6;}
+.mp-modcheck{flex:0 0 22px;width:22px;height:22px;border-radius:6px;border:2px solid var(--gray,#cdd9ea);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;}
+.mp-modrow.is-signed .mp-modcheck{background:#2a9d5c;border-color:#2a9d5c;}
+.mp-modmain{flex:1 1 auto;min-width:0;}
+.mp-modlabel{font-weight:600;font-size:13px;color:var(--ink,#1c2b3a);}
+.mp-modmeta{font-size:11px;color:var(--ink2,#4a5a6a);margin-top:1px;}
+.mp-modscore{flex:0 0 auto;font-weight:700;font-size:12px;padding:2px 9px;border-radius:20px;}
+.mp-modscore.ok{background:#e3f7ea;color:#1d7a45;} .mp-modscore.no{background:#fde7ec;color:#b0344c;}
+.mp-results-list{display:flex;flex-direction:column;gap:8px;}
+.mp-result{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:12px;padding:13px 16px;cursor:pointer;transition:border-color .12s;}
+.mp-result:hover{border-color:var(--blue,#2e75b6);}
+.mp-result-name{font-weight:600;font-size:13.5px;color:var(--ink,#1c2b3a);}
+.mp-result-date{font-size:11px;color:var(--ink3,#8493a8);margin-top:2px;}
+.mp-result-right{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.mp-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.mp-badge-pass{background:#e3f7ea;color:#1d7a45;} .mp-badge-fail{background:#fde7ec;color:#b0344c;} .mp-badge-pending{background:#fff2cc;color:#8a5a00;}
+.mp-caret{color:var(--ink3,#8493a8);font-size:12px;}
+.mp-detail{background:#f7fafc;border:1.5px solid var(--gray,#e2e8f0);border-top:none;border-radius:0 0 12px 12px;margin-top:-8px;padding:14px 16px;}
+.mp-ans{border-radius:9px;padding:10px 13px;margin-bottom:8px;font-size:12.5px;line-height:1.5;}
+.mp-ans:last-child{margin-bottom:0;}
+.mp-ans-right{background:#eafaf1;border-left:3px solid #2a9d5c;}
+.mp-ans-wrong{background:#fdecef;border-left:3px solid #e8556d;}
+.mp-ans-written{background:#f0f6fc;border-left:3px solid var(--blue,#2e75b6);}
+.mp-ans-q{font-weight:600;color:var(--ink,#12233b);margin-bottom:5px;}
+.mp-ans-line,.mp-ans-correct,.mp-ans-model,.mp-ans-fb{margin-top:3px;color:var(--ink2,#4a5a6a);}
+.mp-ans-correct{color:#1d7a45;} .mp-ans-fb{color:#1a4d7a;background:#e5f0fa;border-radius:6px;padding:6px 9px;margin-top:6px;}
+.mp-ans-note{font-size:12.5px;color:var(--ink3,#8493a8);}
+.mp-fb-list{display:flex;flex-direction:column;gap:10px;}
+.mp-fb-item{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-left:4px solid var(--blue,#2e75b6);border-radius:0 12px 12px 0;padding:13px 16px;}
+.mp-fb-src{font-size:11px;color:var(--blue,#2e75b6);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;}
+.mp-fb-q{font-size:12.5px;color:var(--ink2,#4a5a6a);margin-bottom:8px;line-height:1.45;}
+.mp-fb-note{font-size:14px;color:var(--ink,#12233b);line-height:1.55;background:#f7fafc;border-radius:8px;padding:10px 12px;}
+.mp-empty{text-align:center;color:var(--ink3,#8493a8);font-size:14px;line-height:1.6;background:#fff;border:1.5px dashed var(--gray,#cdd9ea);border-radius:14px;padding:36px 28px;max-width:520px;margin:20px auto;}
+.home-card-progress .home-card-icon{color:#6b46c1;}
 .dash-alldone{display:flex;align-items:center;gap:.6rem;font-size:14px;font-weight:600;color:var(--green);}
 .dash-alldone-icon{width:32px;height:32px;border-radius:50%;background:var(--green-lt);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;}
 @media(max-width:560px){.dash-next-btn{width:100%;}.dash-next-top{flex-direction:column;align-items:stretch;}}
@@ -1056,6 +1109,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <div class="home-card-sub" id="home-card-review-sub">Practice the questions you've missed, resurfaced on a smart schedule until you've got them down.</div>
         <div class="home-card-arrow">&#8594;</div>
       </div>
+      <div class="home-card home-card-progress" onclick="showPortalSection('progress')">
+        <div class="home-card-icon">&#128202;</div>
+        <div class="home-card-title">My Progress</div>
+        <div class="home-card-sub">Your results, instructor feedback, module sign-offs, and personal analytics — all in one place.</div>
+        <div class="home-card-arrow">&#8594;</div>
+      </div>
       <!-- Airport Characteristics Course moved into Study Materials → Module 8 -->
       <!-- Dispatch Operations Playbook — hidden for launch; still under development.
            To re-enable, remove the style="display:none;" below. All reader code + data remain intact. -->
@@ -1106,6 +1165,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
     <div id="portal-review" style="display:none;">
       <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
       <div id="review-section-container"></div>
+    </div>
+
+    <!-- My Progress (student's own results, feedback, analytics) -->
+    <div id="portal-progress" style="display:none;">
+      <button class="back-home-btn" onclick="showPortalHome()">&#8592; Back to home</button>
+      <div id="progress-section-container"></div>
     </div>
 
     <!-- OJT Mock Comp Check section (hidden until card clicked, gated to signed-off) -->
@@ -2969,14 +3034,6 @@ function renderStudentInsights(uid) {
 
   let html = '';
 
-  // Momentum strip
-  if (ins.studyDays) {
-    const streakTxt = ins.streak >= 2
-      ? `<strong>${ins.streak}-day study streak</strong> — keep it going!`
-      : `You've studied on <strong>${ins.studyDays} day${ins.studyDays>1?'s':''}</strong> so far.`;
-    html += `<div class="dash-momentum"><span class="dash-momentum-icon">${ins.streak>=2?'\u{1F525}':'\u{1F4C8}'}</span> ${streakTxt}</div>`;
-  }
-
   // Focus areas (weak sections)
   if (ins.weakSections.length) {
     const top = ins.weakSections.slice(0, 4);
@@ -3194,9 +3251,217 @@ function srRenderSummary(){
 
 // Show the review screen (hide others), mirroring showPortalSection's screen toggling.
 function showReviewScreen(){
-  ['portal-home','portal-content','portal-study','portal-playbook','portal-practice','portal-ojt','portal-review'].forEach(id => {
+  ['portal-home','portal-content','portal-study','portal-playbook','portal-practice','portal-ojt','portal-review','portal-progress'].forEach(id => {
     const n = document.getElementById(id); if (n) n.style.display = (id === 'portal-review') ? '' : 'none';
   });
+}
+
+// ══ MY PROGRESS — student-facing results, feedback, sign-offs & analytics ═══════
+let _myProgTab = 'overview';
+function renderMyProgress(tab){
+  if (tab) _myProgTab = tab;
+  const uid = currentUser;
+  const el = document.getElementById('progress-section-container');
+  if (!el) return;
+  const name = getName(uid) || uid;
+
+  const tabs = [
+    { id:'overview', label:'Overview', icon:'\u{1F4CA}' },
+    { id:'results',  label:'My Results', icon:'\u{1F4DD}' },
+    { id:'feedback', label:'Instructor Feedback', icon:'\u{1F4AC}' },
+    { id:'analytics',label:'My Analytics', icon:'\u{1F4C8}' }
+  ];
+  let html = `<div class="mp-header">
+      <div class="mp-header-name">${escInsight(name)}</div>
+      <div class="mp-header-sub">Your training progress</div>
+    </div>
+    <div class="mp-tabs">` +
+    tabs.map(t => `<button class="mp-tab ${_myProgTab===t.id?'active':''}" onclick="renderMyProgress('${t.id}')">${t.icon} ${t.label}</button>`).join('') +
+    `</div><div class="mp-body">`;
+
+  if (_myProgTab === 'overview')       html += mpOverview(uid);
+  else if (_myProgTab === 'results')   html += mpResults(uid);
+  else if (_myProgTab === 'feedback')  html += mpFeedback(uid);
+  else if (_myProgTab === 'analytics') html += mpAnalytics(uid);
+
+  html += `</div>`;
+  el.innerHTML = html;
+  try { animateProgressBars(el); } catch(e){}
+}
+
+// ── Overview: headline stats + module sign-off progress ──
+function mpOverview(uid){
+  const scores = getScores(uid);
+  const tracked = QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated);
+  let completed = 0, passed = 0, pending = 0; const pcts = [];
+  tracked.forEach(q => { const sc = scores[q.id]; if(!sc) return;
+    if (sc.status === 'pending'){ pending++; return; }
+    completed++; if (sc.pass) passed++; if (typeof sc.score==='number') pcts.push(sc.score); });
+  const avg = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+  const passRate = completed ? Math.round(passed/completed*100) : null;
+
+  // Module sign-off progress (their DTM record)
+  const comps = TRAINING_MODULES.map(m => moduleCompetency(uid, scores, m));
+  const signed = comps.filter(c => c.signedOff).length;
+  const modPct = comps.length ? Math.round(signed/comps.length*100) : 0;
+
+  let h = `<div class="mp-stat-grid">
+    <div class="mp-stat"><div class="mp-stat-num">${completed}<span class="mp-stat-den">/${tracked.length}</span></div><div class="mp-stat-lbl">Checks &amp; tests completed</div></div>
+    <div class="mp-stat"><div class="mp-stat-num">${avg!=null?avg+'%':'—'}</div><div class="mp-stat-lbl">Average score</div></div>
+    <div class="mp-stat"><div class="mp-stat-num">${passRate!=null?passRate+'%':'—'}</div><div class="mp-stat-lbl">Pass rate</div></div>
+    <div class="mp-stat"><div class="mp-stat-num">${pending}</div><div class="mp-stat-lbl">Awaiting grade</div></div>
+  </div>`;
+
+  h += `<div class="mp-section-title">Module sign-off progress</div>
+    <div class="mp-modbar-meta"><span><strong>${signed}</strong> of ${comps.length} modules signed off by an instructor</span><span>${modPct}%</span></div>
+    <div class="mp-modbar-track"><div class="mp-modbar-fill dash-prog-fill" data-target="${modPct}" style="width:0%"></div></div>`;
+
+  h += `<div class="mp-modlist">`;
+  comps.forEach(c => {
+    h += `<div class="mp-modrow ${c.signedOff?'is-signed':''}">
+      <div class="mp-modcheck">${c.signedOff?'&#10003;':''}</div>
+      <div class="mp-modmain">
+        <div class="mp-modlabel">${escInsight(c.label)}</div>
+        <div class="mp-modmeta">${c.signedOff
+          ? `Signed off by ${escInsight(c.by||'instructor')}${c.date?` · ${escInsight(c.date)}`:''}`
+          : `<span style="color:var(--ink3,#8493a8);">Awaiting sign-off</span>`}</div>
+      </div>
+      ${c.score!=null?`<span class="mp-modscore ${c.pass?'ok':'no'}">${c.score}%</span>`:''}
+    </div>`;
+  });
+  h += `</div>`;
+  return h;
+}
+
+// ── My Results: every attempt, expandable to per-question detail ──
+function mpResults(uid){
+  const scores = getScores(uid);
+  const groups = [
+    { type:'kc',   label:'Knowledge Checks' },
+    { type:'test', label:'Tests & Finals' }
+  ];
+  let h = '';
+  let any = false;
+  groups.forEach(g => {
+    const qs = QUIZZES.filter(q => (q.type||'kc') === g.type);
+    const taken = qs.filter(q => scores[q.id]);
+    if (!taken.length) return;
+    any = true;
+    h += `<div class="mp-section-title">${g.label}</div><div class="mp-results-list">`;
+    qs.forEach(q => {
+      const sc = scores[q.id];
+      if (!sc) return;
+      const rowId = 'mpr-' + q.id;
+      const statusBadge = sc.status === 'pending'
+        ? `<span class="mp-badge mp-badge-pending">Awaiting grade</span>`
+        : `<span class="mp-badge ${sc.pass?'mp-badge-pass':'mp-badge-fail'}">${sc.score}% · ${sc.pass?'Pass':'Fail'}</span>`;
+      h += `<div class="mp-result" onclick="mpToggle('${rowId}')">
+        <div class="mp-result-main">
+          <div class="mp-result-name">${escInsight((q.mod?q.mod+' — ':'') + q.name)}</div>
+          <div class="mp-result-date">${sc.date? new Date(sc.date).toLocaleDateString() : ''} · tap to see your answers</div>
+        </div>
+        <div class="mp-result-right">${statusBadge}<span class="mp-caret" id="${rowId}-caret">&#9656;</span></div>
+      </div>
+      <div class="mp-detail" id="${rowId}" style="display:none;">${mpAnswerDetail(q, sc)}</div>`;
+    });
+    h += `</div>`;
+  });
+  if (!any) h = `<div class="mp-empty">You haven't completed any knowledge checks or tests yet. Once you do, they'll show up here with your full answer breakdown.</div>`;
+  return h;
+}
+
+// Render one attempt's per-question detail (mirrors the admin trainee view).
+function mpAnswerDetail(q, sc){
+  const answers = Array.isArray(sc.answers) ? sc.answers : [];
+  if (!answers.length) return `<div class="mp-ans-note">No per-question detail was recorded for this attempt.</div>`;
+  const qLookup = {}; (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
+  const notes = sc.gradeNotes || {};
+  return answers.map(a => {
+    const qq = qLookup[a.q] || {};
+    const qText = qq.text || ('Question ' + a.q);
+    if (a.written){
+      const fb = notes[a.q];
+      return `<div class="mp-ans mp-ans-written">
+        <div class="mp-ans-q">Q${a.q}. ${escInsight(String(qText).replace(/<[^>]*>/g,''))}</div>
+        <div class="mp-ans-line"><strong>Your answer:</strong> ${(a.selected&&String(a.selected).trim())?escInsight(a.selected):'<em>Not answered</em>'}</div>
+        ${qq.model?`<div class="mp-ans-model"><strong>Model answer:</strong> ${escInsight(String(qq.model).replace(/<[^>]*>/g,''))}</div>`:''}
+        ${fb?`<div class="mp-ans-fb"><strong>Instructor feedback:</strong> ${escInsight(fb)}</div>`:''}
+      </div>`;
+    }
+    const right = a.isCorrect === true || a.isCorrect === 'true';
+    return `<div class="mp-ans ${right?'mp-ans-right':'mp-ans-wrong'}">
+      <div class="mp-ans-q">${right?'&#10003;':'&#10007;'} Q${a.q}. ${escInsight(String(qText).replace(/<[^>]*>/g,''))}</div>
+      <div class="mp-ans-line"><strong>Your answer:</strong> ${a.selected!=null?escInsight(String(a.selected)):'<em>Not answered</em>'}</div>
+      ${!right && a.correct!=null?`<div class="mp-ans-correct"><strong>Correct answer:</strong> ${escInsight(String(a.correct))}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function mpToggle(rowId){
+  const el = document.getElementById(rowId); const caret = document.getElementById(rowId+'-caret');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (caret) caret.innerHTML = open ? '&#9656;' : '&#9662;';
+}
+
+// ── Instructor Feedback: all written-answer feedback across attempts ──
+function mpFeedback(uid){
+  const scores = getScores(uid);
+  const items = [];
+  Object.entries(scores).forEach(([quizId, sc]) => {
+    const q = QUIZZES.find(x => x.id === quizId); if (!q) return;
+    const notes = sc.gradeNotes || {};
+    const qLookup = {}; (q.questions||[]).forEach(qq => qLookup[qq.n] = qq);
+    Object.entries(notes).forEach(([n, fb]) => {
+      if (fb == null || String(fb).trim() === '') return;
+      const qq = qLookup[n] || {};
+      items.push({ quiz:q, n, fb:String(fb), qText: qq.text || ('Question '+n), date: sc.date });
+    });
+  });
+  if (!items.length) return `<div class="mp-empty">No instructor feedback yet. When an instructor grades your written answers and leaves comments, they'll appear here.</div>`;
+  items.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+  let h = `<div class="mp-section-title">${items.length} note${items.length>1?'s':''} from your instructors</div><div class="mp-fb-list">`;
+  items.forEach(it => {
+    h += `<div class="mp-fb-item">
+      <div class="mp-fb-src">${escInsight((it.quiz.mod?it.quiz.mod+' · ':'') + it.quiz.name)} · Q${it.n}${it.date?` · ${new Date(it.date).toLocaleDateString()}`:''}</div>
+      <div class="mp-fb-q">${escInsight(String(it.qText).replace(/<[^>]*>/g,'').slice(0,160))}</div>
+      <div class="mp-fb-note">${escInsight(it.fb)}</div>
+    </div>`;
+  });
+  h += `</div>`;
+  return h;
+}
+
+// ── My Analytics: focus areas + review deck status ──
+function mpAnalytics(uid){
+  const ins = computeStudentInsights(uid);
+  let h = '';
+  if (!ins.weakSections.length && !ins.missed.length){
+    return `<div class="mp-empty">Your analytics build up as you take knowledge checks and tests. Complete a few and you'll see your strongest and weakest areas here.</div>`;
+  }
+  // Review deck status
+  const active = srActiveCount(uid);
+  const due = srDue(uid).length;
+  h += `<div class="mp-stat-grid">
+    <div class="mp-stat"><div class="mp-stat-num">${ins.missed.length}</div><div class="mp-stat-lbl">Questions missed (total)</div></div>
+    <div class="mp-stat"><div class="mp-stat-num">${active}</div><div class="mp-stat-lbl">In review rotation</div></div>
+    <div class="mp-stat"><div class="mp-stat-num">${due}</div><div class="mp-stat-lbl">Due for review now</div></div>
+  </div>`;
+  if (due > 0) h += `<button class="dash-review-cta" style="max-width:340px;" onclick="startReviewSession()">&#128260; Start a review session</button>`;
+
+  if (ins.weakSections.length){
+    h += `<div class="mp-section-title">Your focus areas</div><div class="dash-focus-list">`;
+    ins.weakSections.slice(0,6).forEach(s => {
+      const sev = s.pct >= 40 ? 'hi' : (s.pct >= 20 ? 'md' : 'lo');
+      h += `<div class="dash-focus">
+        <div class="dash-focus-top"><span class="dash-focus-name">${escInsight(s.sec)}</span><span class="dash-focus-pct sev-${sev}">${s.pct}% missed</span></div>
+        <div class="dash-focus-bar"><div class="dash-focus-fill sev-${sev}" style="width:${s.pct}%"></div></div>
+        <div class="dash-focus-meta">${s.misses} of ${s.attempts} questions missed</div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+  return h;
 }
 // Count numbers up from 0 for a polished dashboard reveal (respects reduced-motion).
 function animateCounters(scope){
@@ -3567,6 +3832,8 @@ function showPortalSection(tab) {
   document.getElementById('portal-content').style.display = 'none';
   document.getElementById('portal-practice').style.display = 'none';
   var ojt = document.getElementById('portal-ojt'); if (ojt) ojt.style.display = 'none';
+  var prg = document.getElementById('portal-progress'); if (prg) prg.style.display = 'none';
+  var rvw = document.getElementById('portal-review'); if (rvw) rvw.style.display = 'none';
   if (tab === 'study') {
     document.getElementById('portal-study').style.display = 'block';
   } else if (tab === 'playbook') {
@@ -3578,13 +3845,16 @@ function showPortalSection(tab) {
   } else if (tab === 'ojt') {
     renderOJTSection();
     document.getElementById('portal-ojt').style.display = 'block';
+  } else if (tab === 'progress') {
+    renderMyProgress();
+    if (prg) prg.style.display = 'block';
   } else {
     window._portalTab = tab;
     renderPortal();
     document.getElementById('portal-content').style.display = 'block';
   }
   // Crossfade whichever section just became visible.
-  ['portal-study','portal-playbook','portal-practice','portal-ojt','portal-content'].forEach(function(id){
+  ['portal-study','portal-playbook','portal-practice','portal-ojt','portal-progress','portal-content'].forEach(function(id){
     var e = document.getElementById(id);
     if (e && e.style.display !== 'none') fadeInView(e);
   });
