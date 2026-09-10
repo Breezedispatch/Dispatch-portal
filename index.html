@@ -122,7 +122,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .portal-welcome p{font-size:15px;opacity:.92;max-width:1000px;margin:.4rem auto 0;position:relative;z-index:2;}
 .portal-welcome::before{content:'';position:absolute;width:320px;height:320px;border-radius:50%;background:#F0457A;filter:blur(50px);opacity:.45;right:-60px;top:-110px;animation:float 15s ease-in-out infinite;}
 .portal-welcome::after{content:'';position:absolute;width:260px;height:260px;border-radius:50%;background:#7FB0FF;filter:blur(50px);opacity:.45;right:160px;bottom:-150px;animation:float 15s ease-in-out infinite;animation-delay:-6s;}
-.portal-home,#portal-content{position:relative;z-index:5;max-width:1000px;margin:0 auto;padding:0 2rem;}
+.portal-home,#portal-content,#portal-progress,#portal-review,#portal-ojt,#portal-study,#portal-playbook{position:relative;z-index:5;max-width:1000px;margin:0 auto;padding:0 2rem;}
 
 /* home 3-card grid */
 .home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;padding-top:0;}
@@ -268,6 +268,21 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .mp-header{margin-bottom:18px;}
 .mp-back{margin-bottom:16px;}
 .mp-group-label{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--blue,#2e75b6);margin:18px 0 8px;padding-bottom:5px;border-bottom:1.5px solid var(--gray,#e8eef6);}
+/* My Progress — mobile safety: never overflow the viewport */
+#portal-progress *{max-width:100%;box-sizing:border-box;}
+#portal-progress{overflow-x:hidden;}
+.mp-modrow,.mp-result,.mp-fb-item,.mp-stat,.mp-detail{overflow-wrap:anywhere;word-break:break-word;}
+@media (max-width:640px){
+  #portal-progress,#portal-review,#portal-content,.portal-home,#portal-ojt,#portal-study{padding:0 1rem;}
+  .mp-header-name{font-size:21px;}
+  .mp-tabs{gap:2px;}
+  .mp-tab{padding:9px 10px;font-size:12px;}
+  .mp-stat-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .mp-stat{padding:12px 13px;}
+  .mp-stat-num{font-size:23px;}
+  .mp-modlabel,.mp-result-name{font-size:12.5px;}
+  .mp-modrow,.mp-result{padding:10px 12px;gap:9px;}
+}
 .mp-header-name{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--navy,#12233b);}
 .mp-header-sub{font-size:14px;color:var(--ink3,#8493a8);margin-top:2px;}
 .mp-tabs{display:flex;gap:6px;border-bottom:2px solid var(--gray,#e2e8f0);margin-bottom:20px;flex-wrap:wrap;}
@@ -2314,8 +2329,18 @@ function isFinalQuiz(q){
   return (q.type === 'test') || /final|exam/i.test(String(q.mod||'') + ' ' + String(q.name||''));
 }
 
+// All module numbers referenced in a mod string: "Module 16/18/19" → [16,18,19].
+function allModuleNums(mod){
+  const s = String(mod||'');
+  const m = s.match(/module\s*([0-9]+(?:\s*[-/]\s*[0-9]+)*)/i);
+  if (!m) { const n = s.match(/([0-9]+)/); return n ? [parseInt(n[1],10)] : []; }
+  return m[1].split(/[-/]/).map(x => parseInt(x.trim(),10)).filter(n => !isNaN(n));
+}
+
 // Merge DTM master + quiz-derived modules → the student's module list.
 // Only modules with a quiz OR a DTM entry appear. Finals are returned separately.
+// Combined-module quizzes (e.g. "Module 16/18/19") attach to EACH individual module
+// rather than creating a separate duplicate row.
 function getTrainingModules(){
   const byKey = {};
   const SECTION_ORDER = ['Basic Indoctrination','General Subjects','Group II Aircraft','All Sections','Other'];
@@ -2323,21 +2348,31 @@ function getTrainingModules(){
   // 1) Seed from the DTM master (canonical names, correct order).
   DTM_MODULE_MASTER.forEach(dm => {
     const key = 'm' + dm.num;
-    byKey[key] = { key, label:dm.label, section:dm.section, quizzes:[], sortV:dm.num, fromDTM:true };
+    byKey[key] = { key, label:dm.label, section:dm.section, quizzes:[], sortV:dm.num, fromDTM:true, num:dm.num };
   });
 
-  // 2) Merge in quiz-derived modules. Attach quizzes to existing DTM modules by number;
-  //    create new module rows for numbered modules not in the master.
+  // 2) Attach quizzes. For each module number a quiz references, attach it to that
+  //    module (creating a new row only if that number isn't in the master).
   QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated && !isFinalQuiz(q)).forEach(q => {
-    const modStr = q.mod || q.name || 'Other';
-    const key = moduleKeyFromMod(modStr);
-    if (!byKey[key]) {
-      byKey[key] = { key, label:modStr, section:(q.section||'Other'), quizzes:[], sortV:firstModuleNum(modStr), fromDTM:false };
+    const nums = allModuleNums(q.mod || q.name || '');
+    if (!nums.length) {
+      // Non-numbered module → its own slug row.
+      const key = moduleKeyFromMod(q.mod || q.name || 'Other');
+      if (!byKey[key]) byKey[key] = { key, label:(q.mod||q.name||'Other'), section:(q.section||'Other'), quizzes:[], sortV:9999, fromDTM:false };
+      byKey[key].quizzes.push(q.id);
+      return;
     }
-    byKey[key].quizzes.push(q.id);
+    nums.forEach(num => {
+      const key = 'm' + num;
+      if (!byKey[key]) {
+        // Numbered module not in the master → create it (label from quiz, best-effort).
+        byKey[key] = { key, label:'Module ' + (num<10?('0'+num):num), section:(q.section||'Other'), quizzes:[], sortV:num, fromDTM:false, num };
+      }
+      if (byKey[key].quizzes.indexOf(q.id) === -1) byKey[key].quizzes.push(q.id);
+    });
   });
 
-  // 3) Keep only modules that have real backing: a quiz attached, or a DTM entry.
+  // 3) Keep only modules with real backing: a quiz attached, or a DTM entry.
   const list = Object.values(byKey).filter(m => m.quizzes.length > 0 || m.fromDTM);
   list.sort((a,b) => {
     const sa = SECTION_ORDER.indexOf(a.section), sb = SECTION_ORDER.indexOf(b.section);
