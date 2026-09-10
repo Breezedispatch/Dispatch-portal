@@ -351,22 +351,47 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .mp-reply-btn{flex:0 0 auto;background:#fff;border:1.5px solid var(--blue,#2e75b6);color:var(--blue,#2e75b6);border-radius:9px;padding:9px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12.5px;cursor:pointer;transition:all .12s;}
 .mp-reply-btn:hover{background:var(--blue,#2e75b6);color:#fff;}
 /* Admin messages inbox */
-.am-inbox{display:flex;flex-direction:column;gap:12px;}
-.am-msg-card{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:14px;padding:16px 18px;}
-.am-msg-card.unread{border-left:4px solid var(--coral,#ff527b);}
-.am-msg-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
-.am-msg-student{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--navy,#1b3a6b);cursor:pointer;}
-.am-msg-student:hover{text-decoration:underline;}
-.am-msg-kind{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 9px;border-radius:20px;}
+.msg-inbox-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--gray,#e2e8f0);}
+.msg-inbox-title{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--navy,#12233b);}
+.msg-inbox-meta{font-size:13px;color:var(--ink3,#8493a8);}
+.msg-inbox-unread{color:var(--coral,#ff527b);font-weight:700;}
+.am-inbox{display:flex;flex-direction:column;gap:14px;}
+.msg-student{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(27,58,107,.04);}
+.msg-student.has-unread{border-color:#ffd0da;box-shadow:0 2px 14px rgba(255,82,123,.12);}
+.msg-student-head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--gray,#eef2f8);transition:background .12s;}
+.msg-student-head:hover{background:#f7fafc;}
+.msg-avatar{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue,#2e75b6),var(--cyan,#39a0c9));color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.msg-student-id{flex:1 1 auto;min-width:0;}
+.msg-student-name{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--navy,#12233b);}
+.msg-student-sub{font-size:12px;color:var(--ink3,#8493a8);margin-top:1px;}
+.msg-student-unread{flex:0 0 auto;background:var(--coral,#ff527b);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.msg-student-open{flex:0 0 auto;font-size:12px;color:var(--blue,#2e75b6);font-weight:600;}
+.msg-student-threads{padding:14px 18px;display:flex;flex-direction:column;gap:12px;}
+.msg-thread{border:1.5px solid var(--gray,#eef2f8);border-radius:12px;padding:12px 14px;background:#fafcfe;}
+.msg-thread.unread{border-left:3px solid var(--coral,#ff527b);}
+.msg-thread-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;}
+.msg-thread-ctx{font-size:11.5px;color:var(--ink2,#4a5a6a);}
+.msg-thread-body{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.am-msg-kind{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 9px;border-radius:20px;flex:0 0 auto;}
 .am-msg-kind.request{background:#e5f0fa;color:#1a5a8a;} .am-msg-kind.feedback{background:#fff2cc;color:#8a5a00;}
-.am-msg-ctx{font-size:11.5px;color:var(--ink3,#8493a8);margin-bottom:6px;}
-.am-msg-thread{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
 .am-reply-row{display:flex;gap:8px;}
-.am-reply-input{flex:1 1 auto;border:1.5px solid var(--gray,#cdd9ea);border-radius:9px;padding:9px 12px;font-size:13px;box-sizing:border-box;}
+.am-reply-input{flex:1 1 auto;border:1.5px solid var(--gray,#cdd9ea);border-radius:9px;padding:9px 12px;font-size:13px;box-sizing:border-box;font-family:var(--font);}
 .am-reply-input:focus{outline:none;border-color:var(--blue,#2e75b6);}
 .am-reply-btn{flex:0 0 auto;background:var(--blue,#2e75b6);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12.5px;cursor:pointer;}
 .am-reply-btn:hover{filter:brightness(1.08);}
 .am-viewtab-badge{display:inline-block;min-width:17px;height:17px;line-height:17px;text-align:center;background:var(--coral,#ff527b);color:#fff;border-radius:9px;font-size:10.5px;font-weight:700;padding:0 5px;margin-left:5px;}
+/* Soft red flash on the Messages tab when unread messages are waiting */
+@keyframes msgTabFlash{
+  0%,100%{background:transparent;box-shadow:none;}
+  50%{background:rgba(255,82,123,.14);box-shadow:0 0 0 1px rgba(255,82,123,.35) inset;}
+}
+#viewtab-messages.has-unread{animation:msgTabFlash 1.6s ease-in-out infinite;border-radius:9px;}
+@media (prefers-reduced-motion: reduce){ #viewtab-messages.has-unread{animation:none;background:rgba(255,82,123,.12);border-radius:9px;} }
+/* Student My Progress card: unread-reply alert dot */
+.home-card-progress{position:relative;}
+.mp-alert-dot{position:absolute;top:14px;right:16px;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--coral,#ff527b);color:#fff;border-radius:12px;font-size:13px;font-weight:800;box-shadow:0 2px 8px rgba(255,82,123,.4);animation:mpDotPulse 1.8s ease-in-out infinite;}
+@keyframes mpDotPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+@media (prefers-reduced-motion: reduce){ .mp-alert-dot{animation:none;} }
 .mp-ans-line,.mp-ans-correct,.mp-ans-model,.mp-ans-fb{margin-top:3px;color:var(--ink2,#4a5a6a);}
 .mp-ans-correct{color:#1d7a45;} .mp-ans-fb{color:#1a4d7a;background:#e5f0fa;border-radius:6px;padding:6px 9px;margin-top:6px;}
 .mp-ans-note{font-size:12.5px;color:var(--ink3,#8493a8);}
@@ -1382,7 +1407,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
     <!-- STUDENT MESSAGES INBOX VIEW -->
     <div id="admin-messages">
-      <div class="admin-summary" id="msg-inbox-summary"></div>
+      <div id="msg-inbox-summary"></div>
       <div class="am-inbox" id="msg-inbox-list"></div>
     </div>
 
@@ -2901,6 +2926,7 @@ function enterStudentPortal(val, first, last) {
     renderPortal();
     // Pull this student's finalized results/notes + worksheet status from the sheet, then refresh
     loadResults(function(){ try { mergeSheetScoresForUser(val); renderPortal(); } catch(e){} });
+    loadMessages(function(){ try { updateProgressAlertDot(); } catch(e){} });
     loadWorksheets(function(){ try { renderDashboard(); } catch(e){} });
   } catch(e) { console.error('portal render error:', e); }
 }
@@ -2923,6 +2949,7 @@ function enterAdmin() {
   try {
     loadResults(function(){ try { renderAdmin(); if (window._adminView === 'analytics') renderAnalytics(); computeAlerts(); } catch(e){ console.error('renderAdmin error:', e); if(tbody) tbody.innerHTML='<tr><td colspan=99 style="padding:2rem;text-align:center;color:var(--ink3);">Could not load results. Check the Apps Script deployment.</td></tr>'; } });
     loadWorksheets(function(){ try { computeAlerts(); } catch(e){} });
+    loadMessages(function(){ try { computeAlerts(); } catch(e){} });
     loadClasses(function(){ try { refreshClassDatalist(); renderAdmin(); } catch(e){} });
   } catch(e) { console.error('loadResults error:', e); }
 }
@@ -3203,6 +3230,45 @@ function renderDashboard() {
       }
     }
   } catch(e){}
+  // Show an alert dot on the My Progress card when a trainer has replied and the
+  // student hasn't seen it yet.
+  try { updateProgressAlertDot(); } catch(e){}
+}
+
+// Count trainer replies the student hasn't read yet.
+function unreadTrainerReplyCount(uid){
+  const u = String(uid||currentUser).toUpperCase();
+  return (SHEET_MESSAGES || []).filter(m =>
+    String(m.studentId).toUpperCase() === u &&
+    m.from === 'trainer' &&
+    String(m.readBy||'').split(',').map(s=>s.trim()).indexOf(u) === -1
+  ).length;
+}
+// Place/remove the pulsing dot on the My Progress home card.
+function updateProgressAlertDot(){
+  const card = document.getElementById('home-card-progress');
+  if (!card) return;
+  let dot = card.querySelector('.mp-alert-dot');
+  const n = unreadTrainerReplyCount(currentUser);
+  if (n > 0){
+    if (!dot){ dot = document.createElement('div'); dot.className = 'mp-alert-dot'; card.appendChild(dot); }
+    dot.textContent = '!';
+    dot.title = n + ' new repl' + (n>1?'ies':'y') + ' from your trainers';
+  } else if (dot){ dot.remove(); }
+}
+// When the student opens My Progress (messages or feedback), mark trainer replies read.
+function markTrainerRepliesRead(uid){
+  const u = String(uid||currentUser).toUpperCase();
+  let changed = false;
+  (SHEET_MESSAGES || []).forEach(m => {
+    if (String(m.studentId).toUpperCase() === u && m.from === 'trainer' &&
+        String(m.readBy||'').split(',').map(s=>s.trim()).indexOf(u) === -1){
+      m.readBy = (m.readBy?m.readBy+',':'') + u;
+      postBoardAction({ action:'markMessageRead', msgId:m.msgId, readBy:u });
+      changed = true;
+    }
+  });
+  if (changed) { try { updateProgressAlertDot(); } catch(e){} }
 }
 
 // Personalized "where do I stand / what to work on" panel for the student home.
@@ -3462,9 +3528,9 @@ function renderMyProgress(tab){
 
   if (_myProgTab === 'overview')       html += mpOverview(uid);
   else if (_myProgTab === 'results')   html += mpResults(uid);
-  else if (_myProgTab === 'feedback')  html += mpFeedback(uid);
+  else if (_myProgTab === 'feedback')  { html += mpFeedback(uid); try { markTrainerRepliesRead(uid); } catch(e){} }
   else if (_myProgTab === 'analytics') html += mpAnalytics(uid);
-  else if (_myProgTab === 'messages')  html += mpMessages(uid);
+  else if (_myProgTab === 'messages')  { html += mpMessages(uid); try { markTrainerRepliesRead(uid); } catch(e){} }
 
   html += `</div>`;
   el.innerHTML = html;
@@ -3685,24 +3751,43 @@ function mpSendFeedbackReply(quizId, qn, anchorId){
 // ══ ADMIN: student messages inbox ══════════════════════════════════════════════
 // Count messages from students that no trainer has read yet (for the tab badge).
 function unreadStudentMessageCount(){
-  const me = (currentUser || 'trainer');
   return SHEET_MESSAGES.filter(m => m.from === 'student' &&
     String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer') === -1).length;
 }
 function updateMsgInboxBadge(){
   const badge = document.getElementById('msg-inbox-badge');
-  if (!badge) return;
+  const tab = document.getElementById('viewtab-messages');
   const n = unreadStudentMessageCount();
-  if (n > 0){ badge.textContent = n; badge.style.display = ''; }
-  else { badge.style.display = 'none'; }
+  if (badge){
+    if (n > 0){ badge.textContent = n; badge.style.display = ''; }
+    else { badge.style.display = 'none'; }
+  }
+  // Soft red flash on the tab while unread messages are waiting.
+  if (tab){ tab.classList.toggle('has-unread', n > 0); }
 }
 // Render the global inbox: one card per student conversation, newest activity first.
+// Resolve a student's display name, falling back to the name stored on their own
+// messages (author field) when the roster/localStorage lookup has nothing.
+function studentDisplayName(sid){
+  const n = getName(sid);
+  if (n && n !== sid) return n;
+  // Fall back to the author on a message the student sent.
+  const own = (SHEET_MESSAGES||[]).find(m => String(m.studentId).toUpperCase() === String(sid).toUpperCase() && m.from === 'student' && m.author && m.author.trim());
+  return own ? own.author.trim() : sid;
+}
+// Short, friendly date: "Feb 10, 2:14 PM" instead of a raw ISO string.
+function fmtMsgDate(d){
+  const dt = new Date(d);
+  if (isNaN(dt)) return String(d||'');
+  return dt.toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+}
+
 function renderMessagesInbox(){
   updateMsgInboxBadge();
   const list = document.getElementById('msg-inbox-list');
   const summary = document.getElementById('msg-inbox-summary');
   if (!list) return;
-  // Group all messages by student.
+
   const byStudent = {};
   SHEET_MESSAGES.forEach(m => { (byStudent[m.studentId] = byStudent[m.studentId] || []).push(m); });
   const students = Object.keys(byStudent);
@@ -3711,52 +3796,66 @@ function renderMessagesInbox(){
     list.innerHTML = `<div class="mp-empty">No student messages yet. When a trainee sends a request or replies to feedback, it shows up here.</div>`;
     return;
   }
-  // Sort students by most recent message.
-  students.sort((a,b) => {
-    const la = Math.max.apply(null, byStudent[a].map(m=>new Date(m.date).getTime()||0));
-    const lb = Math.max.apply(null, byStudent[b].map(m=>new Date(m.date).getTime()||0));
-    return lb - la;
-  });
+  // Sort students by most recent activity.
+  const lastActivity = sid => Math.max.apply(null, byStudent[sid].map(m=>new Date(m.date).getTime()||0));
+  students.sort((a,b) => lastActivity(b) - lastActivity(a));
+
   const totalUnread = unreadStudentMessageCount();
-  if (summary) summary.innerHTML = `<strong>${SHEET_MESSAGES.length}</strong> message${SHEET_MESSAGES.length>1?'s':''} from <strong>${students.length}</strong> student${students.length>1?'s':''}${totalUnread?` · <span style="color:var(--coral,#ff527b);font-weight:700;">${totalUnread} unread</span>`:''}`;
+  if (summary){
+    summary.innerHTML = `<div class="msg-inbox-head">
+        <div class="msg-inbox-title">Student Messages</div>
+        <div class="msg-inbox-meta">${students.length} student${students.length!==1?'s':''} · ${SHEET_MESSAGES.length} message${SHEET_MESSAGES.length!==1?'s':''}${totalUnread?` · <span class="msg-inbox-unread">${totalUnread} unread</span>`:''}</div>
+      </div>`;
+  }
 
   let h = '';
   students.forEach(sid => {
-    const msgs = byStudent[sid];
-    const name = getName(sid) || sid;
-    // Split into threads (requests + feedback), newest thread first.
-    const threads = threadMessages(msgs);
-    threads.sort((a,b) => {
+    const name = studentDisplayName(sid);
+    const initials = name.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() || '?';
+    const threads = threadMessages(byStudent[sid]).sort((a,b) => {
       const la = Math.max.apply(null, [a.msg].concat(a.replies).map(m=>new Date(m.date).getTime()||0));
       const lb = Math.max.apply(null, [b.msg].concat(b.replies).map(m=>new Date(m.date).getTime()||0));
       return lb - la;
     });
+    const studentUnread = byStudent[sid].filter(m => m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1).length;
+
+    // One panel per student, with their threads inside.
+    h += `<div class="msg-student ${studentUnread?'has-unread':''}">
+      <div class="msg-student-head" onclick="setAdminView('roster'); openTrainee('${escAttr(sid)}')">
+        <div class="msg-avatar">${escHtmlSafe(initials)}</div>
+        <div class="msg-student-id">
+          <div class="msg-student-name">${escHtmlSafe(name)}</div>
+          <div class="msg-student-sub">ID ${escHtmlSafe(sid)} · ${threads.length} conversation${threads.length!==1?'s':''}</div>
+        </div>
+        ${studentUnread?`<span class="msg-student-unread">${studentUnread} new</span>`:''}
+        <span class="msg-student-open">View trainee →</span>
+      </div>
+      <div class="msg-student-threads">`;
+
     threads.forEach(t => {
       const all = [t.msg].concat(t.replies);
-      const unread = all.some(m => m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1);
       const kind = t.msg.kind || 'request';
-      // context label for feedback threads
       let ctxLabel = '';
       if (kind === 'feedback' && t.msg.context){
         const [qid, qn] = t.msg.context.split('#');
         const quiz = QUIZZES.find(q => q.id === qid);
-        ctxLabel = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
+        ctxLabel = quiz ? `On ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `On feedback · Q${qn||''}`;
       }
-      h += `<div class="am-msg-card ${unread?'unread':''}">
-        <div class="am-msg-top">
-          <span class="am-msg-student" onclick="setAdminView('roster'); openTrainee('${sid}')">${escHtmlSafe(name)} <span style="font-weight:400;color:var(--ink3,#8493a8);font-size:12px;">${escHtmlSafe(sid)}</span></span>
+      const threadUnread = all.some(m => m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1);
+      h += `<div class="msg-thread ${threadUnread?'unread':''}">
+        <div class="msg-thread-top">
           <span class="am-msg-kind ${kind}">${kind==='feedback'?'Feedback reply':'Help request'}</span>
+          ${ctxLabel?`<span class="msg-thread-ctx">${ctxLabel}</span>`:''}
         </div>
-        ${ctxLabel?`<div class="am-msg-ctx">${ctxLabel}</div>`:''}
-        <div class="am-msg-thread">`;
+        <div class="msg-thread-body">`;
       all.forEach(m => { h += amMsgBubble(m); });
       h += `</div>
         <div class="am-reply-row">
-          <input id="am-reply-${t.msg.msgId}" class="am-reply-input" placeholder="Reply to ${escHtmlSafe(name.split(' ')[0])}…">
-          <button class="am-reply-btn" onclick="trainerReply('${sid}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')">Reply</button>
+          <input id="am-reply-${t.msg.msgId}" class="am-reply-input" placeholder="Reply to ${escHtmlSafe(name.split(' ')[0])}…" onkeydown="if(event.key==='Enter'){trainerReply('${escAttr(sid)}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')}">
+          <button class="am-reply-btn" onclick="trainerReply('${escAttr(sid)}','${t.msg.msgId}','${kind}','${escAttr(t.msg.context||'')}')">Reply</button>
         </div>
       </div>`;
-      // mark this thread's student messages as read by trainers
+      // mark this thread's student messages read by trainers
       all.forEach(m => {
         if (m.from==='student' && String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer')===-1){
           m.readBy = (m.readBy?m.readBy+',':'') + 'trainer';
@@ -3764,6 +3863,7 @@ function renderMessagesInbox(){
         }
       });
     });
+    h += `</div></div>`;
   });
   list.innerHTML = h;
   updateMsgInboxBadge();
@@ -3772,7 +3872,7 @@ function amMsgBubble(m){
   const isTrainer = m.from === 'trainer';
   const who = isTrainer ? (m.author || 'Trainer') : 'Student';
   return `<div class="mp-msg ${isTrainer?'from-trainer':'from-student'}" style="max-width:100%;${isTrainer?'':'margin-left:0;'}">
-    <div class="mp-msg-head"><span class="mp-msg-who">${escHtmlSafe(who)}</span><span class="mp-msg-date">${escHtmlSafe(m.date||'')}</span></div>
+    <div class="mp-msg-head"><span class="mp-msg-who">${escHtmlSafe(who)}</span><span class="mp-msg-date">${escHtmlSafe(fmtMsgDate(m.date))}</span></div>
     <div class="mp-msg-body">${escHtmlSafe(m.text)}</div>
   </div>`;
 }
@@ -3861,7 +3961,7 @@ function mpMsgBubble(m, uid){
   const who = isTrainer ? (m.author || 'Trainer') : 'You';
   const isReply = !!m.replyTo;
   return `<div class="mp-msg ${isTrainer?'from-trainer':'from-student'} ${isReply?'is-reply':''}">
-    <div class="mp-msg-head"><span class="mp-msg-who">${escInsight(who)}</span><span class="mp-msg-date">${escInsight(m.date||'')}</span></div>
+    <div class="mp-msg-head"><span class="mp-msg-who">${escInsight(who)}</span><span class="mp-msg-date">${escInsight(fmtMsgDate(m.date))}</span></div>
     <div class="mp-msg-body">${escInsight(m.text)}</div>
   </div>`;
 }
@@ -6039,6 +6139,18 @@ function computeAlerts(){
     let seenCount = 0; try { seenCount = Number(localStorage.getItem('bz_ws_count')||'0'); } catch(e){}
     const newWs = Math.max(0, wsRows.length - seenCount);
     if (newWs > 0) items.push({ type:'worksheet', sig:'worksheet:'+wsRows.length, icon:'✎', title: newWs + ' new worksheet' + (newWs>1?'s':'') + ' submitted', sub: 'New-hire Dispatch Manifest · view in New Hire Worksheets', view:'worksheets' });
+
+    // 5) Unread student messages — requests + feedback replies a trainer hasn't read.
+    const unreadMsgs = (SHEET_MESSAGES || []).filter(m => m.from === 'student' &&
+      String(m.readBy||'').split(',').map(s=>s.trim()).indexOf('trainer') === -1);
+    if (unreadMsgs.length){
+      const whoSet = {}; unreadMsgs.forEach(m => whoSet[m.studentId] = true);
+      const who = Object.keys(whoSet);
+      items.push({ type:'message', sig:'message:'+unreadMsgs.length, icon:'✉️',
+        title: unreadMsgs.length + ' new message' + (unreadMsgs.length>1?'s':'') + ' from students',
+        sub: who.slice(0,3).map(u=>getName(u)||u).join(', ') + (who.length>3?' +'+(who.length-3)+' more':'') + ' · open Messages to reply',
+        view:'messages' });
+    }
   } catch(e){ console.error('computeAlerts error', e); }
 
   // Filter out alerts the trainer already dismissed at this exact signature.
@@ -6052,6 +6164,7 @@ function computeAlerts(){
   _alertItems = items.filter(a => dismissed.indexOf(a.sig) < 0);
   renderAlertBadge();
   renderAlertPanel();
+  try { updateMsgInboxBadge(); } catch(e){}
 }
 // Dismissed-signature store (localStorage).
 function getDismissedAlerts(){
