@@ -289,6 +289,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .mp-tab{background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;color:var(--ink3,#8493a8);cursor:pointer;transition:color .15s;white-space:nowrap;}
 .mp-tab:hover{color:var(--blue,#2e75b6);}
 .mp-tab.active{color:var(--navy,#12233b);border-bottom-color:var(--blue,#2e75b6);}
+.mp-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;margin-left:6px;background:var(--coral,#ff527b);color:#fff;border-radius:9px;font-size:10.5px;font-weight:700;vertical-align:middle;}
 .mp-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px;}
 .mp-stat{background:#fff;border:1.5px solid var(--gray,#e2e8f0);border-radius:14px;padding:16px 18px;}
 .mp-stat-num{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--navy,#12233b);line-height:1;}
@@ -2922,6 +2923,7 @@ function doLogin() {
     const canon = canonicalTrainer(val, first, last);
     if (canon) { currentUserFirst = canon.first; currentUserLast = canon.last; }
     currentUser = val;
+    saveSession('choice', val, currentUserFirst, currentUserLast);
     document.getElementById('choice-name').textContent = currentUserFirst + ' ' + currentUserLast;
     showScreen('screen-choice');
     return;
@@ -2929,6 +2931,44 @@ function doLogin() {
 
   // Everyone else → student training portal
   enterStudentPortal(val, first, last);
+}
+
+// ── Session persistence: stay logged in across page refreshes ──
+// Stores who's logged in + which screen, so a Chrome refresh restores it.
+function saveSession(mode, id, first, last){
+  try {
+    // sessionStorage: survives a page refresh but clears when the tab/browser closes.
+    // Right choice for shared computers — the next person starts at a fresh login.
+    sessionStorage.setItem('bz_session', JSON.stringify({
+      mode: mode,                 // 'student' | 'admin' | 'choice'
+      id: id,
+      first: first || currentUserFirst || '',
+      last: last || currentUserLast || '',
+      ts: Date.now()
+    }));
+  } catch(e){}
+}
+function clearSession(){ try { sessionStorage.removeItem('bz_session'); } catch(e){} }
+// Called once on page load — if a saved session exists (same tab), jump straight back in.
+function restoreSession(){
+  let s = null;
+  try { s = JSON.parse(sessionStorage.getItem('bz_session') || 'null'); } catch(e){ s = null; }
+  if (!s || !s.id) return false;
+  currentUser = s.id;
+  currentUserFirst = s.first || '';
+  currentUserLast  = s.last || '';
+  if (s.mode === 'admin' && matchTrainer(s.id, s.first, s.last)) {
+    enterAdmin();
+    return true;
+  }
+  if (s.mode === 'choice' && matchTrainer(s.id, s.first, s.last)) {
+    document.getElementById('choice-name').textContent = currentUserFirst + ' ' + currentUserLast;
+    showScreen('screen-choice');
+    return true;
+  }
+  // Default: student portal
+  enterStudentPortal(s.id, s.first, s.last);
+  return true;
 }
 
 // Trainer picked "Student Training Portal"
@@ -2945,6 +2985,7 @@ function chooseAdmin() {
 
 function enterStudentPortal(val, first, last) {
   currentUser = val;
+  saveSession('student', val, first, last);
   showScreen('screen-portal');
   // Show "Switch portal" only for trainers
   const sb = document.getElementById('portal-switch-btn');
@@ -2958,24 +2999,27 @@ function enterStudentPortal(val, first, last) {
     loadResults(function(){ try { mergeSheetScoresForUser(val); renderPortal(); } catch(e){} });
     loadMessages(function(){ try { updateProgressAlertDot(); } catch(e){} });
     loadWorksheets(function(){ try { renderDashboard(); } catch(e){} });
-    // Poll for new trainer replies while the student is in the portal, so the
-    // My Progress alert dot appears without needing a page reload.
+    // Poll for new trainer replies + graded results while the student is in the portal,
+    // so alerts and grades appear without a page reload. ~10s cadence.
     if (window._studentMsgPoll) clearInterval(window._studentMsgPoll);
     window._studentMsgPoll = setInterval(function(){
-      // Only poll on the student portal (stop if they've left it).
       const onPortal = document.getElementById('screen-portal') && document.getElementById('screen-portal').classList.contains('active');
-      if (!onPortal){ return; }
+      if (!onPortal){ clearInterval(window._studentMsgPoll); window._studentMsgPoll = null; return; }
+      const typing = document.activeElement && (document.activeElement.classList.contains('mp-reply-input') || document.activeElement.classList.contains('mp-msg-input') || document.activeElement.tagName === 'TEXTAREA');
+      const beforeMsgs = (SHEET_MESSAGES||[]).length;
       loadMessages(function(){
         try {
           updateProgressAlertDot();
-          // If they're currently viewing their messages/feedback, refresh so new replies show live.
           const prg = document.getElementById('portal-progress');
-          if (prg && getComputedStyle(prg).display !== 'none' && (_myProgTab === 'messages' || _myProgTab === 'feedback')){
+          const viewingChat = prg && getComputedStyle(prg).display !== 'none' && (_myProgTab === 'messages' || _myProgTab === 'feedback');
+          if (viewingChat && !typing && (SHEET_MESSAGES||[]).length !== beforeMsgs){
             renderMyProgress(_myProgTab);
           }
         } catch(e){}
       });
-    }, 25000);
+      // Also refresh their own results so a newly-graded exam updates live.
+      loadResults(function(){ try { mergeSheetScoresForUser(currentUser); } catch(e){} });
+    }, 10000);
   } catch(e) { console.error('portal render error:', e); }
 }
 
@@ -2989,6 +3033,7 @@ function backToChoice() {
 }
 
 function enterAdmin() {
+  saveSession('admin', currentUser, currentUserFirst, currentUserLast);
   showScreen('screen-admin');
   if (window._rosterScope === undefined) window._rosterScope = 'active';
   if (window._anScope === undefined) window._anScope = 'all';
@@ -2999,11 +3044,44 @@ function enterAdmin() {
     loadWorksheets(function(){ try { computeAlerts(); } catch(e){} });
     loadMessages(function(){ try { computeAlerts(); } catch(e){} });
     loadClasses(function(){ try { refreshClassDatalist(); renderAdmin(); } catch(e){} });
+    startAdminPoll();
   } catch(e) { console.error('loadResults error:', e); }
+}
+
+// Live polling: keep the admin view fresh (new test submissions, new messages) without
+// a manual reload. Runs only while the admin screen is active. ~10s cadence.
+function startAdminPoll(){
+  if (window._adminPoll) clearInterval(window._adminPoll);
+  window._adminPoll = setInterval(function(){
+    const onAdmin = document.getElementById('screen-admin') && document.getElementById('screen-admin').classList.contains('active');
+    if (!onAdmin){ clearInterval(window._adminPoll); window._adminPoll = null; return; }
+    // Don't disrupt while a trainee modal or grading is open, or while typing a reply.
+    const modalOpen = ['trainee-modal'].some(id => { const e=document.getElementById(id); return e && getComputedStyle(e).display !== 'none'; });
+    const typing = document.activeElement && (document.activeElement.classList.contains('am-reply-input') || document.activeElement.tagName === 'TEXTAREA');
+    // Snapshot to detect changes so we only repaint when something actually changed.
+    const beforeResults = SHEET_RESULTS.length;
+    const beforeMsgs = (SHEET_MESSAGES||[]).length;
+    loadResults(function(){
+      loadMessages(function(){
+        try {
+          const changed = (SHEET_RESULTS.length !== beforeResults) || ((SHEET_MESSAGES||[]).length !== beforeMsgs);
+          computeAlerts();               // always refresh alerts/badges/flash
+          if (changed && !modalOpen && !typing){
+            if (window._adminView === 'messages') renderMessagesInbox();
+            else if (window._adminView === 'analytics') renderAnalytics();
+            else renderAdmin();
+          }
+        } catch(e){}
+      });
+    });
+  }, 10000);
 }
 
 function doLogout() {
   currentUser = null; currentQuiz = null;
+  clearSession();
+  if (window._adminPoll){ clearInterval(window._adminPoll); window._adminPoll = null; }
+  if (window._studentMsgPoll){ clearInterval(window._studentMsgPoll); window._studentMsgPoll = null; }
   document.getElementById('login-id').value = '';
   document.getElementById('login-first').value = '';
   document.getElementById('login-last').value = '';
@@ -3305,16 +3383,22 @@ function updateProgressAlertDot(){
   } else if (dot){ dot.remove(); }
 }
 // When the student opens My Progress (messages or feedback), mark trainer replies read.
-function markTrainerRepliesRead(uid){
+function markTrainerRepliesRead(uid, kind){
   const u = String(uid||currentUser).toUpperCase();
   let changed = false;
   (SHEET_MESSAGES || []).forEach(m => {
-    if (String(m.studentId).toUpperCase() === u && m.from === 'trainer' &&
-        String(m.readBy||'').split(',').map(s=>s.trim()).indexOf(u) === -1){
-      m.readBy = (m.readBy?m.readBy+',':'') + u;
-      postBoardAction({ action:'markMessageRead', msgId:m.msgId, readBy:u });
-      changed = true;
+    if (String(m.studentId).toUpperCase() !== u || m.from !== 'trainer') return;
+    // If a kind is given, only mark replies of that kind read (so opening Messages
+    // doesn't clear the Feedback badge and vice-versa). 'request' also covers legacy blanks.
+    if (kind){
+      const mk = m.kind || 'request';
+      if (kind === 'request' && mk !== 'request') return;
+      if (kind === 'feedback' && mk !== 'feedback') return;
     }
+    if (String(m.readBy||'').split(',').map(s=>s.trim()).indexOf(u) !== -1) return;
+    m.readBy = (m.readBy?m.readBy+',':'') + u;
+    postBoardAction({ action:'markMessageRead', msgId:m.msgId, readBy:u });
+    changed = true;
   });
   if (changed) { try { updateProgressAlertDot(); } catch(e){} }
 }
@@ -3565,24 +3649,67 @@ function renderMyProgress(tab){
     { id:'analytics',label:'My Analytics', icon:'\u{1F4C8}' },
     { id:'messages', label:'Message a Trainer', icon:'\u{2709}\u{FE0F}' }
   ];
+  // Unread trainer replies split by which tab they belong to.
+  const u = String(uid).toUpperCase();
+  const unreadByTab = { messages:0, feedback:0 };
+  (SHEET_MESSAGES || []).forEach(m => {
+    if (String(m.studentId).toUpperCase() !== u) return;
+    if (m.from !== 'trainer') return;
+    if (String(m.readBy||'').split(',').map(s=>s.trim()).indexOf(u) !== -1) return;
+    if (m.kind === 'feedback') unreadByTab.feedback++; else unreadByTab.messages++;
+  });
   let html = `<button class="back-home-btn mp-back" onclick="showPortalHome()">&#8592; Back to home</button>
     <div class="mp-header">
       <div class="mp-header-name">${escInsight(name)}</div>
       <div class="mp-header-sub">Your training progress</div>
     </div>
     <div class="mp-tabs">` +
-    tabs.map(t => `<button class="mp-tab ${_myProgTab===t.id?'active':''}" onclick="renderMyProgress('${t.id}')">${t.icon} ${t.label}</button>`).join('') +
+    tabs.map(t => {
+      const badge = (unreadByTab[t.id] > 0) ? `<span class="mp-tab-badge">${unreadByTab[t.id]}</span>` : '';
+      return `<button class="mp-tab ${_myProgTab===t.id?'active':''}" onclick="renderMyProgress('${t.id}')">${t.icon} ${t.label}${badge}</button>`;
+    }).join('') +
     `</div><div class="mp-body">`;
 
   if (_myProgTab === 'overview')       html += mpOverview(uid);
   else if (_myProgTab === 'results')   html += mpResults(uid);
-  else if (_myProgTab === 'feedback')  { html += mpFeedback(uid); try { markTrainerRepliesRead(uid); } catch(e){} }
+  else if (_myProgTab === 'feedback')  html += mpFeedback(uid);
   else if (_myProgTab === 'analytics') html += mpAnalytics(uid);
-  else if (_myProgTab === 'messages')  { html += mpMessages(uid); try { markTrainerRepliesRead(uid); } catch(e){} }
+  else if (_myProgTab === 'messages')  html += mpMessages(uid);
 
   html += `</div>`;
   el.innerHTML = html;
   try { animateProgressBars(el); } catch(e){}
+  // Mark the just-opened tab's trainer replies as read, then refresh the tab badges.
+  if (_myProgTab === 'messages' || _myProgTab === 'feedback'){
+    const kind = _myProgTab === 'feedback' ? 'feedback' : 'request';
+    setTimeout(() => {
+      markTrainerRepliesRead(uid, kind);
+      // Recompute + repaint the tab badges without re-rendering the whole body.
+      refreshMyProgTabBadges(uid);
+    }, 600);
+  }
+}
+// Recompute the unread-per-tab counts and update just the tab badges in place.
+function refreshMyProgTabBadges(uid){
+  const u = String(uid).toUpperCase();
+  const counts = { messages:0, feedback:0 };
+  (SHEET_MESSAGES || []).forEach(m => {
+    if (String(m.studentId).toUpperCase() !== u || m.from !== 'trainer') return;
+    if (String(m.readBy||'').split(',').map(s=>s.trim()).indexOf(u) !== -1) return;
+    if (m.kind === 'feedback') counts.feedback++; else counts.messages++;
+  });
+  document.querySelectorAll('.mp-tab').forEach(btn => {
+    const onclick = btn.getAttribute('onclick')||'';
+    const mId = onclick.match(/renderMyProgress\('(\w+)'\)/);
+    if (!mId) return;
+    const id = mId[1];
+    const existing = btn.querySelector('.mp-tab-badge');
+    const n = counts[id] || 0;
+    if (n > 0){
+      if (existing) existing.textContent = n;
+      else { const s = document.createElement('span'); s.className='mp-tab-badge'; s.textContent=n; btn.appendChild(s); }
+    } else if (existing){ existing.remove(); }
+  });
 }
 
 // ── Overview: headline stats + module sign-off progress ──
@@ -9176,7 +9303,15 @@ function closeGrading() {
 document.getElementById('login-id').focus();
 // Load latest questions from the sheet in the background (falls back to built-in).
 loadQuestions(function(ok){
-  if (document.getElementById('screen-portal').classList.contains('active')) renderPortal();
+  // Restore a saved login so a page refresh doesn't kick the user back to the login screen.
+  // Done here (after quizzes load) so the portal/admin views have data to render.
+  try {
+    if (!restoreSession()) {
+      if (document.getElementById('screen-portal').classList.contains('active')) renderPortal();
+    }
+  } catch(e){
+    if (document.getElementById('screen-portal').classList.contains('active')) renderPortal();
+  }
 });
 </script>
 
