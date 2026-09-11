@@ -9302,12 +9302,20 @@ function closeGrading() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('login-id').focus();
 // Load latest questions from the sheet in the background (falls back to built-in).
+// Restore a saved login IMMEDIATELY (reads local session only — no network), so a
+// refresh never flashes the login screen. This runs synchronously before data loads.
+let _restoredSession = false;
+try { _restoredSession = restoreSession(); } catch(e){ _restoredSession = false; }
+
+// Then load quizzes/data in the background and re-render whatever view is showing.
 loadQuestions(function(ok){
-  // Restore a saved login so a page refresh doesn't kick the user back to the login screen.
-  // Done here (after quizzes load) so the portal/admin views have data to render.
   try {
-    if (!restoreSession()) {
+    // If a session was restored, refresh the now-visible view with the loaded data.
+    if (_restoredSession) {
       if (document.getElementById('screen-portal').classList.contains('active')) renderPortal();
+      // (admin/choice views already kicked off their own data loads in enter*).
+    } else if (document.getElementById('screen-portal').classList.contains('active')) {
+      renderPortal();
     }
   } catch(e){
     if (document.getElementById('screen-portal').classList.contains('active')) renderPortal();
