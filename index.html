@@ -126,7 +126,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
 /* home 3-card grid */
 .home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;padding-top:0;}
-.home-card{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:20px;padding:1.75rem;cursor:pointer;overflow:hidden;opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;transition:border-color .2s,transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s;}
+.home-card{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:20px;padding:1.75rem;cursor:pointer;overflow:hidden;transition:border-color .2s,transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s;}
+.portal-anim-in .home-card{opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;}
 /* Staggered entrance — each card arrives a beat after the previous */
 .home-card:nth-child(1){animation-delay:.05s;}
 .home-card:nth-child(2){animation-delay:.13s;}
@@ -180,7 +181,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 /* ── Dashboard strip (sits above the home cards) ───────────────────────── */
 .dash{margin-bottom:1.6rem;}
 .dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.2rem;}
-.dash-stat{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:18px;padding:1.1rem 1.3rem;overflow:hidden;opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;}
+.dash-stat{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:18px;padding:1.1rem 1.3rem;overflow:hidden;}
+.portal-anim-in .dash-stat{opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;}
 .dash-stat:nth-child(1){animation-delay:.04s;}.dash-stat:nth-child(2){animation-delay:.10s;}.dash-stat:nth-child(3){animation-delay:.16s;}.dash-stat:nth-child(4){animation-delay:.22s;}
 .dash-stat-label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);}
 .dash-stat-num{font-family:var(--display);font-weight:800;font-size:34px;line-height:1.05;letter-spacing:-.02em;margin-top:.35rem;color:var(--navy);}
@@ -191,7 +193,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .dash-stat-sub{font-size:11.5px;color:var(--ink3);margin-top:.15rem;}
 
 /* Up-next + progress card */
-.dash-next{background:#fff;border:1.5px solid var(--gray);border-radius:18px;padding:1.25rem 1.4rem;opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:.28s;}
+.dash-next{background:#fff;border:1.5px solid var(--gray);border-radius:18px;padding:1.25rem 1.4rem;}
+.portal-anim-in .dash-next{opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:.28s;}
 .dash-next-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;}
 .dash-next-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.55rem;}
 .dash-next-row{display:flex;align-items:center;gap:.9rem;}
@@ -436,7 +439,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 
 /* quiz cards */
 .quiz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:1.2rem;}
-.quiz-card{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:20px;padding:1.6rem;cursor:default;overflow:hidden;opacity:0;transform:translateY(16px);animation:rise .55s cubic-bezier(.2,.8,.2,1) forwards;transition:border-color .2s,transform .2s,box-shadow .2s;}
+.quiz-card{position:relative;background:#fff;border:1.5px solid var(--gray);border-radius:20px;padding:1.6rem;cursor:default;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s;}
+.portal-anim-in .quiz-card{opacity:0;transform:translateY(16px);animation:rise .55s cubic-bezier(.2,.8,.2,1) forwards;}
 .quiz-card:hover{border-color:var(--sky);transform:translateY(-5px);box-shadow:0 20px 45px rgba(37,102,204,.15);}
 .quiz-card::after{content:'';position:absolute;inset:0;border-radius:20px;background:radial-gradient(380px circle at var(--mx,50%) var(--my,0%),rgba(37,102,204,.10),transparent 45%);opacity:0;transition:opacity .25s;pointer-events:none;}
 .quiz-card:hover::after{opacity:1;}
@@ -2987,6 +2991,13 @@ function enterStudentPortal(val, first, last) {
   currentUser = val;
   saveSession('student', val, first, last);
   showScreen('screen-portal');
+  // Play the card entrance animation ONCE on entry, then remove the flag so
+  // subsequent re-renders (polling, data refresh) don't re-trigger it (= no flashing).
+  const portalScreen = document.getElementById('screen-portal');
+  if (portalScreen){
+    portalScreen.classList.add('portal-anim-in');
+    setTimeout(function(){ portalScreen.classList.remove('portal-anim-in'); }, 1200);
+  }
   // Show "Switch portal" only for trainers
   const sb = document.getElementById('portal-switch-btn');
   if (sb) sb.style.display = matchTrainer(val, first, last) ? '' : 'none';
