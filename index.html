@@ -2631,38 +2631,25 @@ function setLockOverride(uid, quizId, state){
 
 // The ordered sequence of trackable quizzes (drives the auto-gate). Matches the order
 // students see: by section, knowledge checks before that section's test/final.
-function quizSequence(){
-  const sectionOrder = ['Basic Indoctrination','General Subjects','Group II Aircraft','All Sections'];
-  const trackable = QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated);
-  const seq = [];
-  sectionOrder.forEach(sec => {
-    const inSec = trackable.filter(q => (q.section||'') === sec);
-    inSec.filter(q => q.type !== 'test').forEach(q => seq.push(q));  // KCs first
-    inSec.filter(q => q.type === 'test').forEach(q => seq.push(q));  // then tests/finals
-  });
-  // Any quizzes in sections not in the list, appended at the end.
-  trackable.filter(q => sectionOrder.indexOf(q.section||'') < 0).forEach(q => seq.push(q));
-  return seq;
+// Is this quiz part of Module 1? (Module 1 is open by default for new students.)
+function isModule1Quiz(q){
+  const m = String(q.mod || '').match(/module\s*0*1\b/i);
+  return !!m;
 }
 
-// Is a quiz locked for a student? Manual override wins; otherwise the auto rule:
-// locked until every quiz before it in the sequence has been COMPLETED (taken).
-// Returns { locked:bool, reason:'override'|'auto'|'', blocker: <quiz or null> }.
+// Is a quiz locked for a student? MANUAL model:
+//   • Default = LOCKED for everything, EXCEPT Module 1 (open so new students can start).
+//   • A trainer's manual override always wins: 'unlocked' opens it, 'locked' locks it
+//     (including locking a Module 1 item if the trainer chooses).
+// Returns { locked:bool, reason:'override'|'default', blocker:null }.
 function getQuizLockState(uid, quizId){
   const override = getLockOverride(uid, quizId);
   if (override === 'unlocked') return { locked:false, reason:'override', blocker:null };
   if (override === 'locked')   return { locked:true,  reason:'override', blocker:null };
-  // Auto rule
-  const seq = quizSequence();
-  const idx = seq.findIndex(q => q.id === quizId);
-  if (idx <= 0) return { locked:false, reason:'auto', blocker:null };   // first item (or not found) is always open
-  const scores = getScores(uid);
-  // find the first earlier quiz not yet completed
-  for (let i = 0; i < idx; i++){
-    const prev = seq[i];
-    if (!scores[prev.id]) return { locked:true, reason:'auto', blocker:prev };
-  }
-  return { locked:false, reason:'auto', blocker:null };
+  // No override → default rule: Module 1 open, everything else locked.
+  const q = QUIZZES.find(x => x.id === quizId);
+  if (q && isModule1Quiz(q)) return { locked:false, reason:'default', blocker:null };
+  return { locked:true, reason:'default', blocker:null };
 }
 
 // Compute a module's competency status for a student.
@@ -4677,16 +4664,12 @@ function renderPortal() {
       // Lock state — a completed quiz is always openable (for retakes); otherwise apply the gate.
       const lock = done ? { locked:false } : getQuizLockState(currentUser, q.id);
       if (lock.locked){
-        const blockerName = lock.blocker ? (lock.blocker.name || lock.blocker.mod) : '';
-        const lockMsg = lock.reason === 'override'
-          ? 'Locked by your instructor. Reach out if you think this should be open.'
-          : (blockerName ? `Complete “${blockerName}” first to unlock this.` : 'Complete the earlier items first to unlock this.');
         html += `<div class="quiz-card is-locked" id="card-${q.id}">
           <div class="qc-lock-badge">&#128274;</div>
           <div class="qc-mod">${q.mod}</div>
           <div class="qc-name">${q.name}</div>
           <div class="qc-sub">${q.sub}</div>
-          <div class="qc-lock-msg">&#128274; ${lockMsg}</div>
+          <div class="qc-lock-msg">&#128274; Locked. Your instructor will unlock this when you're ready for it.</div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">
             ${typeBadge}
             <button class="start-btn locked" disabled>&#128274; Locked</button>
@@ -4889,10 +4872,7 @@ function startQuiz(qid, missedOnly) {
     if (!scores[qid]){
       const lock = getQuizLockState(currentUser, qid);
       if (lock.locked){
-        const blockerName = lock.blocker ? (lock.blocker.name || lock.blocker.mod) : '';
-        alert(lock.reason === 'override'
-          ? 'This is locked by your instructor.'
-          : (blockerName ? 'Locked — complete "' + blockerName + '" first.' : 'Locked — complete the earlier items first.'));
+        alert('This is locked. Your instructor will unlock it when you\'re ready.');
         return;
       }
     }
@@ -8559,27 +8539,23 @@ function anToggle(domId, rowEl) {
 }
 
 // Render the lock control shown next to a quiz in the trainee view.
-// Shows the effective state (Open / Locked) and the override in play, click cycles:
-// Auto → Force-unlock → Force-lock → Auto.
+// Manual model: shows the effective state and toggles Locked ⇄ Unlocked on click.
 function lockControlHtml(uid, q){
-  const override = getLockOverride(uid, q.id);
   const state = getQuizLockState(uid, q.id);
-  let label, cls, title;
-  if (override === 'unlocked'){ label = '🔓 Unlocked'; cls = 'lock-unlocked'; title = 'Force-unlocked by you · click to force-lock'; }
-  else if (override === 'locked'){ label = '🔒 Locked'; cls = 'lock-locked'; title = 'Force-locked by you · click to reset to auto'; }
-  else { // auto
-    if (state.locked){ label = '🔒 Auto-locked'; cls = 'lock-auto-locked'; title = 'Locked by sequence · click to force-unlock'; }
-    else { label = '🔓 Auto-open'; cls = 'lock-auto-open'; title = 'Open by sequence · click to force-unlock'; }
+  const override = getLockOverride(uid, q.id);
+  if (state.locked){
+    // Currently locked (by default or override) → button unlocks it.
+    const note = override === 'locked' ? 'Locked by you' : 'Locked (default)';
+    return `<button class="lock-ctrl lock-locked" title="${note} · click to unlock" onclick="setQuizLock('${uid}','${q.id}',false)">🔒 Locked</button>`;
   }
-  return `<button class="lock-ctrl ${cls}" title="${title}" onclick="cycleLock('${uid}','${q.id}')">${label}</button>`;
+  // Currently open (Module 1 default or override) → button locks it.
+  const note = override === 'unlocked' ? 'Unlocked by you' : 'Open (Module 1)';
+  return `<button class="lock-ctrl lock-unlocked" title="${note} · click to lock" onclick="setQuizLock('${uid}','${q.id}',true)">🔓 Unlocked</button>`;
 }
-// Cycle the override state and refresh the trainee view.
-function cycleLock(uid, quizId){
-  const cur = getLockOverride(uid, quizId);
-  // Auto(null) → unlocked → locked → Auto
-  const next = (cur === null) ? 'unlocked' : (cur === 'unlocked' ? 'locked' : '');
-  setLockOverride(uid, quizId, next);
-  openTrainee(uid);  // re-render
+// Set a quiz locked/unlocked for a student and refresh the trainee view.
+function setQuizLock(uid, quizId, lock){
+  setLockOverride(uid, quizId, lock ? 'locked' : 'unlocked');
+  openTrainee(uid);
 }
 
 // ── Per-trainee detail view (proficiency tracker) ──────────────────────────────
