@@ -2991,13 +2991,10 @@ function enterStudentPortal(val, first, last) {
   currentUser = val;
   saveSession('student', val, first, last);
   showScreen('screen-portal');
-  // Play the card entrance animation ONCE on entry, then remove the flag so
-  // subsequent re-renders (polling, data refresh) don't re-trigger it (= no flashing).
-  const portalScreen = document.getElementById('screen-portal');
-  if (portalScreen){
-    portalScreen.classList.add('portal-anim-in');
-    setTimeout(function(){ portalScreen.classList.remove('portal-anim-in'); }, 1200);
-  }
+  // Play the card entrance animation only on the FIRST render after entry. A one-shot
+  // flag (consumed by renderDashboard) guarantees later re-renders — from data loads or
+  // polling — never re-trigger it, so there's no repeat flash regardless of timing.
+  window._portalFirstAnim = true;
   // Show "Switch portal" only for trainers
   const sb = document.getElementById('portal-switch-btn');
   if (sb) sb.style.display = matchTrainer(val, first, last) ? '' : 'none';
@@ -3232,6 +3229,12 @@ function computeStudentInsights(uid) {
   return { weakSections, missed, studyDays: dayKeys.length, streak };
 }
 function renderDashboard() {
+  // One-shot entrance animation. Only the first render after entering the portal animates;
+  // every later render (data load, polling) is marked so its elements appear instantly.
+  const _animNow = !!window._portalFirstAnim;
+  window._portalFirstAnim = false;
+  const _ps = document.getElementById('screen-portal');
+  if (_ps) _ps.classList.toggle('portal-anim-in', _animNow);
   const el = document.getElementById('portal-dashboard');
   if (!el) return;
   const scores = getScores(currentUser);
