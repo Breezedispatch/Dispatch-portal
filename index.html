@@ -978,6 +978,23 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 /* Analytics — ranked lists */
 .an-card{background:#fff;border:1.5px solid var(--gray);border-radius:16px;padding:1.25rem 1.4rem;margin-bottom:1.5rem;}
 .an-empty{color:var(--ink3);font-size:13px;padding:1rem 0;text-align:center;}
+/* Per-student analytics */
+.an-student-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--gray);}
+.an-student-name{font-family:'Syne',sans-serif;font-weight:800;font-size:19px;color:var(--navy,#12233b);}
+.btn-ghost-sm{background:#fff;border:1.5px solid var(--gray,#cdd9ea);color:var(--blue,#2e75b6);font-family:'Syne',sans-serif;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:9px;cursor:pointer;}
+.btn-ghost-sm:hover{background:var(--blue,#2e75b6);color:#fff;border-color:var(--blue,#2e75b6);}
+.an-row-pct{font-weight:800;font-size:14px;flex:0 0 auto;}
+.an-row-pct.sev-hi{color:#c0392b;} .an-row-pct.sev-md{color:#b8860b;} .an-row-pct.sev-lo{color:#2a9d5c;}
+.an-bar{height:7px;background:#eef2f8;border-radius:8px;overflow:hidden;margin:6px 0 14px;}
+.an-bar-fill{height:100%;border-radius:8px;}
+.an-bar-fill.sev-hi{background:#e8556d;} .an-bar-fill.sev-md{background:#e0a83a;} .an-bar-fill.sev-lo{background:#3fb27a;}
+.an-missq-group{margin-bottom:14px;}
+.an-missq-quiz{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--blue,#2e75b6);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--gray,#eef2f8);}
+.an-missq{background:#fff5f5;border-left:3px solid #e8556d;border-radius:0 8px 8px 0;padding:9px 12px;margin-bottom:7px;}
+.an-missq-q{font-size:13px;color:var(--ink,#1c2b3a);line-height:1.5;}
+.an-missq-ans{font-size:11.5px;color:var(--ink2,#4a5a6a);margin-top:4px;}
+.an-missq-ans .wrong{color:#c0392b;font-weight:600;} .an-missq-ans .right{color:#1d7a45;font-weight:600;}
+.tr-msg-empty{text-align:center;color:var(--ink3,#8493a8);font-size:12.5px;padding:16px 12px;}
 .an-row{display:grid;grid-template-columns:1fr auto;gap:.5rem 1rem;align-items:center;padding:.85rem 0;border-bottom:1px solid var(--gray);}
 .an-row:last-child{border-bottom:none;}
 .an-row-main{min-width:0;}
@@ -1404,8 +1421,14 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
         <select id="an-filter-class" onchange="setAnalyticsClass(this.value)" style="padding:7px 10px;border:1.5px solid var(--gray);border-radius:8px;font-size:12px;font-family:var(--font);color:var(--ink2);">
           <option value="all">All classes</option>
         </select>
+        <span style="font-size:12px;color:var(--ink3);font-weight:600;margin:0 4px 0 12px;align-self:center;">Student:</span>
+        <select id="an-filter-student" onchange="setAnalyticsStudent(this.value)" style="padding:7px 10px;border:1.5px solid var(--gray);border-radius:8px;font-size:12px;font-family:var(--font);color:var(--ink2);min-width:150px;">
+          <option value="">All students (overview)</option>
+        </select>
       </div>
       <div class="admin-summary" id="an-summary"></div>
+      <div id="an-student-view" style="display:none;"></div>
+      <div id="an-aggregate-view">
 
       <div class="admin-section-title">Weakest subjects</div>
       <div class="an-section-note">Sections ranked by how often their questions are missed across all attempts.</div>
@@ -1418,6 +1441,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
       <div class="admin-section-title">Students who may need support</div>
       <div class="an-section-note">Flagged for low average, a failed attempt, or stalled progress. Click a card to open the trainee.</div>
       <div id="an-risk"></div>
+      </div><!-- /an-aggregate-view -->
     </div>
 
     <div id="admin-applicants">
@@ -8304,8 +8328,99 @@ function renderResultsBody(){
     <div class="res-trainers">${trainerHtml}</div>`;
 }
 
+// ── Analytics: per-student filter ──
+function setAnalyticsStudent(uid){ window._anStudent = uid || ''; renderAnalytics(); }
+// Populate the student dropdown from students who have recorded activity, respecting scope/class.
+function syncAnalyticsStudentOptions(){
+  const sel = document.getElementById('an-filter-student');
+  if (!sel) return;
+  const { allStudents } = computeAnalytics();
+  const ids = Object.keys(allStudents).sort((a,b)=> (getName(a)||a).localeCompare(getName(b)||b));
+  const cur = window._anStudent || '';
+  sel.innerHTML = '<option value="">All students (overview)</option>' +
+    ids.map(id => `<option value="${id}" ${id===cur?'selected':''}>${escHtmlSafe(getName(id)||id)}</option>`).join('');
+}
+// Render one student's personal analytics: headline, weak subjects, and every missed question.
+function renderStudentAnalytics(uid){
+  const el = document.getElementById('an-student-view');
+  if (!el) return;
+  const name = getName(uid) || uid;
+  const ins = computeStudentInsights(uid);       // { weakSections, missed, ... }
+  const scores = getScores(uid);
+  // headline stats
+  const tracked = QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated);
+  let taken=0, passed=0; const pcts=[];
+  tracked.forEach(q => { const s=scores[q.id]; if(!s||s.status==='pending')return; taken++; if(s.pass)passed++; if(typeof s.score==='number')pcts.push(s.score); });
+  const avg = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+  const totalMissed = ins.missed.length;
+
+  let h = `<div class="an-student-head">
+      <div class="an-student-name">${escHtmlSafe(name)} <span style="font-weight:400;color:var(--ink3);font-size:13px;">${escHtmlSafe(uid)}</span></div>
+      <button class="btn-ghost-sm" onclick="openTrainee('${escAttr(uid)}')">Open full trainee record →</button>
+    </div>
+    <div class="admin-summary" style="display:grid;">
+      <div class="admin-metric"><div class="admin-metric-label">Checks/tests taken</div><div class="admin-metric-val">${taken}<span style="font-size:15px;color:var(--ink3);">/${tracked.length}</span></div><div class="admin-metric-sub">completed</div></div>
+      <div class="admin-metric"><div class="admin-metric-label">Average score</div><div class="admin-metric-val">${avg!=null?avg+'%':'—'}</div><div class="admin-metric-sub">${passed} passed</div></div>
+      <div class="admin-metric"><div class="admin-metric-label">Questions missed</div><div class="admin-metric-val">${totalMissed}</div><div class="admin-metric-sub">total across attempts</div></div>
+    </div>`;
+
+  // Weak subjects
+  h += `<div class="admin-section-title">${escHtmlSafe(name.split(' ')[0])}'s weakest subjects</div>`;
+  if (!ins.weakSections.length){
+    h += `<div class="an-empty">No missed questions recorded yet — nothing to flag.</div>`;
+  } else {
+    h += `<div class="an-card">` + ins.weakSections.map(s => {
+      const sev = anSeverity(s.pct);
+      return `<div class="an-row"><div class="an-row-main">
+        <div class="an-row-title">${escHtmlSafe(s.sec)}</div>
+        <div class="an-row-sub">${s.misses} missed of ${s.attempts} answers</div>
+      </div><div class="an-row-pct sev-${sev}">${s.pct}%</div></div>
+      <div class="an-bar"><div class="an-bar-fill sev-${sev}" style="width:${s.pct}%"></div></div>`;
+    }).join('') + `</div>`;
+  }
+
+  // Every missed question, grouped by quiz
+  h += `<div class="admin-section-title">Questions ${escHtmlSafe(name.split(' ')[0])} missed</div>`;
+  if (!ins.missed.length){
+    h += `<div class="an-empty">No missed questions yet.</div>`;
+  } else {
+    const byQuiz = {};
+    ins.missed.forEach(m => { const k=(m.mod?m.mod+' · ':'')+(m.name||m.quizId); (byQuiz[k]=byQuiz[k]||[]).push(m); });
+    h += `<div class="an-card">`;
+    Object.keys(byQuiz).forEach(qname => {
+      h += `<div class="an-missq-group"><div class="an-missq-quiz">${escHtmlSafe(qname)}</div>`;
+      byQuiz[qname].forEach(m => {
+        const qtext = String(m.text||'').replace(/<[^>]*>/g,'').slice(0,180);
+        h += `<div class="an-missq">
+          <div class="an-missq-q">${escHtmlSafe(qtext)}</div>
+          ${(!m.written && m.selected!=null) ? `<div class="an-missq-ans">Answered: <span class="wrong">${escHtmlSafe(String(m.selected))}</span>${m.correct?` · Correct: <span class="right">${escHtmlSafe(String(m.correct))}</span>`:''}</div>` : (m.written?`<div class="an-missq-ans">Written answer scored below full marks</div>`:'')}
+        </div>`;
+      });
+      h += `</div>`;
+    });
+    h += `</div>`;
+  }
+  el.innerHTML = h;
+}
+
 function renderAnalytics() {
   syncAnalyticsClassOptions();
+  syncAnalyticsStudentOptions();
+  const sel = window._anStudent || '';
+  const studentView = document.getElementById('an-student-view');
+  const aggView = document.getElementById('an-aggregate-view');
+  const summary = document.getElementById('an-summary');
+  // Per-student mode: show that student's breakdown, hide the aggregate cards.
+  if (sel){
+    if (studentView) studentView.style.display = '';
+    if (aggView) aggView.style.display = 'none';
+    if (summary) summary.style.display = 'none';
+    renderStudentAnalytics(sel);
+    return;
+  }
+  if (studentView) studentView.style.display = 'none';
+  if (aggView) aggView.style.display = '';
+  if (summary) summary.style.display = '';
   const { qStats, secStats, allStudents } = computeAnalytics();
   window._AN = { qStats, secStats, allStudents };  // for drill-down handlers
 
@@ -8691,32 +8806,34 @@ function openTrainee(uid) {
     });
   });
 
-  // ── Messages from this student (single continuous chat) ──
+  // ── Messages with this student (single continuous chat) — always available, so a
+  //    trainer can start a conversation even if the student hasn't messaged yet. ──
   const stuMsgs = messagesForStudent(uid);
-  if (stuMsgs.length){
-    const feed = stuMsgs.slice().sort((a,b)=>(new Date(a.date).getTime()||0)-(new Date(b.date).getTime()||0));
-    body += `<div class="tr-section-title">Messages from ${name||uid} <span style="font-weight:400;color:var(--ink3);font-size:12px;">${stuMsgs.length}</span></div>
-      <div class="msg-student" style="margin-bottom:1rem;">
-        <div class="msg-chat">`;
-    let lastCtx = '__none__';
-    feed.forEach(m => {
-      if (m.kind === 'feedback' && m.context && m.context !== lastCtx){
-        const [qid, qn] = m.context.split('#');
-        const quiz = QUIZZES.find(q => q.id === qid);
-        const label = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
-        body += `<div class="msg-ctx-divider">${label}</div>`;
-        lastCtx = m.context;
-      } else if (m.kind !== 'feedback'){ lastCtx = '__none__'; }
-      body += amMsgBubble(m);
-    });
-    body += `</div>
-        <div class="am-reply-row">
-          <button type="button" class="emoji-btn" onclick="toggleEmojiPicker('am-reply-${escAttr(uid)}', this)" title="Add emoji">😊</button>
-          <input id="am-reply-${uid}" class="am-reply-input" placeholder="Message ${escHtmlSafe((name||uid).split(' ')[0])}…" onkeydown="if(event.key==='Enter'){trainerReplyToStudent('${escAttr(uid)}')}">
-          <button class="am-reply-btn" onclick="trainerReplyToStudent('${escAttr(uid)}')">Send</button>
-        </div>
-      </div>`;
+  const feed = stuMsgs.slice().sort((a,b)=>(new Date(a.date).getTime()||0)-(new Date(b.date).getTime()||0));
+  body += `<div class="tr-section-title">Messages with ${name||uid}${stuMsgs.length?` <span style="font-weight:400;color:var(--ink3);font-size:12px;">${stuMsgs.length}</span>`:''}</div>
+    <div class="msg-student" style="margin-bottom:1rem;">
+      <div class="msg-chat">`;
+  if (!feed.length){
+    body += `<div class="tr-msg-empty">No messages yet. Send ${escHtmlSafe((name||uid).split(' ')[0])} a message below — they'll see a notification when they log in.</div>`;
   }
+  let lastCtx = '__none__';
+  feed.forEach(m => {
+    if (m.kind === 'feedback' && m.context && m.context !== lastCtx){
+      const [qid, qn] = m.context.split('#');
+      const quiz = QUIZZES.find(q => q.id === qid);
+      const label = quiz ? `Re: feedback on ${escHtmlSafe((quiz.mod?quiz.mod+' · ':'')+quiz.name)} · Q${qn}` : `Re: feedback · Q${qn||''}`;
+      body += `<div class="msg-ctx-divider">${label}</div>`;
+      lastCtx = m.context;
+    } else if (m.kind !== 'feedback'){ lastCtx = '__none__'; }
+    body += amMsgBubble(m);
+  });
+  body += `</div>
+      <div class="am-reply-row">
+        <button type="button" class="emoji-btn" onclick="toggleEmojiPicker('am-reply-${escAttr(uid)}', this)" title="Add emoji">😊</button>
+        <input id="am-reply-${uid}" class="am-reply-input" placeholder="Message ${escHtmlSafe((name||uid).split(' ')[0])}…" onkeydown="if(event.key==='Enter'){trainerReplyToStudent('${escAttr(uid)}')}">
+        <button class="am-reply-btn" onclick="trainerReplyToStudent('${escAttr(uid)}')">Send</button>
+      </div>
+    </div>`;
 
   document.getElementById('trainee-body').innerHTML = body;
   document.getElementById('trainee-modal').style.display = 'flex';
