@@ -994,6 +994,23 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .an-missq-q{font-size:13px;color:var(--ink,#1c2b3a);line-height:1.5;}
 .an-missq-ans{font-size:11.5px;color:var(--ink2,#4a5a6a);margin-top:4px;}
 .an-missq-ans .wrong{color:#c0392b;font-weight:600;} .an-missq-ans .right{color:#1d7a45;font-weight:600;}
+.an-missq-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+.an-missq-tags{flex:0 0 auto;display:flex;gap:5px;align-items:center;}
+.an-missq-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:#eef2f8;color:#5a6a80;padding:2px 7px;border-radius:20px;}
+.an-missq-pts{font-size:10.5px;font-weight:700;background:#fff2cc;color:#8a5a00;padding:2px 7px;border-radius:20px;}
+.an-missq-fb{font-size:11.5px;color:#1a4d7a;background:#e5f0fa;border-radius:6px;padding:6px 9px;margin-top:5px;}
+.an-missq-fb strong,.an-missq-ans strong{color:inherit;}
+/* Recommended subjects */
+.an-rec{padding:12px 14px;border:1.5px solid var(--gray,#e8eef6);border-radius:12px;margin-bottom:8px;background:#fafcff;}
+.an-rec:last-child{margin-bottom:0;}
+.an-rec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.an-rec-mod{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--navy,#12233b);}
+.an-rec-sec{font-weight:400;color:var(--ink3,#8493a8);font-size:12px;}
+.an-rec-pri{flex:0 0 auto;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 10px;border-radius:20px;}
+.an-rec-pri.rec-hi{background:#fde7ec;color:#b0344c;} .an-rec-pri.rec-md{background:#fff4e6;color:#8a5a00;}
+.an-rec-sub{font-size:12px;color:var(--ink2,#4a5a6a);margin-top:4px;}
+.an-rec-topics{margin:8px 0 0;padding-left:18px;}
+.an-rec-topics li{font-size:12px;color:var(--ink2,#4a5a6a);line-height:1.5;margin-bottom:2px;}
 .tr-msg-empty{text-align:center;color:var(--ink3,#8493a8);font-size:12.5px;padding:16px 12px;}
 .anq-badge{flex:0 0 auto;font-size:12px;font-weight:700;padding:3px 11px;border-radius:20px;white-space:nowrap;}
 .anq-pass{background:#e3f7ea;color:#1d7a45;} .anq-fail{background:#fde7ec;color:#b0344c;} .anq-pending{background:#fff2cc;color:#8a5a00;}
@@ -2845,6 +2862,8 @@ function buildStudentsFromSheet() {
       submittedAt: r.submittedAt || '',
       writtenPending: Number(r.writtenPending)||0,
       answers: Array.isArray(r.answers) ? r.answers : [],
+      gradePoints: (r.gradePoints && typeof r.gradePoints === 'object') ? r.gradePoints : null,
+      gradeNotes: (r.gradeNotes && typeof r.gradeNotes === 'object') ? r.gradeNotes : null,
       exam: r.exam || ''
     };
     if (!prev) {
@@ -2858,6 +2877,9 @@ function buildStudentsFromSheet() {
       if ((!newer.answers || !newer.answers.length) && older.answers && older.answers.length) {
         merged.answers = older.answers;
       }
+      // Never lose grade points/notes if a newer row (e.g. a re-submit) lacks them.
+      if (!merged.gradePoints && (older.gradePoints || prev.gradePoints)) merged.gradePoints = older.gradePoints || prev.gradePoints;
+      if (!merged.gradeNotes && (older.gradeNotes || prev.gradeNotes)) merged.gradeNotes = older.gradeNotes || prev.gradeNotes;
       students[uid][quizId] = merged;
     }
   });
@@ -3279,20 +3301,42 @@ function computeStudentInsights(uid, scoresOverride) {
     const section = quiz.section || 'Other';
     const defByN = {};
     (quiz.questions || []).forEach(qq => { defByN[qq.n] = qq; });
+    // Written grade points live on the record (from the sheet) or in the SA-grades store.
+    const gp = rec.gradePoints || (typeof getSAGrades === 'function' ? (getSAGrades(uid)[quizId] || {}) : {});
+    const notesStore = rec.gradeNotes || (typeof getSAGrades === 'function' ? (getSAGrades(uid)[quizId + '_notes'] || {}) : {});
+
     rec.answers.forEach(a => {
       const def = defByN[a.q] || {};
       const isWritten = a.written === true || def.written;
-      let miss = null;
+      let miss = null;          // true = counts as missed
+      let awardedInfo = null;   // {awarded, max} for partial-credit display
+
       if (isWritten) {
-        const gp = rec.gradePoints || {};
         const awarded = gp[a.q];
+        // Skip if not yet graded (no points recorded).
         if (awarded === undefined || awarded === '' || awarded === null) return;
         const max = Number(def.pts) || 0;
-        miss = max > 0 ? (Number(awarded) < max) : false;
+        if (max > 0){
+          awardedInfo = { awarded: Number(awarded), max };
+          // Missed if scored at HALF or below.
+          miss = (Number(awarded) / max) <= 0.5;
+        } else {
+          miss = false;
+        }
       } else {
-        miss = !(a.isCorrect === true || a.isCorrect === 'true');
+        // Objective question. If it carries partial points, use the half-or-below rule;
+        // otherwise fall back to the correct/incorrect flag.
+        const max = Number(def.pts) || 0;
+        const awarded = (a.earned != null) ? Number(a.earned) : null;
+        if (max > 0 && awarded != null){
+          awardedInfo = { awarded, max };
+          miss = (awarded / max) <= 0.5;
+        } else {
+          miss = !(a.isCorrect === true || a.isCorrect === 'true');
+        }
       }
       if (miss === null) return;
+
       if (!secStats[section]) secStats[section] = { attempts:0, misses:0 };
       secStats[section].attempts++;
       if (miss) {
@@ -3302,9 +3346,13 @@ function computeStudentInsights(uid, scoresOverride) {
           text: def.text || ('Question ' + a.q),
           section, mod: quiz.mod, name: quiz.name,
           written: !!isWritten,
-          selected: isWritten ? null : (a.selected != null ? String(a.selected) : 'Not answered'),
-          correct: isWritten ? null : (a.correct != null ? String(a.correct) : ''),
-          model: def.model || ''
+          type: isWritten ? 'written' : (a.matching || def.matching ? 'matching' : (a.hotspot || def.hotspot ? 'hotspot' : (a.scenario ? 'scenario' : 'mc'))),
+          selected: isWritten ? (a.selected != null ? String(a.selected) : '') : (a.selected != null ? String(a.selected) : 'Not answered'),
+          correct: isWritten ? '' : (a.correct != null ? String(a.correct) : ''),
+          model: def.model || '',
+          feedback: (notesStore && notesStore[a.q]) ? String(notesStore[a.q]) : '',
+          awarded: awardedInfo ? awardedInfo.awarded : null,
+          max: awardedInfo ? awardedInfo.max : null
         });
       }
     });
@@ -8386,6 +8434,39 @@ function renderStudentAnalytics(uid){
     }).join('') + `</div>`;
   }
 
+  // Recommended subjects to cover — actionable review list built from what they missed,
+  // combining weak sections with the specific modules where misses cluster.
+  h += `<div class="admin-section-title">Recommended subjects to cover</div>`;
+  if (!ins.missed.length){
+    h += `<div class="an-empty">Nothing to recommend — no missed questions on record.</div>`;
+  } else {
+    // Cluster misses by module (mod), count them, and rank.
+    const byMod = {};
+    ins.missed.forEach(m => {
+      const key = m.mod || m.name || 'General';
+      if (!byMod[key]) byMod[key] = { mod:key, section:m.section||'', count:0, topics:{} };
+      byMod[key].count++;
+      // capture a short topic phrase from the question for context
+      const t = String(m.text||'').replace(/<[^>]*>/g,'').trim();
+      if (t) byMod[key].topics[t.slice(0,70)] = true;
+    });
+    const recs = Object.values(byMod).sort((a,b) => b.count - a.count);
+    h += `<div class="an-section-note">Based on ${ins.missed.length} missed question${ins.missed.length!==1?'s':''}. Prioritized by where they're struggling most.</div>`;
+    h += `<div class="an-card">` + recs.map((r,i) => {
+      const pri = i === 0 ? 'Focus here first' : (r.count >= 3 ? 'High priority' : 'Review');
+      const priCls = i === 0 ? 'rec-hi' : (r.count >= 3 ? 'rec-hi' : 'rec-md');
+      const topicList = Object.keys(r.topics).slice(0,3);
+      return `<div class="an-rec">
+        <div class="an-rec-head">
+          <div class="an-rec-mod">${escHtmlSafe(r.mod)}${r.section?` <span class="an-rec-sec">· ${escHtmlSafe(r.section)}</span>`:''}</div>
+          <span class="an-rec-pri ${priCls}">${pri}</span>
+        </div>
+        <div class="an-rec-sub">${r.count} missed question${r.count!==1?'s':''} in this area</div>
+        ${topicList.length?`<ul class="an-rec-topics">${topicList.map(t=>`<li>${escHtmlSafe(t)}</li>`).join('')}</ul>`:''}
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
   // Per-quiz score breakdown (every check/test they've taken, with pass/fail and score)
   const takenQuizzes = tracked.filter(q => scores[q.id]);
   if (takenQuizzes.length){
@@ -8405,7 +8486,7 @@ function renderStudentAnalytics(uid){
   }
 
   // Every missed question, grouped by quiz
-  h += `<div class="admin-section-title">Questions ${escHtmlSafe(name.split(' ')[0])} missed</div>`;
+  h += `<div class="admin-section-title">Questions ${escHtmlSafe(name.split(' ')[0])} missed <span style="font-weight:400;color:var(--ink3);font-size:13px;">${ins.missed.length}</span></div>`;
   if (!ins.missed.length){
     h += `<div class="an-empty">No missed questions yet.</div>`;
   } else {
@@ -8415,10 +8496,20 @@ function renderStudentAnalytics(uid){
     Object.keys(byQuiz).forEach(qname => {
       h += `<div class="an-missq-group"><div class="an-missq-quiz">${escHtmlSafe(qname)}</div>`;
       byQuiz[qname].forEach(m => {
-        const qtext = String(m.text||'').replace(/<[^>]*>/g,'').slice(0,180);
+        const qtext = String(m.text||'').replace(/<[^>]*>/g,'').slice(0,200);
+        const typeTag = { written:'Written', matching:'Matching', hotspot:'Hotspot', scenario:'Scenario', mc:'Multiple choice' }[m.type] || '';
+        const ptsTag = (m.awarded != null && m.max != null) ? `<span class="an-missq-pts">${m.awarded}/${m.max} pts</span>` : '';
+        let ansLine = '';
+        if (m.type === 'written'){
+          ansLine = `${m.selected ? `<div class="an-missq-ans"><strong>Their answer:</strong> ${escHtmlSafe(m.selected)}</div>` : ''}`
+            + `${m.model ? `<div class="an-missq-ans"><strong>Model:</strong> <span class="right">${escHtmlSafe(String(m.model).replace(/<[^>]*>/g,''))}</span></div>` : ''}`
+            + `${m.feedback ? `<div class="an-missq-fb"><strong>Instructor feedback:</strong> ${escHtmlSafe(m.feedback)}</div>` : ''}`;
+        } else if (m.selected != null){
+          ansLine = `<div class="an-missq-ans">Answered: <span class="wrong">${escHtmlSafe(String(m.selected))}</span>${m.correct?` · Correct: <span class="right">${escHtmlSafe(String(m.correct))}</span>`:''}</div>`;
+        }
         h += `<div class="an-missq">
-          <div class="an-missq-q">${escHtmlSafe(qtext)}</div>
-          ${(!m.written && m.selected!=null) ? `<div class="an-missq-ans">Answered: <span class="wrong">${escHtmlSafe(String(m.selected))}</span>${m.correct?` · Correct: <span class="right">${escHtmlSafe(String(m.correct))}</span>`:''}</div>` : (m.written?`<div class="an-missq-ans">Written answer scored below full marks</div>`:'')}
+          <div class="an-missq-top"><span class="an-missq-q">${escHtmlSafe(qtext)}</span><span class="an-missq-tags">${typeTag?`<span class="an-missq-type">${typeTag}</span>`:''}${ptsTag}</span></div>
+          ${ansLine}
         </div>`;
       });
       h += `</div>`;
