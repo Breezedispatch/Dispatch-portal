@@ -995,6 +995,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--ink);-webkit-
 .an-missq-ans{font-size:11.5px;color:var(--ink2,#4a5a6a);margin-top:4px;}
 .an-missq-ans .wrong{color:#c0392b;font-weight:600;} .an-missq-ans .right{color:#1d7a45;font-weight:600;}
 .tr-msg-empty{text-align:center;color:var(--ink3,#8493a8);font-size:12.5px;padding:16px 12px;}
+.anq-badge{flex:0 0 auto;font-size:12px;font-weight:700;padding:3px 11px;border-radius:20px;white-space:nowrap;}
+.anq-pass{background:#e3f7ea;color:#1d7a45;} .anq-fail{background:#fde7ec;color:#b0344c;} .anq-pending{background:#fff2cc;color:#8a5a00;}
 .an-row{display:grid;grid-template-columns:1fr auto;gap:.5rem 1rem;align-items:center;padding:.85rem 0;border-bottom:1px solid var(--gray);}
 .an-row:last-child{border-bottom:none;}
 .an-row-main{min-width:0;}
@@ -3260,8 +3262,10 @@ function scoreBadge(sc) {
 // ── Dashboard strip (stats + up-next + progress) ───────────────────────────────
 // Compute a single student's personal insights: weak sections, most-missed
 // questions, and study momentum. Mirrors the admin analytics logic, scoped to one uid.
-function computeStudentInsights(uid) {
-  const scores = getScores(uid);
+function computeStudentInsights(uid, scoresOverride) {
+  // scoresOverride lets the admin side pass sheet-loaded scores (getAllStudentScores),
+  // since getScores() only reads the *current* user's local cache — not other students'.
+  const scores = scoresOverride || getScores(uid);
   const quizById = {}; QUIZZES.forEach(q => quizById[q.id] = q);
   const secStats = {};   // section -> {attempts, misses}
   const missed = [];     // [{quizId, n, text, section, mod, name, selected, correct}]
@@ -8345,8 +8349,11 @@ function renderStudentAnalytics(uid){
   const el = document.getElementById('an-student-view');
   if (!el) return;
   const name = getName(uid) || uid;
-  const ins = computeStudentInsights(uid);       // { weakSections, missed, ... }
-  const scores = getScores(uid);
+  // Pull this student's scores from the admin (sheet-backed) source — NOT getScores,
+  // which only has the logged-in user's local cache.
+  const allStu = getAllStudentScores();
+  const scores = allStu[uid] || {};
+  const ins = computeStudentInsights(uid, scores);   // { weakSections, missed, ... }
   // headline stats
   const tracked = QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated);
   let taken=0, passed=0; const pcts=[];
@@ -8377,6 +8384,24 @@ function renderStudentAnalytics(uid){
       </div><div class="an-row-pct sev-${sev}">${s.pct}%</div></div>
       <div class="an-bar"><div class="an-bar-fill sev-${sev}" style="width:${s.pct}%"></div></div>`;
     }).join('') + `</div>`;
+  }
+
+  // Per-quiz score breakdown (every check/test they've taken, with pass/fail and score)
+  const takenQuizzes = tracked.filter(q => scores[q.id]);
+  if (takenQuizzes.length){
+    h += `<div class="admin-section-title">Score by quiz</div><div class="an-card">`;
+    takenQuizzes.forEach(q => {
+      const s = scores[q.id];
+      const pending = s.status === 'pending' || s.writtenPending;
+      const badge = pending
+        ? `<span class="anq-badge anq-pending">Awaiting grade</span>`
+        : `<span class="anq-badge ${s.pass?'anq-pass':'anq-fail'}">${typeof s.score==='number'?s.score+'%':'—'} · ${s.pass?'Pass':'Fail'}</span>`;
+      h += `<div class="an-row"><div class="an-row-main">
+        <div class="an-row-title">${escHtmlSafe((q.mod?q.mod+' — ':'')+q.name)}</div>
+        <div class="an-row-sub">${s.date? new Date(s.date).toLocaleDateString() : ''}${q.type==='test'?' · Test/Final':' · Knowledge Check'}</div>
+      </div>${badge}</div>`;
+    });
+    h += `</div>`;
   }
 
   // Every missed question, grouped by quiz
