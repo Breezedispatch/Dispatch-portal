@@ -6933,6 +6933,125 @@ function anSelectedParts(){
   const set = {}; Array.from(boxes).forEach(b => set[b.value] = true);
   return set;
 }
+// Build and open a clean, printable single-trainee report (for handoff to other trainers).
+function printTraineeReport(uid){
+  const name = getName(uid) || uid;
+  const allStu = getAllStudentScores();
+  const scores = allStu[uid] || {};
+  const ins = computeStudentInsights(uid, scores);
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const sevColor = p => p>=40?'#b4123f':(p>=20?'#b8860b':'#0a7d2c');
+
+  // Headline stats
+  const tracked = QUIZZES.filter(q => q.type !== 'practice' && !q.ojtGated);
+  let taken=0, passed=0; const pcts=[];
+  tracked.forEach(q => { const s=scores[q.id]; if(!s||s.status==='pending')return; taken++; if(s.pass)passed++; if(typeof s.score==='number')pcts.push(s.score); });
+  const avg = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+
+  let h = '<html><head><title>Trainee Report — '+esc(name)+'</title><style>'
+    + 'body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:820px;margin:24px auto;padding:0 26px;line-height:1.5;}'
+    + 'h1{font-size:23px;color:#001533;margin:0 0 2px;} .meta{color:#666;font-size:12px;margin-bottom:16px;}'
+    + 'h2{font-size:14px;color:#fff;background:#001533;padding:7px 12px;border-radius:5px;margin:22px 0 10px;}'
+    + '.cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}'
+    + '.card{border:1.5px solid #d6e2f2;border-radius:8px;padding:9px 14px;min-width:120px;}'
+    + '.card-num{font-size:20px;font-weight:bold;color:#001533;} .card-lbl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.04em;}'
+    + 'table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px;} th{background:#eef4fb;text-align:left;padding:6px 8px;font-size:10.5px;color:#001533;border-bottom:2px solid #d6e2f2;}'
+    + 'td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top;} .c{text-align:center;}'
+    + '.pill{display:inline-block;font-size:9.5px;font-weight:bold;padding:1px 7px;border-radius:9px;} .pill-ok{background:#e3f7ea;color:#0a7d2c;} .pill-no{background:#ffe0e7;color:#b4123f;} .pill-warn{background:#fff2cc;color:#8a5a00;}'
+    + '.miss{border-left:3px solid #e8556d;background:#fff5f5;border-radius:0 6px 6px 0;padding:8px 11px;margin-bottom:6px;}'
+    + '.miss-q{font-size:12px;} .miss-ans{font-size:11px;color:#555;margin-top:3px;} .wrong{color:#b4123f;font-weight:bold;} .right{color:#0a7d2c;font-weight:bold;}'
+    + '.miss-fb{font-size:11px;color:#1a4d7a;background:#e5f0fa;border-radius:5px;padding:5px 8px;margin-top:4px;}'
+    + '.rec{border:1.5px solid #e6ecf4;border-radius:8px;padding:9px 12px;margin-bottom:7px;} .rec-mod{font-weight:bold;color:#001533;font-size:13px;} .rec-sub{font-size:11px;color:#555;margin-top:2px;}'
+    + '.rec-topics{margin:5px 0 0;padding-left:18px;font-size:11px;color:#555;}'
+    + '.sig{margin-top:34px;display:flex;gap:40px;} .sig-line{flex:1;border-top:1px solid #999;padding-top:4px;font-size:10.5px;color:#666;}'
+    + '@media print{h2,.pill{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+    + '</style></head><body>';
+
+  h += '<h1>Dispatcher Training Report</h1>';
+  h += '<div class="meta">Breeze Airways · Dispatch Training &amp; Standards · Generated '+today+'</div>';
+  h += '<div style="font-size:16px;font-weight:bold;color:#001533;margin-bottom:2px;">'+esc(name)+' <span style="font-weight:normal;color:#666;font-size:13px;">· ID '+esc(uid)+'</span></div>';
+  const cls = classOf(uid);
+  if (cls) h += '<div style="font-size:12px;color:#666;margin-bottom:8px;">Class: '+esc(cls)+'</div>';
+
+  // Summary cards
+  h += '<h2>Progress Summary</h2><div class="cards">'
+    + '<div class="card"><div class="card-num">'+taken+'/'+tracked.length+'</div><div class="card-lbl">Checks &amp; tests taken</div></div>'
+    + '<div class="card"><div class="card-num">'+(avg!=null?avg+'%':'—')+'</div><div class="card-lbl">Average score</div></div>'
+    + '<div class="card"><div class="card-num">'+passed+'</div><div class="card-lbl">Passed</div></div>'
+    + '<div class="card"><div class="card-num">'+ins.missed.length+'</div><div class="card-lbl">Questions missed</div></div>'
+    + '</div>';
+
+  // Score by quiz
+  const takenQ = tracked.filter(q => scores[q.id]);
+  if (takenQ.length){
+    h += '<h2>Score by Quiz</h2><table><tr><th>Quiz</th><th>Type</th><th class="c">Date</th><th class="c">Result</th></tr>';
+    takenQ.forEach(q => { const s=scores[q.id];
+      const pend = s.status==='pending'||s.writtenPending;
+      const res = pend ? '<span class="pill pill-warn">Awaiting grade</span>'
+        : '<span class="pill '+(s.pass?'pill-ok':'pill-no')+'">'+(typeof s.score==='number'?s.score+'%':'—')+' · '+(s.pass?'Pass':'Fail')+'</span>';
+      h += '<tr><td>'+esc((q.mod?q.mod+' — ':'')+q.name)+'</td><td>'+(q.type==='test'?'Test/Final':'Knowledge Check')+'</td><td class="c">'+(s.date?new Date(s.date).toLocaleDateString():'')+'</td><td class="c">'+res+'</td></tr>';
+    });
+    h += '</table>';
+  }
+
+  // Weakest subjects
+  if (ins.weakSections.length){
+    h += '<h2>Weakest Subjects</h2><table><tr><th>Subject</th><th class="c">Miss rate</th><th class="c">Missed / answered</th></tr>';
+    ins.weakSections.forEach(s => {
+      h += '<tr><td>'+esc(s.sec)+'</td><td class="c" style="color:'+sevColor(s.pct)+';font-weight:bold;">'+s.pct+'%</td><td class="c">'+s.misses+' / '+s.attempts+'</td></tr>';
+    });
+    h += '</table>';
+  }
+
+  // Recommended subjects
+  if (ins.missed.length){
+    const byMod = {};
+    ins.missed.forEach(m => { const k=m.mod||m.name||'General'; if(!byMod[k])byMod[k]={mod:k,section:m.section||'',count:0,topics:{}}; byMod[k].count++; const t=String(m.text||'').replace(/<[^>]*>/g,'').trim(); if(t)byMod[k].topics[t.slice(0,80)]=true; });
+    const recs = Object.values(byMod).sort((a,b)=>b.count-a.count);
+    h += '<h2>Recommended Subjects to Cover</h2>';
+    recs.forEach((r,i) => {
+      const pri = i===0?'Focus here first':(r.count>=3?'High priority':'Review');
+      h += '<div class="rec"><div class="rec-mod">'+esc(r.mod)+(r.section?' <span style="font-weight:normal;color:#888;font-size:11px;">· '+esc(r.section)+'</span>':'')+' <span class="pill '+(i===0||r.count>=3?'pill-no':'pill-warn')+'">'+pri+'</span></div>'
+        + '<div class="rec-sub">'+r.count+' missed question'+(r.count!==1?'s':'')+'</div>'
+        + (Object.keys(r.topics).length?'<ul class="rec-topics">'+Object.keys(r.topics).slice(0,4).map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'')
+        + '</div>';
+    });
+  }
+
+  // Missed questions (all types)
+  if (ins.missed.length){
+    h += '<h2>Questions Missed ('+ins.missed.length+')</h2>';
+    const byQuiz = {};
+    ins.missed.forEach(m => { const k=(m.mod?m.mod+' · ':'')+(m.name||m.quizId); (byQuiz[k]=byQuiz[k]||[]).push(m); });
+    Object.keys(byQuiz).forEach(qn => {
+      h += '<div style="font-weight:bold;color:#2e75b6;font-size:12px;margin:10px 0 5px;">'+esc(qn)+'</div>';
+      byQuiz[qn].forEach(m => {
+        const qtext = String(m.text||'').replace(/<[^>]*>/g,'').slice(0,220);
+        const typeTag = {written:'Written',matching:'Matching',hotspot:'Hotspot',scenario:'Scenario',mc:'Multiple choice'}[m.type]||'';
+        const pts = (m.awarded!=null&&m.max!=null)?' <span class="pill pill-warn">'+m.awarded+'/'+m.max+' pts</span>':'';
+        let ans = '';
+        if (m.type==='written'){
+          ans = (m.selected?'<div class="miss-ans"><b>Their answer:</b> '+esc(m.selected)+'</div>':'')
+            + (m.model?'<div class="miss-ans"><b>Model:</b> <span class="right">'+esc(String(m.model).replace(/<[^>]*>/g,''))+'</span></div>':'')
+            + (m.feedback?'<div class="miss-fb"><b>Instructor feedback:</b> '+esc(m.feedback)+'</div>':'');
+        } else if (m.selected!=null){
+          ans = '<div class="miss-ans">Answered: <span class="wrong">'+esc(String(m.selected))+'</span>'+(m.correct?' · Correct: <span class="right">'+esc(String(m.correct))+'</span>':'')+'</div>';
+        }
+        h += '<div class="miss"><div class="miss-q">'+esc(qtext)+(typeTag?' <span class="pill" style="background:#eef2f8;color:#5a6a80;">'+typeTag+'</span>':'')+pts+'</div>'+ans+'</div>';
+      });
+    });
+  }
+
+  // Signature block for handoff
+  h += '<div class="sig"><div class="sig-line">Reviewing instructor</div><div class="sig-line">Date</div></div>';
+  h += '</body></html>';
+
+  const w = window.open('', '_blank');
+  if (w){ w.document.write(h); w.document.close(); setTimeout(()=>{ try{ w.print(); }catch(e){} }, 400); }
+  else { alert('Please allow pop-ups to print the report.'); }
+}
+
 function generateAnalyticsReport(fmt){
   const status = document.getElementById('rep-an-status');
   const parts = anSelectedParts();
@@ -8411,7 +8530,10 @@ function renderStudentAnalytics(uid){
 
   let h = `<div class="an-student-head">
       <div class="an-student-name">${escHtmlSafe(name)} <span style="font-weight:400;color:var(--ink3);font-size:13px;">${escHtmlSafe(uid)}</span></div>
-      <button class="btn-ghost-sm" onclick="openTrainee('${escAttr(uid)}')">Open full trainee record →</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-ghost-sm" onclick="printTraineeReport('${escAttr(uid)}')">&#128438; Print report</button>
+        <button class="btn-ghost-sm" onclick="openTrainee('${escAttr(uid)}')">Open full trainee record →</button>
+      </div>
     </div>
     <div class="admin-summary" style="display:grid;">
       <div class="admin-metric"><div class="admin-metric-label">Checks/tests taken</div><div class="admin-metric-val">${taken}<span style="font-size:15px;color:var(--ink3);">/${tracked.length}</span></div><div class="admin-metric-sub">completed</div></div>
